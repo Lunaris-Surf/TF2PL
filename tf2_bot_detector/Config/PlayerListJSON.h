@@ -200,6 +200,11 @@ namespace tf2_bot_detector
 
 		mh::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 			FindPlayerData(const SteamID& id) const;
+		/// <summary>
+		/// Yields every player across all loaded playerlists.
+		/// </summary>
+		mh::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
+			GetAllPlayerData() const;
 		mh::generator<std::pair<const ConfigFileName&, PlayerAttributesList>>
 			FindPlayerAttributes(const SteamID& id, AttributePersistence persistence = AttributePersistence::Any) const;
 		PlayerMarks GetPlayerAttributes(const SteamID& id) const;

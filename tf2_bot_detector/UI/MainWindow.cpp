@@ -20,6 +20,7 @@
 #include "Networking/HTTPClient.h"
 #include "SettingsWindow.h"
 #include "Application.h"
+#include "PlayerListExport.h"
 
 #include "ConsoleLog/ConsoleLines/LobbyChangedLine.h"
 #include "ConsoleLog/ConsoleLines/EdictUsageLine.h"
@@ -38,6 +39,7 @@
 #include <srcon/async_client.h>
 
 #include <cassert>
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <string>
@@ -284,6 +286,8 @@ void MainWindow::OnDrawSettings()
 		return;
 	}
 
+	ImGui::SetNextWindowSize({ 720, 520 }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_FirstUseEver, { 0.5f, 0.5f });
 	if (ImGui::Begin("Settings", &b_SettingsOpen)) {
 		m_SettingsWindow->OnDraw();
 		ImGui::End();
@@ -499,6 +503,7 @@ void MainWindow::OnDraw()
 
 	OnDrawUpdateCheckPopup();
 	OnDrawAboutPopup();
+	OnDrawExportWindow();
 
 	{
 		ISetupFlowPage::DrawState ds;
@@ -514,12 +519,6 @@ void MainWindow::OnDraw()
 		return;
 
 	const auto& mainWindowState = m_Settings.m_UIState.m_MainWindow;
-	const bool columnsEnabled = (mainWindowState.m_ChatEnabled && (mainWindowState.m_AppLogEnabled || mainWindowState.m_ScoreboardEnabled));
-
-	// TODO: make this.... not using the columns api.
-	// for now i am lazy.
-	if (columnsEnabled)
-		ImGui::Columns(2, "MainWindowSplit");
 
 	ImGui::HorizontalScrollBox("SettingsScroller", [&]
 		{
@@ -552,6 +551,46 @@ void MainWindow::OnDraw()
 			ImGui::SetHoverTooltip("Prints out all game commands to the log.");
 		});
 
+	OnDrawStats();
+	ImGui::Separator();
+
+	const float availWidth = ImGui::GetContentRegionAvail().x;
+	const float availHeight = ImGui::GetContentRegionAvail().y;
+	constexpr float paneSpacing = 6.0f;
+
+	const bool chatEnabled = mainWindowState.m_ChatEnabled;
+	const bool hasRightPane = mainWindowState.m_ScoreboardEnabled || mainWindowState.m_AppLogEnabled;
+
+	const float chatWidth = chatEnabled
+		? (hasRightPane ? std::max(360.0f, availWidth * 0.34f) : availWidth)
+		: 0.0f;
+	const float rightWidth = hasRightPane
+		? std::max(0.0f, availWidth - chatWidth - (chatEnabled && hasRightPane ? paneSpacing : 0.0f))
+		: 0.0f;
+
+	if (chatEnabled)
+	{
+		ImGui::BeginChild("ChatPane", { chatWidth, availHeight });
+		OnDrawChat();
+		ImGui::EndChild();
+
+		if (hasRightPane)
+			ImGui::SameLine(0, paneSpacing);
+	}
+
+	if (hasRightPane)
+	{
+		ImGui::BeginChild("RightPane", { rightWidth, availHeight });
+		OnDrawScoreboardAndLog();
+		ImGui::EndChild();
+	}
+
+	if (!chatEnabled && !hasRightPane)
+		OnDrawAllPanesDisabled();
+}
+
+void MainWindow::OnDrawStats()
+{
 #ifdef _DEBUG
 	{
 		ImGui::Value("Time (Compensated)", to_seconds<float>(m_Application->GetCurrentTimestampCompensated() - m_Application->m_OpenTime));
@@ -565,7 +604,7 @@ void MainWindow::OnDraw()
 			ImGui::TextFmt({ 1, 1, 0, 1 }, "YES");
 		else
 			ImGui::TextFmt({ 0, 1, 0, 1 }, "NO");
-		
+
 		ImGui::TextFmt("FPS: {:1.1f}", 1000.0f / ImGui::GetIO().Framerate);
 
 		ImGui::Value("Texture Count", m_TextureManager->GetActiveTextureCount());
@@ -602,51 +641,125 @@ void MainWindow::OnDraw()
 	}
 #endif
 
-	ImGui::Value("Blacklisted user count", m_Application->GetModLogic().GetBlacklistedPlayerCount());
-	ImGui::Value("Rule count", m_Application->GetModLogic().GetRuleCount());
-
-	if (m_Application->GetMainState())
 	{
-		auto& world = m_Application->GetWorld();
-		const auto parsedLineCount = m_Application->m_ParsedLineCount;
-		const auto parseProgress = m_Application->GetMainState()->m_Parser.GetParseProgress();
-
-		if (parseProgress < 0.95f)
-		{
-			ImGui::ProgressBar(parseProgress, { 0, 0 }, mh::pfstr<64>("%1.2f %%", parseProgress * 100).c_str());
-			ImGui::SameLine(0, 4);
-		}
-
-		ImGui::Value("Parsed line count", parsedLineCount);
-
-		ImGui::Text("Connected To:");
+		ImGui::Value("Blacklisted user count", m_Application->GetModLogic().GetBlacklistedPlayerCount());
 		ImGui::SameLine();
-		std::string hostname = world.GetServerHostName();
-		if (!hostname.empty()) {
-			ImGui::Text(hostname.c_str());
-		}
-		else {
-			ImGui::TextFmt({ 1, 1, 0, 1 }, "unconnected");
+		ImGui::Value("Rule count", m_Application->GetModLogic().GetRuleCount());
+
+		if (m_Application->GetMainState())
+		{
+			auto& world = m_Application->GetWorld();
+			const auto parsedLineCount = m_Application->m_ParsedLineCount;
+			const auto parseProgress = m_Application->GetMainState()->m_Parser.GetParseProgress();
+
+			if (parseProgress < 0.95f)
+			{
+				ImGui::ProgressBar(parseProgress, { 0, 0 }, mh::pfstr<64>("%1.2f %%", parseProgress * 100).c_str());
+				ImGui::SameLine(0, 4);
+			}
+
+			ImGui::Value("Parsed line count", parsedLineCount);
+			ImGui::SameLine();
+
+			ImGui::Text("Connected To:");
+			ImGui::SameLine();
+			std::string hostname = world.GetServerHostName();
+			if (!hostname.empty())
+				ImGui::Text(hostname.c_str());
+			else
+				ImGui::TextFmt({ 1, 1, 0, 1 }, "unconnected");
 		}
 	}
+}
 
-	//OnDrawServerStats();
-	if (mainWindowState.m_ChatEnabled)
-		OnDrawChat();
+void MainWindow::OnDrawScoreboardAndLog()
+{
+	const auto& mainWindowState = m_Settings.m_UIState.m_MainWindow;
+	const bool scoreboardEnabled = mainWindowState.m_ScoreboardEnabled;
+	const bool appLogEnabled = mainWindowState.m_AppLogEnabled;
 
-	if (columnsEnabled)
-		ImGui::NextColumn();
-
-	if (mainWindowState.m_ScoreboardEnabled)
+	if (scoreboardEnabled)
 		OnDrawScoreboard();
-	if (mainWindowState.m_AppLogEnabled)
+
+	if (appLogEnabled)
+	{
+		const float logHeight = std::max(0.0f, ImGui::GetContentRegionAvail().y - (scoreboardEnabled ? 8.0f : 0.0f));
+		ImGui::BeginChild("AppLogPane", { 0, logHeight });
 		OnDrawAppLog();
+		ImGui::EndChild();
+	}
+}
 
-	if (columnsEnabled)
-		ImGui::Columns();
+void MainWindow::OnDrawExportWindow()
+{
+	if (!m_ExportWindowOpen)
+		return;
 
-	if (!mainWindowState.m_ChatEnabled && !mainWindowState.m_ScoreboardEnabled && !mainWindowState.m_AppLogEnabled)
-		OnDrawAllPanesDisabled();
+	ImGui::SetNextWindowSize({ 520, 300 }, ImGuiCond_Appearing);
+	if (ImGui::Begin("Total Export", &m_ExportWindowOpen))
+	{
+		ImGui::TextWrapped("Combines every loaded playerlist into one merged list, written to cfg/playerlist.export.json. "
+			"Names are filled in and VAC/game/SourceBan markers are refreshed from the APIs. "
+			"Accounts that no longer exist on Steam are removed.");
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		const bool hasExporter = m_PlayerExporter != nullptr;
+		const bool running = hasExporter && m_PlayerExporter->IsRunning();
+
+		ImGui::BeginDisabled(running || !m_Application->GetMainState());
+		if (ImGui::Button(hasExporter ? "Export Again" : "Start Export", { 160, 0 }))
+		{
+			m_PlayerExporter = std::make_unique<PlayerListExporter>(m_Settings, *m_Application->GetModLogic().GetPlayerList());
+			m_PlayerExporter->Start();
+		}
+		ImGui::EndDisabled();
+
+		if (running)
+		{
+			const auto progress = m_PlayerExporter->GetProgress();
+			const float frac = progress.m_Total > 0 ? float(progress.m_Completed) / float(progress.m_Total) : 0.0f;
+
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", { 120, 0 }))
+				m_PlayerExporter->Cancel();
+
+			ImGui::Spacing();
+			ImGui::TextFmt("{}", progress.m_Message);
+			ImGui::ProgressBar(frac, { 0, 0 }, mh::pfstr<64>("%zu / %zu", progress.m_Completed, progress.m_Total).c_str());
+		}
+		else if (hasExporter)
+		{
+			const auto progress = m_PlayerExporter->GetProgress();
+			if (progress.m_Stage == PlayerListExporter::Progress::Stage::Finished ||
+				progress.m_Stage == PlayerListExporter::Progress::Stage::Failed)
+			{
+				const ImVec4 msgColor = progress.m_Stage == PlayerListExporter::Progress::Stage::Failed
+					? ImVec4{ 1, 0.4f, 0.4f, 1 } : ImVec4{ 0.35f, 0.9f, 0.6f, 1 };
+
+				ImGui::Spacing();
+				ImGui::TextFmt(msgColor, "{}", progress.m_Message);
+				ImGui::Separator();
+				ImGui::Spacing();
+
+				const auto StatRow = [](const char* label, size_t value)
+				{
+					ImGui::TextFmt("{}", label);
+					ImGui::SameLine(220);
+					ImGui::TextFmt("{}", value);
+				};
+
+				StatRow("Players exported", progress.m_Total);
+				StatRow("Removed (nonexistent)", progress.m_RemovedNonexistent);
+				StatRow("Names filled in", progress.m_FilledNames);
+				StatRow("VAC banned", progress.m_VACBanned);
+				StatRow("Game banned", progress.m_GameBanned);
+				StatRow("SourceBanned", progress.m_SourceBanned);
+			}
+		}
+	}
+	ImGui::End();
 }
 
 void MainWindow::OnDrawAllPanesDisabled()
@@ -698,6 +811,18 @@ void MainWindow::OnDrawMenuBar()
 				m_Application->GetModLogic().ReloadConfigFiles();
 			if (ImGui::MenuItem("Reload Settings"))
 				m_Settings.LoadFile();
+
+			if (ImGui::MenuItem("Total Export (All Playerlists)..." ))
+			{
+				m_ExportWindowOpen = true;
+				if (m_PlayerExporter && !m_PlayerExporter->IsRunning())
+					m_PlayerExporter.reset();
+				if (!m_PlayerExporter)
+				{
+					m_PlayerExporter = std::make_unique<PlayerListExporter>(m_Settings, *m_Application->GetModLogic().GetPlayerList());
+					m_PlayerExporter->Start();
+				}
+			}
 
 			ImGui::Separator();
 		}

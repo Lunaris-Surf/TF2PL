@@ -388,7 +388,7 @@ bool TF2CommandLinePage::RCONClientData::Update()
 		}
 
 		if (!m_Future.valid())
-			m_Future = m_Client->send_command_async("echo [TF2BD] RCON connection successful.", false);
+			m_Future = m_Client->send_command_async("echo [TF2PL] RCON connection successful.", false);
 	}
 
 	ImGui::TextFmt(m_MessageColor, m_Message);

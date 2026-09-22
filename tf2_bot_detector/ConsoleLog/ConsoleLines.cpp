@@ -91,7 +91,7 @@ void IConsoleLine::AddTypeData(ConsoleLineTypeData data)
 #ifdef TF2BD_ENABLE_TESTS
 #include <catch2/catch.hpp>
 
-TEST_CASE("ProcessChatMessage - Newlines", "[tf2bd]")
+TEST_CASE("ProcessChatMessage - Newlines", "[TF2PL]")
 {
 	const auto TestProcessChatMessage = [](std::string message)
 	{

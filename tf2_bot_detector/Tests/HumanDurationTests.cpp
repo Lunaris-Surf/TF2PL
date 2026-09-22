@@ -10,7 +10,7 @@ using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
 
 /*
-TEST_CASE("tf2bd_humanduration", "[tf2bd]")
+TEST_CASE("tf2bd_humanduration", "[TF2PL]")
 {
 	{
 		std::ostringstream ss;

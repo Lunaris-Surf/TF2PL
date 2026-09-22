@@ -12,6 +12,8 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_sdl2.h>
 
+#include "UI/AppStyle.h"
+
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
@@ -107,6 +109,7 @@ TF2BotDetectorSDLRenderer::TF2BotDetectorSDLRenderer() : TF2BotDetectorRendererB
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
+	tf2_bot_detector::ApplyModernDarkTheme();
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplSDL2_InitForOpenGL(window, gl_context);

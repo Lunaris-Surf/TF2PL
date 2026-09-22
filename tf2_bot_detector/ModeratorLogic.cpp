@@ -473,7 +473,7 @@ void ModeratorLogic::OnLocalPlayerInitialized(IWorldState & world, bool initiali
 			}
 		}
 
-		chatMsg.fmt("[tf2bd] Currently {} players are marked in this lobby.", markedPlayerCount);
+		chatMsg.fmt("[TF2PL] Currently {} players are marked in this lobby.", markedPlayerCount);
 
 		m_ActionManager->QueueAction<PartyChatMessageAction>(chatMsg.str());
 
@@ -929,7 +929,7 @@ void ModeratorLogic::HandleConnectingMarkedPlayers(const std::vector<Cheater>& c
 			fileName = std::filesystem::path(fileName).filename().string();
 		}
 
-		chatMsg.fmt("[tf2bd] WARN: Marked Player ({}) Joining ({} - {}).", username, marksToString(marks), fileName);
+		chatMsg.fmt("[TF2PL] WARN: Marked Player ({}) Joining ({} - {}).", username, marksToString(marks), fileName);
 	}
 	else
 	{
@@ -985,7 +985,7 @@ void ModeratorLogic::HandleConnectingMarkedPlayers(const std::vector<Cheater>& c
 		msg.pop_back();
 		msg.pop_back();
 
-		chatMsg.fmt("[tf2bd] WARN: {} Marked Players Joining. ({})", connectingEnemyCheaters.size(), msg);
+		chatMsg.fmt("[TF2PL] WARN: {} Marked Players Joining. ({})", connectingEnemyCheaters.size(), msg);
 	}
 
 	if (m_ActionManager->QueueAction<PartyChatMessageAction>(chatMsg.str()))
@@ -1318,7 +1318,7 @@ bool ModeratorLogic::InitiateVotekick(const IPlayer& player, KickReason reason, 
 		m_LastVoteCallTime = tfbd_clock_t::now();
 	}
 
-	//m_ActionManager->QueueAction<ChatMessageAction>("[tf2bd] votekicking ", ChatMessageType::PartyChat);
+	//m_ActionManager->QueueAction<ChatMessageAction>("[TF2PL] votekicking ", ChatMessageType::PartyChat);
 
 	return true;
 }

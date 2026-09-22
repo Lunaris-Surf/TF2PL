@@ -33,6 +33,7 @@ namespace tf2_bot_detector
 	class ITexture;
 	class ITextureManager;
 	class IUpdateManager;
+	class PlayerListExporter;
 	class SettingsWindow;
 
 	class MainWindow final
@@ -54,6 +55,10 @@ namespace tf2_bot_detector
 		void OnDrawScoreboard();
 		void OnDrawTeamStats();
 		void OnDrawAllPanesDisabled();
+
+		void OnDrawStats();
+		void OnDrawScoreboardAndLog();
+		void OnDrawExportWindow();
 
 		void OnDrawScoreboardContextMenu(IPlayer& player);
 		void OnDrawScoreboardRow(IPlayer& player);
@@ -109,6 +114,9 @@ namespace tf2_bot_detector
 
 		Settings& m_Settings;
 		std::unique_ptr<SettingsWindow> m_SettingsWindow;
+
+		std::unique_ptr<PlayerListExporter> m_PlayerExporter;
+		bool m_ExportWindowOpen = false;
 
 		/// <summary>
 		/// for "sleep when unfocused" feature.

@@ -292,6 +292,29 @@ auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
 	}
 }
 
+auto PlayerListJSON::GetAllPlayerData() const ->
+	mh::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
+{
+	if (m_CFGGroup.m_UserList.has_value())
+	{
+		for (auto& [id, player] : m_CFGGroup.m_UserList->m_Players)
+			co_yield { m_CFGGroup.m_UserList->GetName(), player };
+	}
+	if (auto list = m_CFGGroup.m_ThirdPartyLists.try_get())
+	{
+		for (auto& file : *list)
+		{
+			for (auto& [id, player] : file.second)
+				co_yield { file.first, player };
+		}
+	}
+	if (auto list = m_CFGGroup.m_OfficialList.try_get())
+	{
+		for (auto& [id, player] : list->m_Players)
+			co_yield { list->GetName(), player };
+	}
+}
+
 auto PlayerListJSON::FindPlayerAttributes(const SteamID& id, AttributePersistence persistence) const ->
 	mh::generator<std::pair<const ConfigFileName&, PlayerAttributesList>>
 {

@@ -236,7 +236,7 @@ void SettingsWindow::OnDrawModerationSettings()
 			if (ImGui::Checkbox("Party Warnings: print a summary on join", &m_Settings.m_AutoChatWarningsConnectingPartyPrintSummary))
 				m_Settings.SaveFile();
 
-			ImGui::SetHoverTooltip("the [tf2bd] Currently x players are marked... message");
+			ImGui::SetHoverTooltip("the [TF2PL] Currently x players are marked... message");
 		}
 
 		ImGui::NewLine();
