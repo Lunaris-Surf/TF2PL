@@ -1,3 +1,5 @@
+# Proper V2 soon
+
 # LunarisV
 
 This fork extends TF2 Bot Detector's v3 player lists with additional built-in tags,
