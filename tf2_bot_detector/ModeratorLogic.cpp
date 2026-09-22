@@ -300,7 +300,7 @@ void ModeratorLogic::ProcessBanMarks()
 		if (!bans->empty() && extra.m_SourceBanRulesProcessed.insert("sourceban-history").second)
 			SetPlayerAttribute(player, PlayerAttribute::SourceBanned, AttributePersistence::Saved, true,
 				fmt::format("[SteamHistory] {} SourceBan record(s); may include expired or revoked bans", bans->size()));
-		for (const auto& ban : *bans)
+		for (const auto& ban : bans.value())
 		{
 			// Revoked bans remain visible as history but do not create behavior labels.
 			if (ban.m_BanState == SteamHistoryAPI::Unbanned || ban.m_BanReason.empty()) continue;
