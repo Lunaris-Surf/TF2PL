@@ -59,7 +59,7 @@ namespace tf2_bot_detector
 			{
 				nlohmann::json attrJson = nlohmann::json::array();
 
-				const auto PushAttribute = [&attrJson](PlayerAttribute attr, const char* name)
+				const auto PushAttribute = [&attrJson, &attrs](PlayerAttribute attr, const char* name)
 				{
 					if (attrs.HasAttribute(attr))
 						attrJson.push_back(name);
