@@ -1,3 +1,13 @@
+# LunarisV
+
+This fork extends TF2 Bot Detector's v3 player lists with additional built-in tags,
+custom tags, automatic ban-history marking, and shared in-game / SourceBan text rules.
+
+See [LUNARISV.md](LUNARISV.md) for setup, tag IDs, rule examples, and validation notes.
+The existing executable names and GitHub Actions are retained for compatibility.
+
+---
+
 <!-- PROJECT SHIELDS -->
 <!--
 *** I'm using markdown "reference style" links for readability.

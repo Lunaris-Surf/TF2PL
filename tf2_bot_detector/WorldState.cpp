@@ -896,7 +896,7 @@ auto WorldState::PlayerSourceBansUpdateAction::SendRequest(state_type& state,
 	if (!client)
 		return {};
 
-	if (!state->GetSettings().m_AllowInternetUsage || !state->GetSettings().m_EnableSteamHistoryIntegration || state->GetSettings().GetSteamHistoryAPIKey().empty())
+	if (!state->GetSettings().m_AllowInternetUsage.value_or(false) || !state->GetSettings().m_EnableSteamHistoryIntegration || state->GetSettings().GetSteamHistoryAPIKey().empty())
 	{
 		for (auto& entry : collection)
 		{
@@ -910,9 +910,9 @@ auto WorldState::PlayerSourceBansUpdateAction::SendRequest(state_type& state,
 		return {};
 	}
 
-	std::vector<SteamID> steamIDs = Take100(collection);
+	m_Requested = Take100(collection);
 
-	return SteamHistoryAPI::GetPlayerSourceBansAsync(state->GetSettings().GetSteamHistoryAPIKey(), std::move(steamIDs), *client);
+	return SteamHistoryAPI::GetPlayerSourceBansAsync(state->GetSettings().GetSteamHistoryAPIKey(), m_Requested, *client);
 }
 
 void WorldState::PlayerSourceBansUpdateAction::OnDataReady(state_type& state,
@@ -920,7 +920,7 @@ void WorldState::PlayerSourceBansUpdateAction::OnDataReady(state_type& state,
 {
 	DebugLog("[SteamHistory] Received {} player's bans", response.size());
 
-	for (const auto& steamID : collection) {
+	for (const auto& steamID : m_Requested) {
 		auto& player = state->FindOrCreatePlayer(steamID);
 		// SteamHistoryAPI::PlayerSourceBans
 
@@ -939,7 +939,7 @@ void WorldState::PlayerSourceBansUpdateAction::OnDataReady(state_type& state,
 			for (const auto& ban : bans) {
 				// we didn't store this server, or this ban is newer than the one we already stored.
 				if (banState.find(ban.m_Server) == banState.end() || banState.at(ban.m_Server).m_BanTimestamp < ban.m_BanTimestamp) {
-					banState.insert(std::pair(ban.m_Server, ban));
+					banState.insert_or_assign(ban.m_Server, ban);
 				}
 			}
 
@@ -954,5 +954,6 @@ void WorldState::PlayerSourceBansUpdateAction::OnDataReady(state_type& state,
 	// any other users are either errors (and we should reattempt)
 	// or doesn't have a ban, so we can safely clear our queue.
 	// FIXME: ask XVF so it returns keys at least for users with no bans
-	collection.clear();
+	for (const auto& id : m_Requested) collection.erase(id);
+	m_Requested.clear();
 }

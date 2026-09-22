@@ -23,7 +23,7 @@
 
 using namespace std::string_literals;
 
-static std::string version_string = fmt::format(FMT_COMPILE("TF2 Bot Detector v{} (sleepybuild/External)"), BD_VERSION);
+static std::string version_string = fmt::format(FMT_COMPILE("LunarisV v{} (External)"), BD_VERSION);
 
 TF2BotDetectorSDLRenderer::TF2BotDetectorSDLRenderer() : TF2BotDetectorRendererBase()
 {

@@ -106,7 +106,7 @@ void PlayerListManagementWindow::DrawFileEntries(const PlayerListJSON::PlayerLis
 				ImGui::Text("Local List");
 			}
 			else {
-				ImGui::Text(filename.c_str());
+				ImGui::TextUnformatted(filename.c_str());
 			}
 		}
 
@@ -115,7 +115,7 @@ void PlayerListManagementWindow::DrawFileEntries(const PlayerListJSON::PlayerLis
 			const auto& last_seen = player.m_LastSeen.value();
 
 			if (!last_seen.m_PlayerName.empty()) {
-				ImGui::Text(last_seen.m_PlayerName.c_str());
+				ImGui::TextUnformatted(last_seen.m_PlayerName.c_str());
 			}
 			else {
 				ImGui::TextFmt({ 1, 1, 0, 1 }, "Unknown");
@@ -137,7 +137,7 @@ void PlayerListManagementWindow::DrawFileEntries(const PlayerListJSON::PlayerLis
 
 			if (ImGui::BeginChild(id.c_str(), ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX)) {
 				for (auto proof : player.m_Proof) {
-					ImGui::Text(proof.get<std::string>().c_str());
+					ImGui::TextUnformatted((proof.is_string() ? proof.get<std::string>() : proof.dump()).c_str());
 				}
 			}
 			ImGui::EndChild();

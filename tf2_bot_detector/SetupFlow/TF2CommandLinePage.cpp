@@ -518,7 +518,7 @@ void TF2CommandLinePage::DrawCommandLineArgsInvalid(const DrawState& ds, const T
 	{
 		ImGui::TextFmt({ 1, 1, 0, 1 }, "Invalid TF2 command line arguments.");
 		ImGui::NewLine();
-		ImGui::TextFmt("TF2 must be launched via TF2 Bot Detector. Please close it, then open it again with the button below.");
+		ImGui::TextFmt("TF2 must be launched via LunarisV. Please close it, then open it again with the button below.");
 		ImGui::EnabledSwitch(false, [&] { DrawLaunchTF2Button(ds); }, "TF2 is currently running. Please close it first.");
 
 		ImGui::NewLine();
@@ -576,7 +576,7 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 			}
 
 			m_Data.m_TestRCONClient.reset();
-			ImGui::TextFmt("TF2 must be launched via TF2 Bot Detector. You can open it by clicking the button below.");
+			ImGui::TextFmt("TF2 must be launched via LunarisV. You can open it by clicking the button below.");
 
 			DrawLaunchTF2Button(ds);
 

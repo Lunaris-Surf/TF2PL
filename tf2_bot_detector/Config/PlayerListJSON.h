@@ -12,6 +12,8 @@
 #include <filesystem>
 #include <map>
 #include <optional>
+#include <set>
+#include <string>
 
 namespace tf2_bot_detector
 {
@@ -21,7 +23,7 @@ namespace tf2_bot_detector
 	/// a player's attributes:
 	/// exploiter, cheater, etc.
 	///
-	/// TODO: custom attributes defined by user?
+	/// Custom attributes use the custom: namespace in the same JSON array.
 	/// </summary>
 	enum class PlayerAttribute
 	{
@@ -30,6 +32,13 @@ namespace tf2_bot_detector
 		Exploiter,
 		Racist,
 
+		SuspectedCheater,
+		Blacklisted,
+		VACBanned,
+		GameBanned,
+		SourceBanned,
+		Pedophilia,
+
 		COUNT,
 	};
 
@@ -37,7 +46,7 @@ namespace tf2_bot_detector
 	{
 		using bits_t = std::bitset<size_t(PlayerAttribute::COUNT)>;
 
-		constexpr PlayerAttributesList() = default;
+		PlayerAttributesList() = default;
 		explicit PlayerAttributesList(const bits_t& bits) : m_Bits(bits) {}
 		PlayerAttributesList(const std::initializer_list<PlayerAttribute>& attributes);
 		PlayerAttributesList(PlayerAttribute attribute);
@@ -48,32 +57,46 @@ namespace tf2_bot_detector
 
 		friend PlayerAttributesList operator|(const PlayerAttributesList& lhs, const PlayerAttributesList& rhs)
 		{
-			return PlayerAttributesList(lhs.m_Bits | rhs.m_Bits);
+			auto result = lhs;
+			result |= rhs;
+			return result;
 		}
 		friend PlayerAttributesList& operator|=(PlayerAttributesList& lhs, const PlayerAttributesList& rhs)
 		{
 			lhs.m_Bits |= rhs.m_Bits;
+			lhs.m_CustomTags.insert(rhs.m_CustomTags.begin(), rhs.m_CustomTags.end());
 			return lhs;
 		}
 		friend PlayerAttributesList operator&(const PlayerAttributesList& lhs, const PlayerAttributesList& rhs)
 		{
-			return PlayerAttributesList(lhs.m_Bits & rhs.m_Bits);
+			auto result = lhs;
+			result &= rhs;
+			return result;
 		}
 		friend PlayerAttributesList& operator&=(PlayerAttributesList& lhs, const PlayerAttributesList& rhs)
 		{
 			lhs.m_Bits &= rhs.m_Bits;
+			std::erase_if(lhs.m_CustomTags, [&](const auto& tag) { return !rhs.m_CustomTags.contains(tag); });
 			return lhs;
 		}
 
 		bool operator==(const PlayerAttributesList&) const = default;
 
-		bool empty() const { return m_Bits.none(); }
-		std::size_t count() const { return m_Bits.count(); }
-		explicit operator bool() const { return m_Bits.any(); }
+		bool empty() const { return m_Bits.none() && m_CustomTags.empty(); }
+		std::size_t count() const { return m_Bits.count() + m_CustomTags.size(); }
+		explicit operator bool() const { return !empty(); }
+
+		static bool IsValidCustomTag(const std::string& tag);
+		bool SetCustomTag(const std::string& tag, bool set = true);
+		const std::set<std::string>& GetCustomTags() const { return m_CustomTags; }
 
 	private:
 		bits_t m_Bits;
+		std::set<std::string> m_CustomTags;
 	};
+
+	void to_json(nlohmann::json& j, const PlayerAttributesList& d);
+	void from_json(const nlohmann::json& j, PlayerAttributesList& d);
 
 	inline PlayerAttributesList operator|(PlayerAttribute lhs, PlayerAttribute rhs)
 	{
@@ -186,6 +209,9 @@ namespace tf2_bot_detector
 		ModifyPlayerResult ModifyPlayer(const SteamID& id,
 			const std::function<ModifyPlayerAction(PlayerListData& data)>& func);
 
+		std::set<std::string> GetCustomTags() const;
+		PlayerAttributesList GetEditablePlayerAttributes(const SteamID& id) const;
+
 		size_t GetPlayerCount() const { return m_CFGGroup.size(); }
 
 	private:
@@ -237,6 +263,12 @@ MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::PlayerAttribute)
 	MH_ENUM_REFLECT_VALUE(Exploiter)
 	MH_ENUM_REFLECT_VALUE(Racist)
 	MH_ENUM_REFLECT_VALUE(Suspicious)
+	MH_ENUM_REFLECT_VALUE(SuspectedCheater)
+	MH_ENUM_REFLECT_VALUE(Blacklisted)
+	MH_ENUM_REFLECT_VALUE(VACBanned)
+	MH_ENUM_REFLECT_VALUE(GameBanned)
+	MH_ENUM_REFLECT_VALUE(SourceBanned)
+	MH_ENUM_REFLECT_VALUE(Pedophilia)
 MH_ENUM_REFLECT_END()
 
 template<typename CharT>
@@ -259,6 +291,13 @@ struct fmt::formatter<tf2_bot_detector::PlayerAttributesList, CharT>
 				it = fmt::format_to(it, FMT_STRING(", "));
 
 			it = fmt::format_to(it, FMT_STRING("{:v}"), mh::enum_fmt(thisAttr));
+			printed = true;
+		}
+
+		for (const auto& tag : list.GetCustomTags())
+		{
+			if (printed) it = fmt::format_to(it, FMT_STRING(", "));
+			it = fmt::format_to(it, FMT_STRING("{}"), tag);
 			printed = true;
 		}
 

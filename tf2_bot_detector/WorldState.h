@@ -247,6 +247,7 @@ namespace tf2_bot_detector
 			response_future_type SendRequest(state_type& state, queue_collection_type& collection) override;
 			void OnDataReady(state_type& state, const response_type& response,
 				queue_collection_type& collection) override;
+			std::vector<SteamID> m_Requested;
 		} m_PlayerSourceBansUpdates;
 
 		std::string m_ServerHostName;

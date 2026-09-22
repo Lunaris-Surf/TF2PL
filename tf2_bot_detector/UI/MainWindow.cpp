@@ -325,7 +325,7 @@ void MainWindow::OnDrawAboutPopup()
 	{
 		ImGui::PushTextWrapPos();
 
-		ImGui::TextFmt("TF2 Bot Detector v{}\n"
+		ImGui::TextFmt("LunarisV v{}\n"
 			"\n"
 			"Automatically detects and votekicks cheaters in Team Fortress 2 Casual.\n"
 			"\n"
@@ -335,7 +335,7 @@ void MainWindow::OnDrawAboutPopup()
 
 		ImGui::NewLine();
 
-		ImGui::Text("You are currently using Sleepy's build - forked from tf2bd release 1.2.1\n(commit 44f7a803d5dce93ad4f8aa9f1fd83b4ffffae625)");
+		ImGui::Text("LunarisV - based on TF2 Bot Detector and the custom fork.\nExpanded player tags and shared chat / SourceBan rules.");
 #ifdef __linux__
 		ImGui::Text("- (Linux ver)");
 #endif
@@ -546,6 +546,7 @@ void MainWindow::OnDraw()
 			ModerationCheckbox("Enable Chat Warnings (Party)", m_Settings.m_AutoChatWarningsConnectingParty, "Enables party message warnings about cheaters.");
 			ModerationCheckbox("Enable Auto Votekick", m_Settings.m_AutoVotekick, "Automatically votekicks cheaters on your team.");
 			ModerationCheckbox("Enable Auto-mark", m_Settings.m_AutoMark, "Automatically marks players matching the detection rules.");
+			ModerationCheckbox("Auto-mark ban records", m_Settings.m_AutoMarkBans, "Requires Auto-mark. Marks VAC/game ban history and SourceBans; scans SourceBan reasons with rules whose sources include sourcebans. Requires the relevant API integration.");
 
 			ImGui::Checkbox("Show Commands", &m_Settings.m_Unsaved.m_DebugShowCommands); ImGui::SameLine();
 			ImGui::SetHoverTooltip("Prints out all game commands to the log.");
@@ -790,7 +791,7 @@ void MainWindow::OnDrawMenuBar()
 
 		ImGui::Separator();
 
-		if (ImGui::MenuItem("About TF2 Bot Detector"))
+		if (ImGui::MenuItem("About LunarisV"))
 			OpenAboutPopup();
 
 		ImGui::EndMenu();
@@ -828,7 +829,7 @@ void MainWindow::Draw()
 	ImGui::PushFont(GetFontPointer(m_Settings.m_Theme.m_Font));
 	ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
 
-	if (ImGui::Begin("TF2 Bot Detector", 0, bd_external_flags)) {
+	if (ImGui::Begin("LunarisV", 0, bd_external_flags)) {
 		this->OnDraw();
 		ImGui::End();
 	}

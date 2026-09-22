@@ -108,6 +108,12 @@ namespace tf2_bot_detector
 			{ "triggers", d.m_Triggers },
 			{ "actions", d.m_Actions },
 		};
+		if (!d.m_MatchChat || d.m_MatchSourceBans)
+		{
+			j["sources"] = nlohmann::json::array();
+			if (d.m_MatchChat) j["sources"].push_back("chat");
+			if (d.m_MatchSourceBans) j["sources"].push_back("sourcebans");
+		}
 	}
 
 	void from_json(const nlohmann::json& j, TriggerMatchMode& d)
@@ -194,6 +200,19 @@ namespace tf2_bot_detector
 
 	void from_json(const nlohmann::json& j, ModerationRule& d)
 	{
+		d.m_MatchChat = true;
+		d.m_MatchSourceBans = false;
+		if (auto sources = j.find("sources"); sources != j.end())
+		{
+			if (!sources->is_array() || sources->empty()) throw std::invalid_argument("Rule sources must be a nonempty array");
+			d.m_MatchChat = false;
+			for (const auto& source : *sources)
+			{
+				if (source == "chat") d.m_MatchChat = true;
+				else if (source == "sourcebans") d.m_MatchSourceBans = true;
+				else throw std::invalid_argument("Unknown rule source");
+			}
+		}
 		d.m_Description = j.at("description");
 		d.m_Triggers = j.at("triggers");
 		d.m_Actions = j.at("actions");
@@ -545,8 +564,15 @@ static constexpr void RunTests()
 	static_assert(!MatchRules(TriggerMatchMode::MatchAny, unset, unset, unset));
 }
 
-bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMsg) const
+bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMsg, const std::string_view& banReason) const
 {
+	// SourceBan records reuse the chat text matcher and all ordinary rule actions.
+	// Require that matcher to match, even for match_any name/avatar rules.
+	const bool sourceBan = !banReason.empty();
+	if (sourceBan && (!m_MatchSourceBans || !m_Triggers.m_ChatMsgTextMatch ||
+		!m_Triggers.m_ChatMsgTextMatch->Match(banReason))) return false;
+	if (!sourceBan && !m_MatchChat) return false;
+	const auto& text = sourceBan ? banReason : chatMsg;
 	const auto usernameMatch = [&]()
 	{
 		if (!m_Triggers.m_UsernameTextMatch)
@@ -582,10 +608,10 @@ bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMs
 		if (!m_Triggers.m_ChatMsgTextMatch)
 			return MatchResult::Unset;
 
-		if (chatMsg.empty())
+		if (text.empty())
 			return MatchResult::NoMatch;
 
-		if (!m_Triggers.m_ChatMsgTextMatch->Match(chatMsg))
+		if (!m_Triggers.m_ChatMsgTextMatch->Match(text))
 			return MatchResult::NoMatch;
 
 		return MatchResult::Match;
@@ -615,6 +641,7 @@ bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMs
 
 bool ModerationRule::Match(const std::string_view& chatMsg) const
 {
+	if (!m_MatchChat) return false;
 	const auto chatMsgMatch = [&]()
 	{
 		if (!m_Triggers.m_ChatMsgTextMatch)

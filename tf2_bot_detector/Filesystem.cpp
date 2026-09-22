@@ -39,7 +39,7 @@ namespace
 		void EnsureInit(MH_SOURCE_LOCATION_AUTO(location)) const;
 
 		static constexpr char NON_PORTABLE_MARKER[] = ".non_portable";
-		static constexpr char APPDATA_SUBFOLDER[] = "TF2 Bot Detector";
+		static constexpr char APPDATA_SUBFOLDER[] = "LunarisV";
 		std::vector<std::filesystem::path> m_SearchPaths;
 
 		mh::thread_sentinel m_Sentinel;

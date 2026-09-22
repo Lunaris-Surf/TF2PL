@@ -57,6 +57,8 @@ namespace tf2_bot_detector
 		virtual bool SetPlayerAttribute(const IPlayer& id, PlayerAttribute markType, AttributePersistence persistence, bool set = true, std::string proof = "") = 0;
 		virtual bool SetPlayerAttribute(const SteamID& id, std::string name, PlayerAttribute markType, AttributePersistence persistence, bool set = true, std::string proof = "") = 0;
 
+		virtual bool SetPlayerCustomTag(const SteamID& id, const std::string& name, const std::string& tag, AttributePersistence persistence, bool set = true, const std::string& proof = {}) = 0;
+
 		virtual TeamShareResult GetTeamShareResult(const SteamID& id) const = 0;
 
 		virtual const IPlayer* GetBotLeader() const = 0;

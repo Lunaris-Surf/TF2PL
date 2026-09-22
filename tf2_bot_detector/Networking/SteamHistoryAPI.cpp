@@ -9,6 +9,8 @@
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
 #include <nlohmann/json.hpp>
+#include <charconv>
+#include <stdexcept>
 
 /// <summary>
 /// gets sourcebans from XVF's steamhistory site.
@@ -42,17 +44,11 @@ mh::task<tf2_bot_detector::SteamHistoryAPI::PlayerSourceBansResponse>
 	auto clientPtr = client.shared_from_this();
 	const std::string data = co_await clientPtr->GetStringAsync(requestURL);
 
-	nlohmann::json json;
-	try
-	{
-		json = nlohmann::json::parse(data);
-	}
-	catch (...)
-	{
-		// TODO
-	}
-
-	co_return json.at("response").get<PlayerSourceBansResponse>();
+	// Do not turn malformed/error responses into an empty successful ban history.
+	const auto json = nlohmann::json::parse(data);
+	const auto& response = json.at("response");
+	if (!response.is_object()) throw std::runtime_error("Invalid SteamHistory response");
+	co_return response.get<PlayerSourceBansResponse>();
 }
 
 
@@ -66,49 +62,65 @@ void tf2_bot_detector::SteamHistoryAPI::from_json(const nlohmann::json& j, BanSt
 	else if (j == "Unbanned") {
 		d = BanState::Unbanned;
 	}
-	else {
+	else if (j == "Expired") {
 		d = BanState::Expired;
 	}
+	else {
+		throw std::invalid_argument("Unknown SteamHistory ban state");
+	}
 }
 
-void tf2_bot_detector::SteamHistoryAPI::from_json(const nlohmann::json& j, PlayerSourceBan& d) {
-	d = {};
+namespace
+{
+	std::string OptionalText(const nlohmann::json& json, const char* key)
+	{
+		const auto found = json.find(key);
+		return found != json.end() && found->is_string() ? found->get<std::string>() : std::string{};
+	}
 
+	tf2_bot_detector::time_point_t ReadTimestamp(const nlohmann::json& json, const char* key)
+	{
+		const auto found = json.find(key);
+		if (found == json.end() || found->is_null() || *found == "") return {};
+		std::int64_t seconds = 0;
+		if (found->is_string())
+		{
+			const auto value = found->get<std::string>();
+			const auto parsed = std::from_chars(value.data(), value.data() + value.size(), seconds);
+			if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size())
+				throw std::invalid_argument("Invalid SteamHistory timestamp");
+		}
+		else if (found->is_number_integer()) seconds = found->get<std::int64_t>();
+		else throw std::invalid_argument("Invalid SteamHistory timestamp type");
+		// Bound the conversion before converting seconds to the system clock's finer duration.
+		if (seconds < 0 || seconds > 7258118400LL) throw std::invalid_argument("SteamHistory timestamp out of range");
+		return tf2_bot_detector::time_point_t(std::chrono::seconds(seconds));
+	}
+}
+
+void tf2_bot_detector::SteamHistoryAPI::from_json(const nlohmann::json& j, PlayerSourceBan& d)
+{
+	d = {};
 	d.m_ID = j.at("SteamID");
-
-	// HOW CAN NAME BE NULL WTF
-	if (j.at("Name").is_string()) {
-		d.m_UserName = j.at("Name");
-	}
-
+	d.m_UserName = OptionalText(j, "Name");
 	d.m_BanState = j.at("CurrentState").get<BanState>();
-
-	if (j.at("BanReason").is_string()) {
-		d.m_BanReason = j.at("BanReason");
-	}
-
-	if (j.at("UnbanReason").is_string()) {
-		d.m_UnbanReason = j.at("UnbanReason");
-	}
-
-	// it's epoch time.... in string format.
-	if (auto found = j.find("BanTimestamp"); found != j.end()) {
-		d.m_BanTimestamp = std::chrono::system_clock::time_point(std::chrono::seconds(found->get<std::int64_t>()));
-	}
-
-	if (auto found = j.find("UnbanTimestamp"); found != j.end()) {
-		d.m_UnbanTimestamp = std::chrono::system_clock::time_point(std::chrono::seconds(found->get<std::int64_t>()));
-	}
-
-	d.m_Server = j.at("Server");
+	d.m_BanReason = OptionalText(j, "BanReason");
+	d.m_UnbanReason = OptionalText(j, "UnbanReason");
+	d.m_BanTimestamp = ReadTimestamp(j, "BanTimestamp");
+	d.m_UnbanTimestamp = ReadTimestamp(j, "UnbanTimestamp");
+	d.m_Server = OptionalText(j, "Server");
 }
 
-
-void tf2_bot_detector::SteamHistoryAPI::from_json(const nlohmann::json& j, PlayerSourceBansResponse& d) {
-	d = {};
-
-	for (auto iter = j.items().begin(); iter != j.items().end(); iter++) {
-		PlayerSourceBans bans = iter.value();
-		d.insert(std::make_pair(SteamID(iter.key()), bans));
+void tf2_bot_detector::SteamHistoryAPI::from_json(const nlohmann::json& j, PlayerSourceBansResponse& d)
+{
+	if (!j.is_object()) throw std::invalid_argument("Invalid SteamHistory response");
+	d.clear();
+	for (const auto& [key, value] : j.items())
+	{
+		const SteamID id(key);
+		const auto bans = value.get<PlayerSourceBans>();
+		for (const auto& ban : bans)
+			if (ban.m_ID != id) throw std::invalid_argument("SteamHistory record SteamID mismatch");
+		d.emplace(id, bans);
 	}
 }

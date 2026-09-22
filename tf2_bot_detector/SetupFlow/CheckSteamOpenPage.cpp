@@ -38,7 +38,7 @@ namespace
 
 	auto CheckSteamOpenPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	{
-		ImGui::Text("Steam must be open to use TF2 Bot Detector.");
+		ImGui::Text("Steam must be open to use LunarisV.");
 
 		const bool isSteamRunning = Platform::Processes::IsSteamRunning();
 		m_CanContinue = isSteamRunning;

@@ -236,7 +236,7 @@ static void SaveConfigFileBackup(const std::filesystem::path& filename) noexcept
 }
 catch (...)
 {
-	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), "Loading config file {} failed, and TF2 Bot Detector was unable to make a backup before overwriting it.",
+	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), "Loading config file {} failed, and LunarisV was unable to make a backup before overwriting it.",
 		filename);
 }
 
@@ -264,7 +264,7 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesyst
 	{
 		if (loadResult)
 		{
-			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Failed to load and resave {}. TF2 Bot Detector may not have permission to write to where it is installed.\n\nLoad error: {}\nSave error: {}", filename, loadResult, saveResult);
+			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Failed to load and resave {}. LunarisV may not have permission to write to where it is installed.\n\nLoad error: {}\nSave error: {}", filename, loadResult, saveResult);
 		}
 		else
 		{
@@ -435,6 +435,15 @@ void ConfigFileBase::Serialize(nlohmann::json& json) const
 
 ConfigSchemaInfo::ConfigSchemaInfo(const std::string_view& schema)
 {
+	const std::regex localSchema(R"regex(\.\./schemas/v(\d+)/(\w+)\.schema\.json)regex");
+	std::match_results<std::string_view::iterator> localMatch;
+	if (std::regex_match(schema.begin(), schema.end(), localMatch, localSchema))
+	{
+		from_chars_throw(localMatch[1], m_Version);
+		m_Type = localMatch[2].str();
+		m_Branch = "master";
+		return;
+	}
 	std::match_results<std::string_view::iterator> match;
 	const std::regex schemaRegex(
 		R"regex(https:\/\/raw\.githubusercontent\.com\/PazerOP\/tf2_bot_detector\/(\w+)\/schemas\/v(\d+)\/(\w+)\.schema\.json)regex");

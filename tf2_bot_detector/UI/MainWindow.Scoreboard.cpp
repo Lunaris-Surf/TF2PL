@@ -259,12 +259,15 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 
 		if (playerAttribs.Has(PlayerAttribute::Cheater))
 			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG, m_Application->TimeSine());
-		else if (playerAttribs.Has(PlayerAttribute::Suspicious))
+		else if (playerAttribs.Has(PlayerAttribute::Suspicious | PlayerAttribute::SuspectedCheater))
 			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG, m_Application->TimeSine());
 		else if (playerAttribs.Has(PlayerAttribute::Exploiter))
 			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG, m_Application->TimeSine());
-		else if (playerAttribs.Has(PlayerAttribute::Racist))
+		else if (playerAttribs.Has(PlayerAttribute::Racist | PlayerAttribute::Pedophilia))
 			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG, m_Application->TimeSine());
+
+		else if (!playerAttribs.empty())
+			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG, m_Application->TimeSine());
 
 		ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
 
@@ -1047,7 +1050,7 @@ void MainWindow::DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShar
 			}
 			else {
 				for (const auto& p : data.m_Proof) {
-					ImGui::TextFmt({ 0, 1, 1, 1 }, "{}", p.get<std::string>().c_str());
+					ImGui::TextFmt({ 0, 1, 1, 1 }, "{}", (p.is_string() ? p.get<std::string>() : p.dump()).c_str());
 				}
 			}
 			ImGui::Unindent(27.0f);
@@ -1064,13 +1067,14 @@ void MainWindow::DrawPlayerContextMarkMenu(const SteamID& steamid, const std::st
 		IModeratorLogic& modLogic = m_Application->GetModLogic();
 
 		ImGui::InputTextWithHint("", "Reason", &reasons, ImGuiInputTextFlags_CallbackAlways);
+		const auto editable = modLogic.GetPlayerList()->GetEditablePlayerAttributes(steamid);
 
 		for (int i = 0; i < (int)PlayerAttribute::COUNT; i++)
 		{
 			const auto attr = PlayerAttribute(i);
-			const bool existingMarked = (bool)modLogic.HasPlayerAttributes(steamid, attr, AttributePersistence::Saved);
+			const bool existingMarked = editable.HasAttribute(attr);
 
-			if (ImGui::MenuItem(mh::fmtstr<512>("{:v}", mh::enum_fmt(attr)).c_str(), nullptr, existingMarked))
+			if (ImGui::MenuItem(to_string(attr).c_str(), nullptr, existingMarked))
 			{
 				if (modLogic.SetPlayerAttribute(steamid, playername, attr, AttributePersistence::Saved, !existingMarked, reasons)) {
 					Log("Manually marked {}{} {:v} | {}", playername, (existingMarked ? " NOT" : ""), mh::enum_fmt(attr), reasons);
@@ -1079,6 +1083,31 @@ void MainWindow::DrawPlayerContextMarkMenu(const SteamID& steamid, const std::st
 			}
 		}
 
+		ImGui::Separator();
+		ImGui::TextUnformatted("Custom tags");
+		for (const auto& tag : modLogic.GetPlayerList()->GetCustomTags())
+		{
+			PlayerAttributesList attributes;
+			attributes.SetCustomTag(tag);
+			const bool local = bool(editable & attributes);
+			if (ImGui::MenuItem(tag.substr(7).c_str(), nullptr, local))
+				modLogic.SetPlayerCustomTag(steamid, playername, tag, AttributePersistence::Saved, !local, reasons);
+		}
+		static std::string customTag;
+		ImGui::InputTextWithHint("##custom_tag", "e.g. watchlist (lowercase)", &customTag);
+		const std::string tag = "custom:" + customTag;
+		const bool valid = PlayerAttributesList::IsValidCustomTag(tag);
+		ImGui::BeginDisabled(!valid);
+		if (ImGui::Button("Add custom tag"))
+		{
+			modLogic.SetPlayerCustomTag(steamid, playername, tag, AttributePersistence::Saved, true, reasons);
+			customTag.clear();
+			reasons.clear();
+		}
+		ImGui::EndDisabled();
+		if (!customTag.empty() && !valid)
+			ImGui::TextUnformatted("Use 1-64 lowercase letters, digits, - or _; start with a letter. Reserved tags are excluded.");
+		ImGui::TextWrapped("Changes apply to your local list. Tags from subscribed lists remain until that list is changed.");
 		ImGui::EndMenu();
 	}
 }

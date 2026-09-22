@@ -599,7 +599,7 @@ bool tf2_bot_detector::Combo(const char* label_id, std::optional<ReleaseChannel>
 
 bool tf2_bot_detector::AutoLaunchTF2Checkbox(bool& value)
 {
-	return ImGui::Checkbox("Automatically launch TF2 when TF2 Bot Detector is opened", &value);
+	return ImGui::Checkbox("Automatically launch TF2 when LunarisV is opened", &value);
 }
 
 bool tf2_bot_detector::CloseAppOnTFCloseCheckbox(bool& value)

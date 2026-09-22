@@ -1,5 +1,6 @@
 #pragma once
 #include "ConfigHelpers.h"
+#include "PlayerListJSON.h"
 
 #include <mh/coroutine/generator.hpp>
 #include <mh/reflection/enum.hpp>
@@ -59,9 +60,11 @@ namespace tf2_bot_detector
 	struct ModerationRule
 	{
 		std::string m_Description;
+		bool m_MatchChat = true;
+		bool m_MatchSourceBans = false;
 
 		bool Match(const IPlayer& player) const;
-		bool Match(const IPlayer& player, const std::string_view& chatMsg) const;
+		bool Match(const IPlayer& player, const std::string_view& chatMsg, const std::string_view& banReason = {}) const;
 		bool Match(const std::string_view& chatMsg) const;
 
 		struct Triggers
@@ -77,11 +80,14 @@ namespace tf2_bot_detector
 
 		struct Actions
 		{
-			std::vector<PlayerAttribute> m_Mark;
-			std::vector<PlayerAttribute> m_TransientMark; // Doesn't "stick" to their Steam ID
-			std::vector<PlayerAttribute> m_Unmark;
+			PlayerAttributesList m_Mark;
+			PlayerAttributesList m_TransientMark; // Doesn't "stick" to their Steam ID
+			PlayerAttributesList m_Unmark;
 		} m_Actions;
 	};
+
+	void to_json(nlohmann::json& j, const ModerationRule& d);
+	void from_json(const nlohmann::json& j, ModerationRule& d);
 
 	class ModerationRules
 	{

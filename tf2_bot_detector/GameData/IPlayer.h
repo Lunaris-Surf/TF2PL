@@ -74,6 +74,8 @@ namespace tf2_bot_detector
 		virtual const mh::expected<SteamAPI::PlayerBans>& GetPlayerBans() const = 0;
 		virtual const mh::expected<SteamHistoryAPI::PlayerSourceBanState>& GetPlayerSourceBanState() const = 0;
 
+		virtual const mh::expected<SteamHistoryAPI::PlayerSourceBans>& GetPlayerSourceBans() const = 0;
+
 		virtual mh::expected<duration_t> GetTF2Playtime() const = 0;
 		virtual bool IsFriend() const = 0;
 		virtual std::optional<UserID_t> GetUserID() const = 0;

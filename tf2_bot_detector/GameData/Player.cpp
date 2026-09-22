@@ -92,7 +92,8 @@ const mh::expected<SteamAPI::PlayerSummary>& Player::GetPlayerSummary() const
 
 const mh::expected<SteamAPI::PlayerBans>& Player::GetPlayerBans() const
 {
-	if (!m_PlayerSteamBans && m_PlayerSteamBans.error() == ErrorCode::LazyValueUninitialized)
+	if (!m_PlayerSteamBans && (m_PlayerSteamBans.error() == ErrorCode::LazyValueUninitialized ||
+		(m_PlayerSteamBans.error() == SteamAPI::ErrorCode::SteamAPIDisabled && m_World->GetSettings().IsSteamAPIAvailable())))
 	{
 		m_PlayerSteamBans = std::errc::operation_in_progress;
 		m_World->QueuePlayerBansUpdate(GetSteamID());
@@ -103,7 +104,10 @@ const mh::expected<SteamAPI::PlayerBans>& Player::GetPlayerBans() const
 
 const mh::expected<SteamHistoryAPI::PlayerSourceBanState>& Player::GetPlayerSourceBanState() const
 {
-	if (!m_PlayerSourceBanState && m_PlayerSourceBanState.error() == ErrorCode::LazyValueUninitialized)
+	if (!m_PlayerSourceBanState && (m_PlayerSourceBanState.error() == ErrorCode::LazyValueUninitialized ||
+		(m_PlayerSourceBanState.error() == ErrorCode::InternetConnectivityDisabled &&
+		 m_World->GetSettings().m_AllowInternetUsage.value_or(false) && m_World->GetSettings().m_EnableSteamHistoryIntegration &&
+		 !m_World->GetSettings().GetSteamHistoryAPIKey().empty())))
 	{
 		m_PlayerSourceBanState = std::errc::operation_in_progress;
 		m_PlayerSourceBans = std::errc::operation_in_progress;
@@ -111,6 +115,12 @@ const mh::expected<SteamHistoryAPI::PlayerSourceBanState>& Player::GetPlayerSour
 	}
 
 	return m_PlayerSourceBanState;
+}
+
+const mh::expected<SteamHistoryAPI::PlayerSourceBans>& Player::GetPlayerSourceBans() const
+{
+	GetPlayerSourceBanState();
+	return m_PlayerSourceBans;
 }
 
 template<typename T, typename TFunc>

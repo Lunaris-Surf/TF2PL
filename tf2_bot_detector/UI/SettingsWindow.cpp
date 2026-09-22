@@ -279,7 +279,7 @@ void SettingsWindow::OnDrawModSettings()
 		if (m_ModsChanged)
 		{
 			ImGui::NewLine();
-			ImGui::TextFmt({ 1, 1, 0, 1 }, "TF2 and TF2 Bot Detector must be restarted to apply changes to mods.");
+			ImGui::TextFmt({ 1, 1, 0, 1 }, "TF2 and LunarisV must be restarted to apply changes to mods.");
 		}
 
 		IAddonManager& addonManager = IAddonManager::Get();

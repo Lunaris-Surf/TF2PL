@@ -70,6 +70,8 @@ namespace tf2_bot_detector
 	template<typename CharT, typename Traits>
 	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const ConfigSchemaInfo& info)
 	{
+		if (info.m_Type == "playerlist" || info.m_Type == "rules")
+			return os << "../schemas/v" << info.m_Version << '/' << info.m_Type << ".schema.json";
 		return os << "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/"
 			<< info.m_Branch << "/schemas/v"
 			<< info.m_Version << '/'

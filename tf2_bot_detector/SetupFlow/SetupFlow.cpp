@@ -100,7 +100,7 @@ bool SetupFlow::OnDraw(Settings& settings, const ISetupFlowPage::DrawState& ds)
 		ImGui::NewLine();
 
 		if (page->WantsSetupText())
-			ImGui::TextFmt("Welcome to TF2 Bot Detector! Some setup is required before first use."sv);
+			ImGui::TextFmt("Welcome to LunarisV! Some setup is required before first use."sv);
 
 		if (m_ActivePage != lastPage)
 		{

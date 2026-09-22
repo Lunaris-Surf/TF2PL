@@ -39,7 +39,7 @@ namespace tf2_bot_detector
 		const mh::expected<SteamAPI::PlayerSummary>& GetPlayerSummary() const override;
 		const mh::expected<SteamAPI::PlayerBans>& GetPlayerBans() const override;
 		const mh::expected<SteamHistoryAPI::PlayerSourceBanState>& GetPlayerSourceBanState() const override;
-		//const mh::expected<SteamHistoryAPI::PlayerSourceBans>& GetPlayerSourceBans() const override;
+		const mh::expected<SteamHistoryAPI::PlayerSourceBans>& GetPlayerSourceBans() const override;
 
 		mh::expected<duration_t> GetTF2Playtime() const override;
 		bool IsFriend() const override;

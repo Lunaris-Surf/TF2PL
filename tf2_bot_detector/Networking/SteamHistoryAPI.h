@@ -9,6 +9,8 @@
 
 #include <memory>
 #include <vector>
+#include <unordered_map>
+#include "Clock.h"
 
 namespace tf2_bot_detector
 {
@@ -34,7 +36,7 @@ namespace tf2_bot_detector::SteamHistoryAPI
 	struct PlayerSourceBan {
 		SteamID m_ID;
 
-		BanState m_BanState;
+		BanState m_BanState = BanState::Expired;
 
 		/// <summary>
 		/// this user was banned as this username.

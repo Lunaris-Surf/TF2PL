@@ -29,7 +29,13 @@ namespace tf2_bot_detector
 		case PlayerAttribute::Cheater:      return "Cheater";
 		case PlayerAttribute::Suspicious:	return "Suspicious";
 		case PlayerAttribute::Exploiter:    return "Exploiter";
-		case PlayerAttribute::Racist:		return "Racist"; 
+		case PlayerAttribute::Racist:		return "Racist/Hostile";
+		case PlayerAttribute::SuspectedCheater: return "Suspected Cheater";
+		case PlayerAttribute::Blacklisted: return "Blacklisted";
+		case PlayerAttribute::VACBanned: return "VAC Banned";
+		case PlayerAttribute::GameBanned: return "Game Banned";
+		case PlayerAttribute::SourceBanned: return "SourceBanned";
+		case PlayerAttribute::Pedophilia: return "Pedofilia/Pedo Jokes";
 		default: return "unknown";
 		}
 
@@ -44,6 +50,12 @@ namespace tf2_bot_detector
 		case PlayerAttribute::Exploiter:   j = "exploiter"; break;
 		case PlayerAttribute::Racist:      j = "racist"; break;
 
+		case PlayerAttribute::SuspectedCheater: j = "suspected_cheater"; break;
+		case PlayerAttribute::Blacklisted: j = "blacklisted"; break;
+		case PlayerAttribute::VACBanned: j = "vac_banned"; break;
+		case PlayerAttribute::GameBanned: j = "game_banned"; break;
+		case PlayerAttribute::SourceBanned: j = "sourcebanned"; break;
+		case PlayerAttribute::Pedophilia: j = "pedophilia"; break;
 		default:
 			throw std::runtime_error("Unknown PlayerAttribute value "s << +std::underlying_type_t<PlayerAttribute>(d));
 		}
@@ -62,6 +74,7 @@ namespace tf2_bot_detector
 			if (d.HasAttribute(PlayerAttribute(i)))
 				j.push_back(PlayerAttribute(i));
 		}
+		for (const auto& tag : d.GetCustomTags()) j.push_back(tag);
 	}
 	void to_json(nlohmann::json& j, const PlayerListData::LastSeen& d)
 	{
@@ -97,6 +110,12 @@ namespace tf2_bot_detector
 		else if (str == "racist"sv)
 			d = PlayerAttribute::Racist;
 
+		else if (str == "suspected_cheater"sv) d = PlayerAttribute::SuspectedCheater;
+		else if (str == "blacklisted"sv) d = PlayerAttribute::Blacklisted;
+		else if (str == "vac_banned"sv) d = PlayerAttribute::VACBanned;
+		else if (str == "game_banned"sv) d = PlayerAttribute::GameBanned;
+		else if (str == "sourcebanned"sv) d = PlayerAttribute::SourceBanned;
+		else if (str == "pedophilia"sv) d = PlayerAttribute::Pedophilia;
 		else
 			throw std::runtime_error("Unknown player attribute type "s << std::quoted(str));
 	}
@@ -107,8 +126,16 @@ namespace tf2_bot_detector
 		if (!j.is_array())
 			throw std::invalid_argument("json must be an array");
 
+		PlayerAttributesList::bits_t bits;
 		for (const auto& attribute : j)
-			d.SetAttribute(attribute);
+		{
+			const auto tag = attribute.get<std::string>();
+			if (tag.starts_with("custom:")) d.SetCustomTag(tag);
+			else bits.set(size_t(attribute.get<PlayerAttribute>()));
+		}
+		// Preserve the array as written, including rule unmark actions that remove
+		// both confirmed and suspected tags. Mutation policy belongs in SetAttribute.
+		d |= PlayerAttributesList(bits);
 	}
 	void from_json(const nlohmann::json& j, PlayerListData::LastSeen& d)
 	{
@@ -465,13 +492,15 @@ bool PlayerAttributesList::SetAttribute(PlayerAttribute attribute, bool set)
 	{
 	case PlayerAttribute::Cheater:
 	{
-		auto retVal = SetAttribute(PlayerAttribute::Suspicious, false);
+		auto retVal = set ? SetAttribute(PlayerAttribute::Suspicious, false) : false;
+		if (set) retVal |= SetAttribute(PlayerAttribute::SuspectedCheater, false);
 		retVal |= ApplyChange();
 		return retVal;
 	}
 
 	case PlayerAttribute::Suspicious:
-		return !HasAttribute(PlayerAttribute::Cheater) ? ApplyChange() : false;
+	case PlayerAttribute::SuspectedCheater:
+		return !set || !HasAttribute(PlayerAttribute::Cheater) ? ApplyChange() : false;
 
 	default:
 		return ApplyChange();
@@ -492,4 +521,47 @@ bool PlayerMarks::Has(const PlayerAttributesList& attr) const
 	}
 
 	return false;
+}
+
+bool PlayerAttributesList::IsValidCustomTag(const std::string& tag)
+{
+	static const std::regex pattern("custom:[a-z][a-z0-9_-]{0,63}");
+	if (!std::regex_match(tag, pattern)) return false;
+	const auto name = tag.substr(7);
+	return name != "ignore" && name != "ignored" && name != "party" &&
+		name != "friend" && name != "friends" && name != "everyone" && name != "f2p" &&
+		name != "sore_losers" && name != "sore-losers" && name != "sorelosers";
+}
+
+bool PlayerAttributesList::SetCustomTag(const std::string& tag, bool set)
+{
+	if (!IsValidCustomTag(tag)) throw std::invalid_argument("Invalid custom tag: " + tag);
+	if (set) return m_CustomTags.insert(tag).second;
+	return m_CustomTags.erase(tag) != 0;
+}
+
+std::set<std::string> PlayerListJSON::GetCustomTags() const
+{
+	std::set<std::string> result;
+	const auto collect = [&](const auto& players)
+	{
+		for (const auto& [id, player] : players)
+		{
+			const auto tags = player.GetAttributes().GetCustomTags();
+			result.insert(tags.begin(), tags.end());
+		}
+	};
+	if (m_CFGGroup.m_UserList) collect(m_CFGGroup.m_UserList->m_Players);
+	if (auto list = m_CFGGroup.m_OfficialList.try_get()) collect(list->m_Players);
+	if (auto lists = m_CFGGroup.m_ThirdPartyLists.try_get())
+		for (const auto& [name, players] : *lists) collect(players);
+	return result;
+}
+
+PlayerAttributesList PlayerListJSON::GetEditablePlayerAttributes(const SteamID& id) const
+{
+	if (const auto list = m_CFGGroup.GetDefaultMutableList())
+		if (const auto found = list->m_Players.find(id); found != list->m_Players.end())
+			return found->second.m_SavedAttributes;
+	return {};
 }

@@ -158,6 +158,7 @@ namespace tf2_bot_detector
 		bool m_AutoVotekick = true;
 		float m_AutoVotekickDelay = 15;
 		bool m_AutoMark = true;
+		bool m_AutoMarkBans = true;
 
 		bool m_SleepWhenUnfocused = true;
 		bool m_AutoTempMute = true;

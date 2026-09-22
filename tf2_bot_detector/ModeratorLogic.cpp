@@ -14,8 +14,10 @@
 #include "WorldEventListener.h"
 #include "WorldState.h"
 #include "Networking/SteamAPI.h"
+#include "Networking/SteamHistoryAPI.h"
 
 #include <fmt/ostream.h>
+#include <nlohmann/json.hpp>
 
 #include <mh/algorithm/algorithm_generic.hpp>
 #include <mh/algorithm/multi_compare.hpp>
@@ -62,6 +64,8 @@ namespace
 		bool SetPlayerAttribute(const IPlayer& id, PlayerAttribute markType, AttributePersistence persistence, bool set = true, std::string proof = "") override;
 		bool SetPlayerAttribute(const SteamID& id, std::string name, PlayerAttribute markType, AttributePersistence persistence, bool set = true, std::string proof = "") override;
 
+		bool SetPlayerCustomTag(const SteamID& id, const std::string& name, const std::string& tag, AttributePersistence persistence, bool set = true, const std::string& proof = {}) override;
+
 		std::optional<LobbyMemberTeam> TryGetMyTeam() const;
 		TeamShareResult GetTeamShareResult(const SteamID& id) const override;
 		const IPlayer* GetLocalPlayer() const;
@@ -94,6 +98,8 @@ namespace
 		struct PlayerExtraData
 		{
 			bool m_FriendsProcessed = false;
+			bool m_SteamBansProcessed = false;
+			std::set<std::string> m_SourceBanRulesProcessed;
 			MarkedFriends m_MarkedFriends;
 
 			// If this is a known cheater, warn them ahead of time that the player is connecting, but only once
@@ -147,6 +153,8 @@ namespace
 		time_point_t m_LastPlayerActionsUpdate{};
 
 		void ProcessPlayerActions();
+		void ProcessBanMarks();
+		time_point_t m_LastBanScan{};
 		void HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t connectedFriendlyPlayerCount,
 			const std::vector<Cheater>& friendlyCheaters);
 		void HandleEnemyCheaters(uint8_t enemyPlayerCount, const std::vector<Cheater>& enemyCheaters,
@@ -223,36 +231,17 @@ std::string listMarkFiles(PlayerMarks& marks) {
 
 // lazy and dumb function to convert player marks to string
 std::string marksToString(PlayerMarks& marks) {
-	PlayerAttributesList attribute{ 0 };
-
-	// combine all the m_Marks to one attributeList
-	for (const auto& mark : marks.m_Marks)
-	{
-		attribute |= mark.m_Attributes;
-	}
-
-	// only one attrib
-	if (attribute.count() == 1) {
-		std::size_t idx = 0;
-		while (idx < static_cast<std::size_t>(PlayerAttribute::COUNT) && !attribute.HasAttribute(static_cast<PlayerAttribute>(idx))) { ++idx; }
-
-		//if (idx == static_cast<std::size_t>(PlayerAttribute::COUNT)) {
-		//	return "#Error!";
-		//}
-
-		return to_string(static_cast<PlayerAttribute>(idx));
-	}
-
-	std::string attrib_summary = "-----";
-
-	// loop over the attributes and combine using first character.
-	for (std::size_t i = 0; i < static_cast<std::size_t>(PlayerAttribute::COUNT); ++i) {
-		if (attribute.HasAttribute(static_cast<PlayerAttribute>(i))) {
-			attrib_summary.at(i) = to_string(static_cast<PlayerAttribute>(i)).at(0);
-		}
-	}
-
-	return attrib_summary;
+	PlayerAttributesList attributes;
+	for (const auto& mark : marks) attributes |= mark.m_Attributes;
+	std::string result;
+	const auto append = [&](const std::string& label) {
+		if (!result.empty()) result += ", ";
+		result += label;
+	};
+	for (size_t i = 0; i < PlayerAttributesList::size(); ++i)
+		if (attributes.HasAttribute(PlayerAttribute(i))) append(to_string(PlayerAttribute(i)));
+	for (const auto& tag : attributes.GetCustomTags()) append(tag.substr(7));
+	return result;
 }
 
 std::unique_ptr<IModeratorLogic> IModeratorLogic::Create(IWorldState& world,
@@ -263,25 +252,70 @@ std::unique_ptr<IModeratorLogic> IModeratorLogic::Create(IWorldState& world,
 
 void ModeratorLogic::Update()
 {
+	ProcessBanMarks();
 	ProcessPlayerActions();
 }
 
 void ModeratorLogic::OnRuleMatch(const ModerationRule& rule, const IPlayer& player, std::string reason)
 {
-	for (PlayerAttribute attribute : rule.m_Actions.m_Mark)
+	const auto apply = [&](const PlayerAttributesList& attributes, AttributePersistence persistence, bool set) {
+		const auto proof = set && persistence == AttributePersistence::Saved ? fmt::format("[auto] {} | {}", rule.m_Description, reason) : std::string{};
+		for (size_t i = 0; i < PlayerAttributesList::size(); ++i)
+			if (attributes.HasAttribute(PlayerAttribute(i)))
+				SetPlayerAttribute(player, PlayerAttribute(i), persistence, set, proof);
+		for (const auto& tag : attributes.GetCustomTags())
+			SetPlayerCustomTag(player.GetSteamID(), player.GetNameUnsafe(), tag, persistence, set, proof);
+	};
+	apply(rule.m_Actions.m_Mark, AttributePersistence::Saved, true);
+	apply(rule.m_Actions.m_TransientMark, AttributePersistence::Transient, true);
+	apply(rule.m_Actions.m_Unmark, AttributePersistence::Saved, false);
+}
+
+void ModeratorLogic::ProcessBanMarks()
+{
+	if (!m_Settings->m_AutoMark || !m_Settings->m_AutoMarkBans || !m_Settings->m_AllowInternetUsage.value_or(false)) return;
+	const auto now = m_World->GetCurrentTime();
+	if (now < m_LastBanScan + 1s) return;
+	m_LastBanScan = now;
+	for (IPlayer& player : m_World->GetLobbyMembers())
 	{
-		if (SetPlayerAttribute(player, attribute, AttributePersistence::Saved, true, fmt::format("[auto] automatically marked: {} | reason: {}", to_string(attribute), reason)))
-			Log("Marked {} with {:v} due to rule match with {}", player, mh::enum_fmt(attribute), fmt::streamed(std::quoted(rule.m_Description)));
-	}
-	for (PlayerAttribute attribute : rule.m_Actions.m_TransientMark)
-	{
-		if (SetPlayerAttribute(player, attribute, AttributePersistence::Transient))
-			Log("[TRANSIENT] Marked {} with {:v} due to rule match with {}", player, mh::enum_fmt(attribute), fmt::streamed(std::quoted(rule.m_Description)));
-	}
-	for (PlayerAttribute attribute : rule.m_Actions.m_Unmark)
-	{
-		if (SetPlayerAttribute(player, attribute, AttributePersistence::Saved, false))
-			Log("Unmarked {} with {:v} due to rule match with {}", player, mh::enum_fmt(attribute), fmt::streamed(std::quoted(rule.m_Description)));
+		auto& extra = player.GetOrCreateData<PlayerExtraData>();
+		if (extra.m_IgnoreRules) continue;
+		if (!extra.m_SteamBansProcessed)
+		{
+			if (const auto& bans = player.GetPlayerBans())
+			{
+				if (bans->m_VACBanCount > 0)
+					SetPlayerAttribute(player, PlayerAttribute::VACBanned, AttributePersistence::Saved, true,
+						fmt::format("[Steam API] {} VAC ban(s) on record (not necessarily TF2)", bans->m_VACBanCount));
+				if (bans->m_GameBanCount > 0)
+					SetPlayerAttribute(player, PlayerAttribute::GameBanned, AttributePersistence::Saved, true,
+						fmt::format("[Steam API] {} game ban(s) on record (not necessarily TF2)", bans->m_GameBanCount));
+				extra.m_SteamBansProcessed = true;
+			}
+		}
+		if (!m_Settings->m_EnableSteamHistoryIntegration || m_Settings->GetSteamHistoryAPIKey().empty()) continue;
+		const auto& bans = player.GetPlayerSourceBans();
+		if (!bans) continue; // Disabled, pending, and failed requests are not evidence.
+		if (!bans->empty() && extra.m_SourceBanRulesProcessed.insert("sourceban-history").second)
+			SetPlayerAttribute(player, PlayerAttribute::SourceBanned, AttributePersistence::Saved, true,
+				fmt::format("[SteamHistory] {} SourceBan record(s); may include expired or revoked bans", bans->size()));
+		for (const auto& ban : *bans)
+		{
+			// Revoked bans remain visible as history but do not create behavior labels.
+			if (ban.m_BanState == SteamHistoryAPI::Unbanned || ban.m_BanReason.empty()) continue;
+			for (const auto& rule : m_Rules.GetRules())
+			{
+				if (!rule.m_MatchSourceBans) continue;
+				const std::string key = nlohmann::json::array({ nlohmann::json(rule), ban.m_Server,
+					ban.m_BanReason, ban.m_BanTimestamp.time_since_epoch().count() }).dump();
+				if (extra.m_SourceBanRulesProcessed.contains(key)) continue;
+				if (!rule.Match(player, {}, ban.m_BanReason)) continue;
+				OnRuleMatch(rule, player, fmt::format("[SteamHistory] server: {} | state: {:v} | reason: {}",
+					ban.m_Server, mh::enum_fmt(ban.m_BanState), ban.m_BanReason));
+				extra.m_SourceBanRulesProcessed.insert(key);
+			}
+		}
 	}
 }
 
@@ -1094,6 +1128,9 @@ bool ModeratorLogic::SetPlayerAttribute(const SteamID& player, std::string name,
 
 			attributeChanged = attribs.SetAttribute(attribute, set);
 
+			const bool proofChanged = !proof.empty() && !data.proofExists(proof);
+			if (!attributeChanged && !proofChanged) return ModifyPlayerAction::NoChanges;
+
 			if (!data.m_LastSeen)
 				data.m_LastSeen.emplace();
 
@@ -1204,38 +1241,17 @@ MarkedFriends ModeratorLogic::GetMarkedFriendsCount(IPlayer& player) const
 		return data.m_MarkedFriends;
 	}
 
-	uint32_t totalCount = 0;
-	uint32_t cheaterCount = 0;
-	uint32_t suspiciousCount = 0;
-	uint32_t exploiterCount = 0;
-	uint32_t racistCount = 0;
-
-	for (const SteamID& id : friendsInfo.value().m_Friends) {
-		auto playerAttributes = GetPlayerAttributes(id);
-
-		if (!playerAttributes.empty())
-		{
-			// TODO: dont do this ig
-			if (playerAttributes.Has(PlayerAttribute::Cheater))
-				cheaterCount++;
-			if (playerAttributes.Has(PlayerAttribute::Suspicious))
-				suspiciousCount++;
-			if (playerAttributes.Has(PlayerAttribute::Exploiter))
-				exploiterCount++;
-			if (playerAttributes.Has(PlayerAttribute::Racist))
-				racistCount++;
-
-			totalCount++;
-		}
+	data.m_MarkedFriends = {};
+	data.m_MarkedFriends.m_FriendsCountTotal = static_cast<uint32_t>(friendsInfo->m_Friends.size());
+	for (const SteamID& id : friendsInfo->m_Friends)
+	{
+		const auto attributes = GetPlayerAttributes(id);
+		if (attributes.empty()) continue;
+		++data.m_MarkedFriends.m_MarkedFriendsCountTotal;
+		for (size_t i = 0; i < PlayerAttributesList::size(); ++i)
+			if (attributes.Has(PlayerAttribute(i)))
+				++data.m_MarkedFriends.m_MarkedFriendsCount[PlayerAttribute(i)];
 	}
-
-	data.m_MarkedFriends.m_FriendsCountTotal = static_cast<uint32_t>(friendsInfo.value().m_Friends.size());
-
-	data.m_MarkedFriends.m_MarkedFriendsCount.insert(std::pair<PlayerAttribute, uint32_t>(PlayerAttribute::Cheater, cheaterCount));
-	data.m_MarkedFriends.m_MarkedFriendsCount.insert(std::pair<PlayerAttribute, uint32_t>(PlayerAttribute::Suspicious, suspiciousCount));
-	data.m_MarkedFriends.m_MarkedFriendsCount.insert(std::pair<PlayerAttribute, uint32_t>(PlayerAttribute::Exploiter, exploiterCount));
-	data.m_MarkedFriends.m_MarkedFriendsCount.insert(std::pair<PlayerAttribute, uint32_t>(PlayerAttribute::Racist, racistCount));
-	data.m_MarkedFriends.m_MarkedFriendsCountTotal = totalCount;
 	data.m_FriendsProcessed = true;
 
 	return data.m_MarkedFriends;
@@ -1245,6 +1261,15 @@ void ModeratorLogic::ReloadConfigFiles()
 {
 	m_PlayerList.LoadFiles();
 	m_Rules.LoadFiles();
+	for (IPlayer& player : m_World->GetPlayers())
+	{
+		if (auto extra = player.GetData<PlayerExtraData>())
+		{
+			extra->m_SteamBansProcessed = false;
+			extra->m_SourceBanRulesProcessed.clear();
+			extra->m_FriendsProcessed = false;
+		}
+	}
 }
 
 ModeratorLogic::ModeratorLogic(IWorldState& world, const Settings& settings, RCONActionManager& actionManager) :
@@ -1318,4 +1343,23 @@ bool ModeratorLogic::VoteKickIgnoresTeamState() {
 	}
 
 	return false;
+}
+
+bool ModeratorLogic::SetPlayerCustomTag(const SteamID& id, const std::string& name,
+	const std::string& tag, AttributePersistence persistence, bool set, const std::string& proof)
+{
+	if (!PlayerAttributesList::IsValidCustomTag(tag)) return false;
+	bool changed = false;
+	m_PlayerList.ModifyPlayer(id, [&](PlayerListData& data) {
+		auto& attributes = persistence == AttributePersistence::Transient ? data.m_TransientAttributes : data.m_SavedAttributes;
+		changed = attributes.SetCustomTag(tag, set);
+		const bool proofChanged = set && !proof.empty() && !data.proofExists(proof);
+		if (!changed && !proofChanged) return ModifyPlayerAction::NoChanges;
+		if (!data.m_LastSeen) data.m_LastSeen.emplace();
+		data.m_LastSeen->m_Time = m_World->GetCurrentTime();
+		if (!name.empty()) data.m_LastSeen->m_PlayerName = name;
+		if (proofChanged) data.addProof(proof);
+		return ModifyPlayerAction::Modified;
+	});
+	return changed;
 }
