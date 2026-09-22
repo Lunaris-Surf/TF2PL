@@ -8,11 +8,13 @@
 #include "Networking/SteamHistoryAPI.h"
 
 #include <mh/text/fmtstr.hpp>
+#include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 
@@ -45,6 +47,58 @@ namespace tf2_bot_detector
 				return client;
 
 			throw std::runtime_error("Internet usage is disabled in settings, so the export cannot contact the Steam APIs.");
+		}
+
+		/// <summary>
+		/// Serializes a PlayerListData entry exactly like the playerlist schema expects
+		/// (mirrors the attribute name mappings used when loading playerlists).
+		/// </summary>
+		void SerializePlayerData(nlohmann::json& j, const PlayerListData& data)
+		{
+			const auto SerializeAttributes = [](const PlayerAttributesList& attrs)
+			{
+				nlohmann::json attrJson = nlohmann::json::array();
+
+				const auto PushAttribute = [&attrJson](PlayerAttribute attr, const char* name)
+				{
+					if (attrs.HasAttribute(attr))
+						attrJson.push_back(name);
+				};
+
+				PushAttribute(PlayerAttribute::Cheater, "cheater");
+				PushAttribute(PlayerAttribute::Suspicious, "suspicious");
+				PushAttribute(PlayerAttribute::Exploiter, "exploiter");
+				PushAttribute(PlayerAttribute::Racist, "racist");
+				PushAttribute(PlayerAttribute::SuspectedCheater, "suspected_cheater");
+				PushAttribute(PlayerAttribute::Blacklisted, "blacklisted");
+				PushAttribute(PlayerAttribute::VACBanned, "vac_banned");
+				PushAttribute(PlayerAttribute::GameBanned, "game_banned");
+				PushAttribute(PlayerAttribute::SourceBanned, "sourcebanned");
+				PushAttribute(PlayerAttribute::Pedophilia, "pedophilia");
+
+				for (const auto& tag : attrs.GetCustomTags())
+					attrJson.push_back(tag);
+
+				return attrJson;
+			};
+
+			j = nlohmann::json
+			{
+				{ "steamid", data.GetSteamID() },
+				{ "attributes", SerializeAttributes(data.m_SavedAttributes) }
+			};
+
+			if (data.m_LastSeen)
+			{
+				nlohmann::json& lastSeen = j["last_seen"];
+				if (!data.m_LastSeen->m_PlayerName.empty())
+					lastSeen["player_name"] = data.m_LastSeen->m_PlayerName;
+				lastSeen["time"] = std::chrono::duration_cast<std::chrono::seconds>(
+					data.m_LastSeen->m_Time.time_since_epoch()).count();
+			}
+
+			if (!data.m_Proof.empty())
+				j["proof"] = data.m_Proof;
 		}
 	}
 }
@@ -360,7 +414,9 @@ void PlayerListExporter::WriteFile() const
 		if (data.m_SavedAttributes.empty())
 			continue;
 
-		players.push_back(data);
+		nlohmann::json entry;
+		SerializePlayerData(entry, data);
+		players.push_back(std::move(entry));
 	}
 
 	const std::filesystem::path path("cfg/playerlist.export.json");
