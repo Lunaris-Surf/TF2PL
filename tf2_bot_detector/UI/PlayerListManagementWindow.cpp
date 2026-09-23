@@ -47,7 +47,8 @@ namespace tf2_bot_detector
 		m_LoadIterator.reset();
 		m_LoadGenerator.reset();
 		auto* playerList = m_Application.GetModLogic().GetPlayerList();
-		m_TotalEntries = playerList->GetPlayerEntryCount();
+		m_TotalEntries = playerList->GetPlayerCount();
+		m_WaitingForLists = playerList->ArePlayerListsLoading();
 		m_LoadedEntries = 0;
 		m_LoadGenerator.emplace(playerList->GetAllPlayerData());
 		m_LoadIterator.emplace(m_LoadGenerator->begin());
@@ -123,6 +124,9 @@ namespace tf2_bot_detector
 		}
 
 		if (m_NeedsRefresh)
+			RebuildCache();
+		auto* playerList = m_Application.GetModLogic().GetPlayerList();
+		if (m_WaitingForLists && !playerList->ArePlayerListsLoading())
 			RebuildCache();
 		StepCache();
 		const bool loading = m_LoadIterator.has_value();

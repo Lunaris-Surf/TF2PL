@@ -157,12 +157,13 @@ namespace tf2_bot_detector
 	{
 		const SteamID sid = j.at("steamid");
 
+		// steamid is the canonical identifier.  Older/community lists sometimes
+		// contain stale or universe-0 alternate forms; rejecting the entire file
+		// because of optional display fields makes otherwise valid lists unusable.
 		if (auto it = j.find("steamid3"); it != j.end() && SteamID(it->get<std::string_view>()) != sid)
-			throw std::runtime_error("Mismatch between json steamid and steamid3 ("s
-				<< sid << " vs " << *it << ')');
+			LogWarning("Ignoring mismatched steamid3 {} for canonical SteamID {}", it->get<std::string>(), sid);
 		if (auto it = j.find("steamid32"); it != j.end() && SteamID(it->get<std::string_view>()) != sid)
-			throw std::runtime_error("Mismatch between json steamid and steamid32 ("s
-				<< sid << " vs " << *it << ')');
+			LogWarning("Ignoring mismatched steamid32 {} for canonical SteamID {}", it->get<std::string>(), sid);
 
 		if (d.GetSteamID() != sid)
 		{
@@ -290,7 +291,7 @@ auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
 			co_yield { m_CFGGroup.m_UserList->GetName(), found->second };
 		}
 	}
-	if (auto list = m_CFGGroup.m_ThirdPartyLists.try_get())
+	if (auto list = m_CFGGroup.GetThirdPartyLists())
 	{
 		for (auto& file : *list)
 		{
@@ -315,7 +316,7 @@ auto PlayerListJSON::GetAllPlayerData() const ->
 		for (auto& [id, player] : m_CFGGroup.m_UserList->m_Players)
 			co_yield { m_CFGGroup.m_UserList->GetName(), player };
 	}
-	if (auto list = m_CFGGroup.m_ThirdPartyLists.try_get())
+	if (auto list = m_CFGGroup.GetThirdPartyLists())
 	{
 		for (auto& file : *list)
 		{
@@ -591,7 +592,7 @@ std::set<std::string> PlayerListJSON::GetCustomTags() const
 	};
 	if (m_CFGGroup.m_UserList) collect(m_CFGGroup.m_UserList->m_Players);
 	if (auto list = m_CFGGroup.m_OfficialList.try_get()) collect(list->m_Players);
-	if (auto lists = m_CFGGroup.m_ThirdPartyLists.try_get())
+	if (auto lists = m_CFGGroup.GetThirdPartyLists())
 		for (const auto& [name, players] : *lists) collect(players);
 	return result;
 }

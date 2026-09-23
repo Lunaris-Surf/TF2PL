@@ -14,6 +14,7 @@
 #include <cassert>
 #include <filesystem>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace tf2_bot_detector
@@ -94,7 +95,8 @@ namespace tf2_bot_detector
 	public:
 		virtual ~ConfigFileBase() = default;
 
-		mh::task<std::error_condition> LoadFileAsync(const std::filesystem::path& filename, std::shared_ptr<const IHTTPClient> client = nullptr);
+		mh::task<std::error_condition> LoadFileAsync(const std::filesystem::path& filename,
+			std::shared_ptr<const IHTTPClient> client = nullptr, bool saveAfterLoad = true);
 		std::error_condition SaveFile(const std::filesystem::path& filename) const;
 
 		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const {}
@@ -129,14 +131,16 @@ namespace tf2_bot_detector
 
 	namespace detail
 	{
-		mh::task<std::error_condition> LoadConfigFileAsync(ConfigFileBase& file, std::filesystem::path filename, bool allowAutoUpdate, const Settings& settings);
+		mh::task<std::error_condition> LoadConfigFileAsync(ConfigFileBase& file, std::filesystem::path filename,
+			bool allowAutoUpdate, const Settings& settings, bool saveAfterLoad = true);
 	}
 
 	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
-	mh::task<T> LoadConfigFileAsync(std::filesystem::path filename, bool allowAutoUpdate, const Settings& settings)
+	mh::task<T> LoadConfigFileAsync(std::filesystem::path filename, bool allowAutoUpdate, const Settings& settings,
+		bool saveAfterLoad = true)
 	{
 		T file;
-		co_await detail::LoadConfigFileAsync(file, filename, allowAutoUpdate, settings);
+		co_await detail::LoadConfigFileAsync(file, filename, allowAutoUpdate, settings, saveAfterLoad);
 		co_return file;
 	}
 
@@ -166,7 +170,11 @@ namespace tf2_bot_detector
 			else
 				m_OfficialList = mh::make_ready_task<T>();
 
-			m_ThirdPartyLists = LoadThirdPartyListsAsync(paths);
+			// Make the installed copies available first.  Network update checks can be
+			// slow (or time out entirely), and must not prevent every third-party
+			// list from being used in the meantime.
+			m_ThirdPartyLists = LoadThirdPartyListsAsync(paths, false);
+			m_UpdatedThirdPartyLists = UpdateThirdPartyListsAsync(std::move(paths));
 		}
 
 		void SaveFiles() const
@@ -238,27 +246,43 @@ namespace tf2_bot_detector
 				retVal += list->size();
 			if (m_UserList)
 				retVal += m_UserList->size();
-			if (auto list = m_ThirdPartyLists.try_get())
+			if (auto list = GetThirdPartyLists())
 				retVal += list->size();
 
 			return retVal;
+		}
+
+		const collection_type* GetThirdPartyLists() const
+		{
+			if (auto updated = m_UpdatedThirdPartyLists.try_get())
+				return updated;
+			return m_ThirdPartyLists.try_get();
+		}
+
+		bool AreThirdPartyListsLoading() const
+		{
+			return m_ThirdPartyLists.valid() && !m_ThirdPartyLists.is_ready();
 		}
 
 		const Settings* m_Settings = nullptr;
 		mh::task<T> m_OfficialList;
 		std::optional<T> m_UserList;
 		mh::task<collection_type> m_ThirdPartyLists;
+		mh::task<collection_type> m_UpdatedThirdPartyLists;
 
 	private:
-		mh::task<collection_type> LoadThirdPartyListsAsync(ConfigFilePaths paths)
+		mh::task<collection_type> LoadThirdPartyListsAsync(ConfigFilePaths paths, bool allowAutoUpdate)
 		{
+			// Parsing large community lists is CPU-heavy.  Keep it off the render/UI
+			// thread even when no network request is involved.
+			co_await mh::co_create_background_thread();
 			collection_type collection;
 
 			for (const auto& file : paths.m_Others)
 			{
 				try
 				{
-					auto parsedFile = co_await LoadConfigFileAsync<T>(file, true, *m_Settings);
+					auto parsedFile = co_await LoadConfigFileAsync<T>(file, allowAutoUpdate, *m_Settings, false);
 					CombineEntries(collection, parsedFile);
 				}
 				catch (...)
@@ -268,6 +292,13 @@ namespace tf2_bot_detector
 			}
 
 			co_return collection;
+		}
+
+		mh::task<collection_type> UpdateThirdPartyListsAsync(ConfigFilePaths paths)
+		{
+			// Do not begin remote checks until the fast local pass is complete.
+			co_await m_ThirdPartyLists;
+			co_return co_await LoadThirdPartyListsAsync(paths, true);
 		}
 	};
 }

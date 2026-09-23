@@ -219,6 +219,7 @@ namespace tf2_bot_detector
 		PlayerAttributesList GetEditablePlayerAttributes(const SteamID& id) const;
 
 		size_t GetPlayerCount() const { return m_CFGGroup.size(); }
+		bool ArePlayerListsLoading() const { return m_CFGGroup.AreThirdPartyListsLoading(); }
 
 	private:
 		const Settings* m_Settings = nullptr;

@@ -197,7 +197,7 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigFileInfo& d)
 }
 
 mh::task<std::error_condition> tf2_bot_detector::detail::LoadConfigFileAsync(ConfigFileBase& file, std::filesystem::path filename,
-	bool allowAutoUpdate, const Settings& settings)
+	bool allowAutoUpdate, const Settings& settings, bool saveAfterLoad)
 {
 	std::shared_ptr<const HTTPClient> client;
 	if (dynamic_cast<SharedConfigFileBase*>(&file) && allowAutoUpdate)
@@ -207,7 +207,7 @@ mh::task<std::error_condition> tf2_bot_detector::detail::LoadConfigFileAsync(Con
 			Log("Disallowing auto-update of {} because internet connectivity is disabled or unset in settings", filename);
 	}
 
-	co_return co_await file.LoadFileAsync(filename, client);
+	co_return co_await file.LoadFileAsync(filename, client, saveAfterLoad);
 }
 
 static void SaveConfigFileBackup(const std::filesystem::path& filename) noexcept try
@@ -240,7 +240,8 @@ catch (...)
 		filename);
 }
 
-mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesystem::path& filename, std::shared_ptr<const HTTPClient> client)
+mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesystem::path& filename,
+	std::shared_ptr<const HTTPClient> client, bool saveAfterLoad)
 {
 	const auto loadResult = co_await LoadFileInternalAsync(filename, client);
 
@@ -253,6 +254,9 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesyst
 		LogException("Failed to run PostLoad() for {}", filename);
 		co_return ConfigErrorType::PostLoadFailed;
 	}
+
+	if (!saveAfterLoad)
+		co_return loadResult;
 
 	if (loadResult && loadResult != std::errc::no_such_file_or_directory) {
 		SaveConfigFileBackup(filename);

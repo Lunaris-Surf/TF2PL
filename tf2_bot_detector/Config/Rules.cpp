@@ -252,7 +252,7 @@ mh::generator<const ModerationRule&> tf2_bot_detector::ModerationRules::GetRules
 			co_yield rule;
 	}
 
-	if (auto list = m_CFGGroup.m_ThirdPartyLists.try_get())
+	if (auto list = m_CFGGroup.GetThirdPartyLists())
 	{
 		for (const auto& rule : *list)
 			co_yield rule;

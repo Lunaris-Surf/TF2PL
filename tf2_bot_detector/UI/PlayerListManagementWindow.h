@@ -38,6 +38,7 @@ namespace tf2_bot_detector
 		std::set<std::string> m_AvailableTags;
 		bool m_NeedsRefresh = true;
 		bool m_FilterDirty = true;
+		bool m_WaitingForLists = false;
 		using PlayerGenerator = decltype(std::declval<PlayerListJSON&>().GetAllPlayerData());
 		using PlayerIterator = decltype(std::declval<PlayerGenerator&>().begin());
 		std::optional<PlayerGenerator> m_LoadGenerator;
