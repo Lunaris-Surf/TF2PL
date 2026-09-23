@@ -137,6 +137,8 @@ namespace tf2_bot_detector
 		int m_LaunchHeight = 0;
 		bool m_EnableGameOverlay = false;
 		int m_OverlayCorner = 1;
+		int m_OverlayHotkeyKey = 0x09; // Tab
+		int m_OverlayHotkeyModifiers = 1; // Ctrl = 1, Alt = 2, Shift = 4
 		std::map<std::string, std::array<float, 4>> m_ScoreboardCustomTagBG;
 
 		/// <summary>

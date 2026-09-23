@@ -71,6 +71,61 @@ void SettingsWindow::OnDrawOverlaySettings()
 		m_Settings.SaveFile();
 	ImGui::EndDisabled();
 
+	struct OverlayHotkeyOption
+	{
+		const char* m_Name;
+		int m_Key;
+	};
+	static constexpr OverlayHotkeyOption hotkeyOptions[] = {
+		{ "Tab", 0x09 }, { "Backtick / Tilde", 0xC0 },
+		{ "Insert", 0x2D }, { "Home", 0x24 }, { "End", 0x23 },
+		{ "Page Up", 0x21 }, { "Page Down", 0x22 },
+		{ "F1", 0x70 }, { "F2", 0x71 }, { "F3", 0x72 }, { "F4", 0x73 },
+		{ "F5", 0x74 }, { "F6", 0x75 }, { "F7", 0x76 }, { "F8", 0x77 },
+		{ "F9", 0x78 }, { "F10", 0x79 }, { "F11", 0x7A }, { "F12", 0x7B },
+		{ "A", 0x41 }, { "B", 0x42 }, { "C", 0x43 }, { "D", 0x44 },
+		{ "E", 0x45 }, { "F", 0x46 }, { "G", 0x47 }, { "H", 0x48 },
+		{ "I", 0x49 }, { "J", 0x4A }, { "K", 0x4B }, { "L", 0x4C },
+		{ "M", 0x4D }, { "N", 0x4E }, { "O", 0x4F }, { "P", 0x50 },
+		{ "Q", 0x51 }, { "R", 0x52 }, { "S", 0x53 }, { "T", 0x54 },
+		{ "U", 0x55 }, { "V", 0x56 }, { "W", 0x57 }, { "X", 0x58 },
+		{ "Y", 0x59 }, { "Z", 0x5A }
+	};
+	const char* selectedHotkeyName = "Tab";
+	for (const auto& option : hotkeyOptions)
+		if (option.m_Key == m_Settings.m_OverlayHotkeyKey)
+			selectedHotkeyName = option.m_Name;
+	bool hotkeyChanged = false;
+	if (ImGui::BeginCombo("Overlay toggle key", selectedHotkeyName))
+	{
+		for (const auto& option : hotkeyOptions)
+		{
+			const bool selected = option.m_Key == m_Settings.m_OverlayHotkeyKey;
+			if (ImGui::Selectable(option.m_Name, selected))
+			{
+				m_Settings.m_OverlayHotkeyKey = option.m_Key;
+				hotkeyChanged = true;
+			}
+			if (selected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+	bool useControl = (m_Settings.m_OverlayHotkeyModifiers & 1) != 0;
+	bool useAlt = (m_Settings.m_OverlayHotkeyModifiers & 2) != 0;
+	bool useShift = (m_Settings.m_OverlayHotkeyModifiers & 4) != 0;
+	if (ImGui::Checkbox("Ctrl", &useControl)) hotkeyChanged = true;
+	ImGui::SameLine();
+	if (ImGui::Checkbox("Alt", &useAlt)) hotkeyChanged = true;
+	ImGui::SameLine();
+	if (ImGui::Checkbox("Shift", &useShift)) hotkeyChanged = true;
+	if (hotkeyChanged)
+	{
+		m_Settings.m_OverlayHotkeyModifiers = (useControl ? 1 : 0) |
+			(useAlt ? 2 : 0) | (useShift ? 4 : 0);
+		m_Settings.SaveFile();
+	}
+
 	if (verifiedExclusiveFullscreen)
 	{
 		if (m_Settings.m_EnableGameOverlay)
@@ -96,7 +151,7 @@ void SettingsWindow::OnDrawOverlaySettings()
 	}
 
 	ImGui::TextDisabled("The overlay is an external transparent window; TF2PL does not inject anything into the game process.");
-	ImGui::TextWrapped("Press Ctrl+Tab to toggle interaction. Passive mode shows only a static marked-player pane in the selected corner. Interactive mode opens the complete TF2PL interface and blocks input from reaching TF2.");
+	ImGui::TextWrapped("Use the configured overlay toggle to switch interaction modes. Passive mode shows only a static marked-player pane in the selected corner. Interactive mode opens the complete TF2PL interface and blocks input from reaching TF2.");
 	ImGui::NewLine();
 	ImGui::TreePop();
 }

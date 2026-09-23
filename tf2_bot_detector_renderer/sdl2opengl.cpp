@@ -125,6 +125,12 @@ void TF2BotDetectorSDLRenderer::SetGameOverlayEnabled(bool enabled)
 	gameOverlayEnabled = enabled;
 }
 
+void TF2BotDetectorSDLRenderer::SetGameOverlayHotkey(int key, int modifiers)
+{
+	overlayHotkeyKey = key;
+	overlayHotkeyModifiers = modifiers;
+}
+
 void TF2BotDetectorSDLRenderer::UpdateGameOverlay()
 {
 #ifdef _WIN32
@@ -184,23 +190,41 @@ void TF2BotDetectorSDLRenderer::UpdateGameOverlay()
 		gameOverlayInteractive = false;
 	}
 
-	const bool hotkeyDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 &&
-		(GetAsyncKeyState(VK_TAB) & 0x8000) != 0;
+	const bool controlDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+	const bool altDown = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+	const bool shiftDown = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+	const bool modifiersDown = (!(overlayHotkeyModifiers & 1) || controlDown) &&
+		(!(overlayHotkeyModifiers & 2) || altDown) &&
+		(!(overlayHotkeyModifiers & 4) || shiftDown);
+	const bool hotkeyDown = overlayHotkeyKey > 0 && modifiersDown &&
+		(GetAsyncKeyState(overlayHotkeyKey) & 0x8000) != 0;
 	if (hotkeyDown && !overlayHotkeyWasDown)
 	{
 		gameOverlayInteractive = !gameOverlayInteractive;
 		LONG_PTR exStyle = GetWindowLongPtrW(ownWindow, GWL_EXSTYLE);
 		if (gameOverlayInteractive)
 		{
-			exStyle &= ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
+			// Color-keyed pixels in a layered window are also transparent to hit testing.
+			// Remove the layered style while interactive so the full client area consumes
+			// mouse input instead of allowing clicks through to TF2.
+			exStyle &= ~(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
 			SetWindowLongPtrW(ownWindow, GWL_EXSTYLE, exStyle);
+			SetWindowPos(ownWindow, HWND_TOPMOST, origin.x, origin.y, width, height,
+				SWP_SHOWWINDOW | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+			glClearColor(0.035f, 0.035f, 0.055f, 1.0f);
+			BringWindowToTop(ownWindow);
 			SetForegroundWindow(ownWindow);
+			SetActiveWindow(ownWindow);
 			SetFocus(ownWindow);
 		}
 		else
 		{
-			exStyle |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
+			exStyle |= WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
 			SetWindowLongPtrW(ownWindow, GWL_EXSTYLE, exStyle);
+			SetLayeredWindowAttributes(ownWindow, RGB(255, 0, 255), 0, LWA_COLORKEY);
+			SetWindowPos(ownWindow, HWND_TOPMOST, origin.x, origin.y, width, height,
+				SWP_SHOWWINDOW | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+			glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
 			SetForegroundWindow(tf2Window);
 		}
 	}
@@ -261,7 +285,7 @@ void TF2BotDetectorSDLRenderer::DrawFrame()
 
 	static bool showRendererSettings = false;
 
-	if (!gameOverlayApplied || gameOverlayInteractive)
+	if (!gameOverlayApplied)
 	{
 		if (ImGui::BeginMainMenuBar()) {
 			if (ImGui::MenuItem("Renderer")) {
@@ -271,7 +295,7 @@ void TF2BotDetectorSDLRenderer::DrawFrame()
 		}
 	}
 
-	if (showRendererSettings && (!gameOverlayApplied || gameOverlayInteractive)) {
+	if (showRendererSettings && !gameOverlayApplied) {
 	if (ImGui::Begin("Renderer Settings", &showRendererSettings)) {
 		ImGui::Text("Note: This setting will still prefer vSync.");
 

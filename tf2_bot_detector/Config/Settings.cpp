@@ -550,6 +550,8 @@ void Settings::Deserialize(const nlohmann::json& json)
 			try_get_to_defaulted(*custom_values, m_LaunchHeight, "launch_height", DEFAULTS.m_LaunchHeight);
 			try_get_to_defaulted(*custom_values, m_EnableGameOverlay, "enable_game_overlay", DEFAULTS.m_EnableGameOverlay);
 			try_get_to_defaulted(*custom_values, m_OverlayCorner, "overlay_corner", DEFAULTS.m_OverlayCorner);
+			try_get_to_defaulted(*custom_values, m_OverlayHotkeyKey, "overlay_hotkey_key", DEFAULTS.m_OverlayHotkeyKey);
+			try_get_to_defaulted(*custom_values, m_OverlayHotkeyModifiers, "overlay_hotkey_modifiers", DEFAULTS.m_OverlayHotkeyModifiers);
 			try_get_to_defaulted(*custom_values, m_ScoreboardCustomTagBG, "scoreboard_custom_tags", DEFAULTS.m_ScoreboardCustomTagBG);
 
 			// votekick stuff
@@ -658,6 +660,8 @@ void Settings::Serialize(nlohmann::json& json) const
 						{ "launch_height", m_LaunchHeight },
 						{ "enable_game_overlay", m_EnableGameOverlay },
 						{ "overlay_corner", m_OverlayCorner },
+						{ "overlay_hotkey_key", m_OverlayHotkeyKey },
+						{ "overlay_hotkey_modifiers", m_OverlayHotkeyModifiers },
 						{ "scoreboard_custom_tags", m_ScoreboardCustomTagBG },
 						{ "min_vote_kick_interval", m_MinVoteKickInterval },
 						{ "vote_kick_ignore_team_state_certain_maps", m_VoteKickIgnoreTeamStateOnCertainMaps },

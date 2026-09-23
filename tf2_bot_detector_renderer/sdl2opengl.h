@@ -63,6 +63,7 @@ public:
 
 	std::string RendererInfo() const;
 	void SetGameOverlayEnabled(bool enabled);
+	void SetGameOverlayHotkey(int key, int modifiers);
 	bool IsGameOverlayEnabled() const override { return gameOverlayApplied; }
 	bool IsGameOverlayInteractive() const override { return gameOverlayApplied && gameOverlayInteractive; }
 private:
@@ -80,6 +81,8 @@ private:
 	bool gameOverlayApplied = false;
 	bool gameOverlayInteractive = false;
 	bool overlayHotkeyWasDown = false;
+	int overlayHotkeyKey = 0x09;
+	int overlayHotkeyModifiers = 1;
 	int normalX = 0;
 	int normalY = 0;
 	int normalWidth = 1280;
