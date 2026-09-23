@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/Lunaris-Surf/TF2PL/releases">Releases</a> ·
+  <a href="https://github.com/Lunaris-Surf/TF2PL/actions">Development builds</a> ·
   <a href="https://github.com/Lunaris-Surf/TF2PL/issues">Issues</a> ·
   <a href="LUNARISV.md">Configuration guide</a> ·
   <a href="LICENSE">MIT License</a>
@@ -23,6 +24,19 @@ Version 2.0 expands the project into a single place to launch TF2, inspect a ser
 
 > [!IMPORTANT]
 > TF2PL assists human moderation. A mark is context, not proof by itself. Review evidence and follow the rules of the server or community you are playing on.
+
+## Project scope and AI assistance
+
+TF2PL makes use of AI-assisted tools during development, and we want to be transparent about where and why they are used:
+
+- The maintainer is not an artist, so AI assistance may be used for project artwork and presentation. Community-created artwork is welcome; users who would like to contribute art for the README are encouraged to do so.
+- Features are outlined, reviewed, tested, and debugged by real people. AI may help fill in or iterate on implementation, but it does not replace human direction or judgment.
+- TF2PL is a hobby project made for fun. It is not intended to target, harass, or encourage harassment of other users.
+
+TF2PL is **not intended to replace TF2 Bot Detector**. It is a personal, expanded version built on TF2BD that we use for our own preferred workflow and additional features.
+
+> [!CAUTION]
+> TF2PL follows a bleeding-edge development model. New releases may contain bugs or incomplete behavior. Please report reproducible issues through the repository's issue tracker.
 
 ## Highlights
 
@@ -84,6 +98,8 @@ See [LUNARISV.md](LUNARISV.md) for schema details, tag IDs, rule examples, and v
 ## Versioning and releases
 
 The repository root [`VERSION`](VERSION) file is the single source of truth for the public release version. It contains a three-part semantic version such as `2.0.0`.
+
+For the absolute earliest builds, visit [GitHub Actions](https://github.com/Lunaris-Surf/TF2PL/actions) and download an artifact from a successful workflow run. These builds contain the newest changes but receive less testing and may be unstable. [GitHub Releases](https://github.com/Lunaris-Surf/TF2PL/releases) are reserved for comparatively stable builds intended for general use.
 
 - Change `VERSION` when preparing a release.
 - CMake reads its major, minor, and patch values automatically.
