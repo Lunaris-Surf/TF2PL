@@ -1,6 +1,6 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"$id": "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/main/schemas/v3/sponsors.schema.json",
+	"$id": "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/custom/schemas/v3/sponsors.schema.json",
 	"title": "TF2PL Sponsors Schema",
 	"type": "object",
 	"additionalProperties": false,

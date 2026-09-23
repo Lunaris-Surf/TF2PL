@@ -1,11 +1,11 @@
 {
-	"$schema": "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/main/schemas/v3/sponsors.schema.json",
+	"$schema": "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/custom/schemas/v3/sponsors.schema.json",
 	"file_info": {
 		"authors": [
 			"pazer"
 		],
 		"title": "TF2PL Sponsors",
-		"update_url": "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/main/staging/cfg/sponsors.json"
+		"update_url": "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/custom/staging/cfg/sponsors.json"
 	},
 	"sponsors": [
 		{

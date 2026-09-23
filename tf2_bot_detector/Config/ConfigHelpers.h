@@ -58,7 +58,7 @@ namespace tf2_bot_detector
 	{
 		explicit ConfigSchemaInfo(std::nullptr_t) {}
 		ConfigSchemaInfo(const std::string_view& schema);
-		ConfigSchemaInfo(std::string type, unsigned version, std::string branch = "master");
+		ConfigSchemaInfo(std::string type, unsigned version, std::string branch = "custom");
 
 		std::string m_Branch;
 		std::string m_Type;

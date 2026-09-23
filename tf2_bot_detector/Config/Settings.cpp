@@ -617,7 +617,7 @@ void Settings::Serialize(nlohmann::json& json) const
 {
 	json =
 	{
-		{ "$schema", "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/main/schemas/v3/settings.schema.json" },
+		{ "$schema", "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/custom/schemas/v3/settings.schema.json" },
 		{ "theme", m_Theme },
 		{ "general",
 			{

@@ -264,7 +264,7 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesyst
 	{
 		if (loadResult)
 		{
-			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Failed to load and resave {}. TF2PL may not have permission to write to where it is installed.\n\nLoad error: {}\nSave error: {}", filename, loadResult, saveResult);
+			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Failed to load {} and TF2PL could not create a replacement config.\n\nLoad error: {}\nSave error: {}", filename, loadResult, saveResult);
 		}
 		else
 		{
@@ -441,12 +441,12 @@ ConfigSchemaInfo::ConfigSchemaInfo(const std::string_view& schema)
 	{
 		from_chars_throw(localMatch[1], m_Version);
 		m_Type = localMatch[2].str();
-		m_Branch = "master";
+		m_Branch = "custom";
 		return;
 	}
 	std::match_results<std::string_view::iterator> match;
 	const std::regex schemaRegex(
-		R"regex(https:\/\/raw\.githubusercontent\.com\/PazerOP\/tf2_bot_detector\/(\w+)\/schemas\/v(\d+)\/(\w+)\.schema\.json)regex");
+		R"regex(https:\/\/raw\.githubusercontent\.com\/(?:Lunaris-Surf\/TF2PL|PazerOP\/tf2_bot_detector)\/([^\/]+)\/schemas\/v(\d+)\/(\w+)\.schema\.json)regex");
 	if (!std::regex_match(schema.begin(), schema.end(), match, schemaRegex))
 		throw std::runtime_error("Unknown schema "s << std::quoted(schema));
 
