@@ -370,13 +370,13 @@ void ModeratorLogic::OnChatMsg(IWorldState& world, IPlayer& player, const std::s
 	{
 		if (auto localPlayer = GetLocalPlayer(); localPlayer && (player.GetSteamID() != localPlayer->GetSteamID()) && botMsgDetected)
 		{
-			Log("Detected message from {} as another instance of TF2BD: {}", player, fmt::streamed(std::quoted(msg)));
+			Log("Detected message from {} as another instance of TF2PL: {}", player, fmt::streamed(std::quoted(msg)));
 			SetUserRunningTool(player, true);
 
 			if (player.GetUserID() < localPlayer->GetUserID())
 			{
 				assert(!IsBotLeader());
-				Log("Deferring all cheater warnings for a bit because we think {} is running TF2BD", player);
+				Log("Deferring all cheater warnings for a bit because we think {} is running TF2PL", player);
 				m_NextCheaterWarningTime = m_NextConnectingCheaterWarningTime =
 					world.GetCurrentTime() + CHEATER_WARNING_INTERVAL_NONLOCAL;
 			}

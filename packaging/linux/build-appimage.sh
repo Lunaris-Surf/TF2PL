@@ -52,7 +52,7 @@ echo ">> .desktop"
 cat > "$APPDIR/tf2_bot_detector.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=TF2 Bot Detector
+Name=TF2PL by LunarisV
 Exec=tf2_bot_detector
 Icon=tf2_bot_detector
 Categories=Game;Utility;
@@ -72,5 +72,5 @@ EOF
 chmod +x "$APPDIR/AppRun"
 
 echo ">> appimagetool"
-"$APPIMAGETOOL" "$APPDIR" "$OUTDIR/tf2_bot_detector-x86_64.AppImage"
-echo ">> done: $OUTDIR/tf2_bot_detector-x86_64.AppImage"
+"$APPIMAGETOOL" "$APPDIR" "$OUTDIR/TF2PL-x86_64.AppImage"
+echo ">> done: $OUTDIR/TF2PL-x86_64.AppImage"

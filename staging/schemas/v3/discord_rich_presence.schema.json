@@ -1,7 +1,7 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"$id": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/discord_rich_presence.schema.json",
-	"title": "TF2 Bot Detector Discord Rich Presence Schema",
+	"$id": "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/main/schemas/v3/discord_rich_presence.schema.json",
+	"title": "TF2PL Discord Rich Presence Schema",
 	"type": "object",
 	"additionalProperties": false,
 	"properties": {

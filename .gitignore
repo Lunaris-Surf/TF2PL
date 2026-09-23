@@ -357,3 +357,5 @@ staging/cfg/addons_list.json
 /dist/
 /packaging/linux/tools/
 /packaging/linux/AppDir/
+/tf2bd_cmake_build_dir
+build_local.ps1

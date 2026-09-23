@@ -10,7 +10,6 @@
 
 #include "UI/MainWindow.h"
 #include "UI/SettingsWindow.h"
-#include "UI/PlayerListManagementWindow.h"
 #include <chrono>
 
 #ifdef WIN32
@@ -113,7 +112,7 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 #endif
 
 #ifndef TF2BD_OVERLAY_BUILD
-		DebugLog("Initializing TF2BDApplication...");
+		DebugLog("Initializing TF2PL by LunarisV...");
 		TF2BDRenderer renderer;
 
 		std::shared_ptr<TF2BDApplication> app = std::make_shared<TF2BDApplication>();
@@ -133,15 +132,6 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 				// important note: while mainwindow handles only drawing related stuff,
 				// it also handles "wake from sleep", when our application log (not tf2 log!) has new stuff
 				main_window->Draw();
-			});
-		}
-
-		if (false)
-		{
-			std::shared_ptr<PlayerListManagementWindow> plist = std::make_shared<PlayerListManagementWindow>();
-
-			renderer.RegisterDrawCallback([window = std::move(plist)]() {
-				window->Draw();
 			});
 		}
 

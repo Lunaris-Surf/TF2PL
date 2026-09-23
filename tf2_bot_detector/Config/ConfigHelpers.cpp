@@ -236,7 +236,7 @@ static void SaveConfigFileBackup(const std::filesystem::path& filename) noexcept
 }
 catch (...)
 {
-	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), "Loading config file {} failed, and LunarisV was unable to make a backup before overwriting it.",
+	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), "Loading config file {} failed, and TF2PL was unable to make a backup before overwriting it.",
 		filename);
 }
 
@@ -264,7 +264,7 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesyst
 	{
 		if (loadResult)
 		{
-			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Failed to load and resave {}. LunarisV may not have permission to write to where it is installed.\n\nLoad error: {}\nSave error: {}", filename, loadResult, saveResult);
+			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Failed to load and resave {}. TF2PL may not have permission to write to where it is installed.\n\nLoad error: {}\nSave error: {}", filename, loadResult, saveResult);
 		}
 		else
 		{

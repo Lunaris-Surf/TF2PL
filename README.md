@@ -1,305 +1,115 @@
-# LunarisV
-
-This fork extends TF2 Bot Detector's v3 player lists with additional built-in tags,
-custom tags, automatic ban-history marking, and shared in-game / SourceBan text rules.
-
-See [LUNARISV.md](LUNARISV.md) for setup, tag IDs, rule examples, and validation notes.
-The existing executable names and GitHub Actions are retained for compatibility.
-
----
-
-<!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Build Status][build-shield]][actions-build-url]
-[![Discord Status][discord-shield]][discord-link]
-
-
-<!-- PROJECT LOGO -->
-<br />
 <p align="center">
-  <a href="https://github.com/PazerOP/tf2_bot_detector">
-    <img src="https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/tf2_bot_detector/Art/TF2BotDetector.ico" alt="Logo" width="100" height="100">
-  </a>
-
-  <h3 align="center">TF2 Bot Detector</h3>
-
-  <p align="center">
-    <s>Automatically detects and votekicks cheaters/bots in TF2 casual.</s>
-    <br />
-    A handy little tool to gather, keep track and automatically votekick bots and bad actors in Team Fortress 2.
-    <br />
-    <i>sleepy's personal build.</i>    
-    <!-- commented until there is documentation at the wiki
-    <br />
-    <a href="https://github.com/PazerOP/tf2_bot_detector/wiki"><strong>Explore the docs »</strong></a>
-    <br />
-    -->
-    <br />
-    <a href="#installation">Install</a>
-    ·
-    <a href="https://github.com/surepy/tf2_bot_detector/issues/new/choose">Report a Bug / Request a Feature</a>
-    ·
-    <a href="https://discord.gg/W8ZSh3Z">Join the Discord</a>
-  </p>
+  <img src="docs/images/tf2pl-masthead.png" alt="TF2PL — Team Fortress 2 PlayerList" width="100%">
 </p>
 
-<!-- TABLE OF CONTENTS -->
-## Table of Contents
+<p align="center">
+  <strong>A player intelligence, marking, and launch companion for Team Fortress 2.</strong><br>
+  TF2PL is developed by LunarisV and built on the open-source TF2 Bot Detector foundation.
+</p>
 
-- [Table of Contents](#table-of-contents)
-- [Installation](#installation)
-  - [Typical Install (works for nearly everyone)](#typical-install-works-for-nearly-everyone)
-  - [Advanced Installation](#advanced-installation)
-- [General Usage](#general-usage)
-  - [How to launch TF2BD](#how-to-launch-tf2bd)
-  - [First run](#first-run)
-  - [Using TF2BD](#using-tf2bd)
-  - [How to update](#how-to-update)
-- [Common Tweaks](#common-tweaks)
-- [FAQ](#faq)
-  - [What is TF2 Bot Detector?](#what-is-tf2-bot-detector)
-  - [What ISN'T TF2 Bot Detector?](#what-isnt-tf2-bot-detector)
-  - [Why would I want this? It's easy to identify and kick bots!](#why-would-i-want-this-its-easy-to-identify-and-kick-bots)
-  - [Will this get me VAC banned?](#will-this-get-me-vac-banned)
-  - [How does it work?](#how-does-it-work)
-  - [How is the list of known cheaters curated?](#how-is-the-list-of-known-cheaters-curated)
-  - [I don't like how the tool spams chat. Can I change that?](#i-dont-like-how-the-tool-spams-chat-can-i-change-that)
-  - [I downloaded the tool but I don't see an executable. What went wrong?](#i-downloaded-the-tool-but-i-dont-see-an-executable-what-went-wrong)
-  - [This doesn't detect anything!](#this-doesnt-detect-anything)
-  - [Help! The tool wont open!](#help-the-tool-wont-open)
-  - [What do you think of using aimbot/cathook/esp/bots/cheats against the bots?](#what-do-you-think-of-using-aimbotcathookespbotscheats-against-the-bots)
-  - [How can I support this project financially?](#how-can-i-support-this-project-financially)
-  - [I have a question that is not listed here!](#i-have-a-question-that-is-not-listed-here)
-- [License](#license)
-- [Contact](#contact)
-- [Acknowledgements](#acknowledgements)
-  - [Sponsors](#sponsors)
+<p align="center">
+  <a href="https://github.com/Lunaris-Surf/TF2PL/releases">Releases</a> ·
+  <a href="https://github.com/Lunaris-Surf/TF2PL/issues">Issues</a> ·
+  <a href="LUNARISV.md">Configuration guide</a> ·
+  <a href="LICENSE">MIT License</a>
+</p>
+
+## What is TF2PL?
+
+TF2PL — **Team Fortress 2 PlayerList** — keeps useful player context close while you play. It reads TF2's console output, enriches player records with supported public data, displays an at-a-glance dossier, and lets you maintain local or subscribed player lists with clear, color-coded marks.
+
+Version 2.0 expands the project into a single place to launch TF2, inspect a server, mark players, manage lists, and export data for compatible tools.
+
+> [!IMPORTANT]
+> TF2PL assists human moderation. A mark is context, not proof by itself. Review evidence and follow the rules of the server or community you are playing on.
+
+## Highlights
+
+- **TF2 launcher:** start the game through TF2PL with readable controls for common launch options. The recommended profile includes borderless windowed mode, disabled legacy input features, FakeIP, and display-resolution detection. Explicit width and height values are never overwritten.
+- **Live player dossiers:** hover a player to see identity, account age, TF2 playtime, inventory information, activity, and available ban data.
+- **Flexible player marking:** use built-in marks such as Cheater, Suspicious, Exploiter, Racist, Hostile, VAC Banned, Game Banned, Source Banned, and more, plus your own custom tags.
+- **Custom tag colors:** every built-in and custom tag can have its own scoreboard color.
+- **Complete Steam identity sets:** records retain SteamID, SteamID3/SteamID32, and SteamID64, with SteamID64 as the primary identity.
+- **Two-format total export:** export a full TF2PL list and a TF2BD-compatible list. Marks unsupported by TF2BD are preserved in the proof field.
+- **Local-first lists:** your local data remains under your control, while optional subscribed lists can add shared context.
+
+## Launcher
+
+The launcher can manage TF2 directly or apply the same selected launch options when TF2PL is started through Steam. Recommended settings are available in one click and remain individually editable.
+
+<p align="center">
+  <img src="docs/images/launcher.png" alt="TF2PL launcher and launch options" width="100%">
+</p>
+
+## Player dossier
+
+Hover a player in the live scoreboard to open a compact dossier. Data appears as it becomes available, so TF2PL stays useful even when an external service is unavailable or a Steam profile is private.
+
+<p align="center">
+  <img src="docs/images/player-dossier.png" alt="TF2PL player dossier shown on hover" width="760">
+</p>
+
+## Marks and custom tags
+
+Right-click a player to copy identifiers, visit supported profile services, initiate an eligible votekick, or update your local player list. Built-in marks cover common cases; custom lowercase tags let you build a system that fits your own community.
+
+<p align="center">
+  <img src="docs/images/marker-menu.png" alt="TF2PL player marking menu" width="430">
+</p>
+
+`Racist` is reserved for racial hatred. `Hostile` covers hateful behavior directed at other protected groups, including anti-LGBT harassment. This separation keeps rules and exports explicit.
 
 ## Installation
 
-### Typical Install
+1. Download the appropriate package from [GitHub Releases](https://github.com/Lunaris-Surf/TF2PL/releases).
+2. Extract the complete package to a writable folder. Do not run the executable from inside the archive.
+3. Open TF2PL and complete the first-run setup.
+4. Allow Steam integration and internet features only if you want to use them.
+5. Launch TF2 from TF2PL when prompted.
 
-1. Download and install the [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link]
-2. Download the [latest release][releases-link]
-3. Extract the zip in any location inside your user folder (e.g. Downloads, Documents, Desktop, etc)
+Keep the packaged `cfg`, `fonts`, `images`, `licenses`, and `schemas` folders beside the executable. Missing packaged resources can prevent parts of the interface from loading correctly.
 
-### Advanced Installation
+## Player-list compatibility
 
-~~If you would like more information about installation or the above options are not quite what you need, visit the more detailed and technical [installation wiki][installation-wiki]~~  
+TF2PL continues to read TF2BD schema-v3 player lists and rules. Its extended format adds custom tags and complete Steam identity sets while keeping the familiar `players`, `steamid`, `attributes`, and `proof` structure.
 
-All of the installation methods in that page are not supported in this fork.
+Total Export writes:
 
-## General Usage
+- `cfg/playerlist.export.tf2pl.json` — the complete TF2PL representation.
+- `cfg/playerlist.export.tf2bd.json` — limited to Cheater, Racist, Exploiter, and Suspicious attributes, with the complete TF2PL mark set recorded in `proof`.
 
-### How to launch TF2BD
-Double click `tf2_bot_detector.exe` or ``tf2_bot_detector`` executable in the folder you downloaded from the installation section.
+See [LUNARISV.md](LUNARISV.md) for schema details, tag IDs, rule examples, and validation notes.
 
-### First run
-When you first run the tool it will ask if you would like to allow internet connectivity and which update channel you would like. These can be changed later in the settings menu.
+## Versioning and releases
 
-![first-launch]
+The repository root [`VERSION`](VERSION) file is the single source of truth for the public release version. It contains a three-part semantic version such as `2.0.0`.
 
-It is **strongly** recommended to set up your Steam Web API key. More information can be found [here][api-wiki].
+- Change `VERSION` when preparing a release.
+- CMake reads its major, minor, and patch values automatically.
+- GitHub Actions appends its run number as the fourth build component.
+- Release tags should use the matching `vMAJOR.MINOR.PATCH` form, such as `v2.0.0`.
+- The in-app updater checks releases from this repository.
 
-> Note: If TF2BD is unable to find your Steam folder, your TF2's tf folder, or your Steam ID, it will ask you for the missing information before anything else
+This keeps local builds, Windows resources, CI artifacts, and the updater aligned without copying a version number through several files.
 
-### Using TF2BD
+## Building from source
 
-You can right click any entry in the TF2BD scoreboard to mark or unmark them. If they are on your team, you can also vote kick them from here without having to mark them.
+TF2PL uses CMake, C++20, and the dependencies pinned in this repository's submodules and vcpkg manifest. Clone recursively, configure with your supported toolchain, then build the `tf2_bot_detector` target. The GitHub Actions workflows contain the maintained Windows and Linux CI configurations.
 
-![right-click]
+Local development builds identify themselves as custom builds. CI builds receive the workflow run number so packaged versions remain ordered for update comparisons.
 
-If you have set up your Steam Web API (instructions [here][api-wiki]) you can hover over entries in the TF2BD you will be presented with a window showing Steam Community information about that account.
+## Privacy and network access
 
-![hover]
+TF2PL can operate with network features disabled. When enabled, it may contact Steam services, configured player-list sources, SteamHistory-supported services, and GitHub Releases for updates. API keys are stored in the local configuration and should never be committed or shared in logs.
 
-You can quickly pause all functionality (chat warnings, vote-kicks, auto-marks, etc) by checking the "Pause" box.
+## Credits
 
-![pause-box]
+TF2PL is maintained by **LunarisV**. It is derived from [TF2 Bot Detector](https://github.com/PazerOP/tf2_bot_detector), originally created by Matt “pazer” Haynie, and retains contributions and third-party attributions from that project. Full dependency license texts are shipped in the `staging/licenses` directory.
 
-There are several of these check boxes, hover over them for more information.
+The TF2PL masthead features Mimi Vesper and was created for this repository from the maintainer-provided character design.
 
-![chat-warning]
-
-### How to update
-
-With default settings TF2BD can self update. When the tool opens it will check for updates, if there is an update in your release channel you will be prompted to either update or continue without updating.
-
-![update-image]
-
->Note: Player lists and rule sets are updated separately from the tool itself. As long as internet connectivity is allowed those lists will be updated
-
-## Common Tweaks
-
-TF2BD allows for a fair amount of customization (with even more planned). Currently the most popular community tweak is the addition of community rule lists and player lists. More information about these can be found [here][wiki-customization-link].
-
-> **Community lists are not maintained by this project!** While being on the official project wiki implies endorsement by the project, ultimately we cannot guarantee quality, accuracy, or truthfulness of any player lists or rule sets. Please use responsibly.
-
-If you are an advanced user you are more than welcome to create your own lists. You should be familiar with json in general before getting started but there are many people in the [discord][discord-link] who would be happy to help.
-
-## FAQ
-
-### What is TF2 Bot Detector?
-
-TF2 Bot Detector is a standalone application that calls a votekick against known bots and cheaters on your team. If they are on the other team, it will send a chat message telling the other team to kick their cheater.
-
-### What ISN'T TF2 Bot Detector?
-
-TF2BD isn't a perfect solution. It does not (and can not) perfectly detect every single cheater. 
-
-### Why would I want this? It's easy to identify and kick bots!
-
-While true, this automates the process to a large degree. It also makes identifying name stealing bots trivial. With the addition of maintaining a data base of cheaters you have encountered you can "remember" any and all cheaters you have encountered. This is handy to identify the more subtle human cheaters.
-
-### Will this get me VAC banned?
-
-No. It does not modify the game or OS memory in any way. It is only using built-in functionality in the engine, *exactly* the way it was intended. Anecdotally, many users have been using this tool for many months now without issue.
-
-### How does it work?
-
-It monitors the console output (saved to a log file) to get information about the game state. Invoking commands in the game is done via passing rcon commands to your client. Getting players in the current game is done via the `tf_lobby_debug` and `status` commands. Cheaters are identified by some rules but primarily by comparing players steamIDs against a list of known cheaters.
-
-### How is the list of known cheaters curated?
-
-The "official" list that is included with the program was maintained by Pazer exclusively.
-
-As pazer retired and archived the upstream repository, the "official" list will never recieve any changes moving forward.
-
-While this approach this may seem limiting, it is to avoid false positives and to maintain the integrity of the project as a whole. There are some community player lists that can be added to your own detector. For more information on installing community lists go [here][wiki-customization-link].  
-
-**It is very highly recommended that you curate your own bot/cheater lists, instead.**
-
-### I don't like how the tool spams chat. Can I change that?
-
-Use the "Chat Warning Frequency" or "Warn Cheaters Once" setting in the settings menu.  
-\- or You can turn off chat warnings by unchecking the checkbox labeled "Enable Chat Warnings." 
-
-Note that by default if there are multiple tool users in the same server, a "Bot Leader" is chosen and only their tool will send messages*.
-
-\* "Bot Leader" is only supported with the old chat format, and will take priority over default format. 
-
-### I downloaded the tool but I don't see an executable. What went wrong?
-
-You likely downloaded the source code instead of the actual tool. Make sure you are downloading one of the .ZIPs that is not labeled "Source Code." There are two of them, one labeled with an x86 and one with an x64. If you don't know which one you want, you almost certainly want the one with the x64. For further instructions go [here][getting-started-wiki].
-
-### This doesn't detect anything!
-
-[TF2BD is not actually a detector](https://en.wikipedia.org/wiki/Kira_kira_name), as in it can't just magically "detect" cheat features in an ongoing game as that requires memory read, and relies on pre-curated player list and basic rules.
-
-Right now the base player list and rule set is very very limited due to an abundance of caution. There are third party community lists and rules that are run by people who are not Pazer. While the general community trusts them, it is important to remember that these are not official resources and not under direct control of this project. For more information on installing community lists go [here][wiki-customization-link].
-
-### Help! The tool wont open!
-
-Make sure you have [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] installed. If you just installed it make to to restart your computer after to finish the installation. If that does not work try following the steps located [here][getting-started-wiki].
-
-For further assistance either open an [issue][issues-url] on github or join our [discord][discord-link] for faster, community based support.
-
-### What do you think of using aimbot/cathook/esp/bots/cheats against the bots?
-
-This project does not advocate for the use of cheating in any fashion. Putting aside the obvious moral issues with using cheats, that would introduce the possibility of a VAC ban. This project is committed to maintaining the safety of its users.
-
-### How can I support this project financially?
-
-You can't. This may change in the future.
-
-### I have a question that is not listed here!
-
-Take a look at the [wiki][wiki-link]. There is not a ton there right now but that will be the location of all future documentation. If you can't find your answer there, stop by the [discord][discord-link].
-
+TF2PL is an independent community project and is not affiliated with or endorsed by Valve Corporation.
 
 ## License
 
-Distributed under the MIT License. See [`LICENSE`][license-url] for more information.
-
-
-## Contact
-Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
-
-[Issues page][issues-link]
-
-
-## Acknowledgements
-* Code/concept by [Matt "pazer" Haynie](https://github.com/PazerOP/) - [@PazerFromSilver](https://twitter.com/PazerFromSilver)
-* Artwork/icon by S-Purple - [@spurpleheart](https://twitter.com/spurpleheart) (NSFW)
-* Documentation by [Nicholas "ClusterConsultant" Flamel](https://github.com/ClusterConsultant)
-
-### Sponsors
-Huge thanks to anyone who threw money at this project via GitHub Sponsors. Since the sponsor program has been stopped below is a list of everyone who has given money to this project. In descending order based on total amount donated:
-
-- [CrazyGunman2C4U](https://github.com/CrazyGunman2C4U)
-- [camp3r101](https://github.com/camp3r101)
-- [bgausden](https://github.com/bgausden)
-- [ClusterConsultant](https://github.com/ClusterConsultant)
-- [moebkun](https://github.com/moebkun)
-- [Czechball](https://github.com/Czechball)
-- [RedNightmare](https://github.com/RedNightmare)
-- [PoliteYeti](https://github.com/PoliteYeti)
-- [TheWisehobgoblin](https://github.com/TheWisehobgoblin)
-- [AdmiralBreadCrumbs](https://github.com/AdmiralBreadCrumbs)
-- [philosothink66](https://github.com/philosothink66)
-- [Zatharax](https://github.com/Zatharax)
-- [YoukaiCat](https://github.com/YoukaiCat)
-- [Symthos](https://github.com/Symthos)
-- [Koi](https://steamcommunity.com/profiles/76561198064411172)
-- [CriticalFlaw](https://github.com/CriticalFlaw)
-- [BitmapDummy](https://github.com/BitmapDummy)
-- [berry-jordan](https://github.com/berry-jordan)
-- [KTachibanaM](https://github.com/KTachibanaM)
-- [spacebuterfly](https://github.com/spacebuterfly)
-- [flohdieter](https://github.com/flohdieter)
-- [Claxtian](https://github.com/Claxtian)
-- [ElRogero](https://github.com/ElRogero)
-- [FishdaddyYoutube](https://github.com/FishdaddyYoutube)
-- [lnx00](https://github.com/lnx00)
-- [betawolfy](https://github.com/betawolfy)
-- [minein4](https://github.com/minein4)
-- [karlovchap](https://github.com/karlovchap)
-- [ziggythehamster](https://github.com/ziggythehamster)
-- [Flavio11113](https://github.com/Flavio11113)
-- [ClaudiaLutz](https://github.com/ClaudiaLutz)
-
-~~> If you'd like you displayed name changed please contact `The Immortal Nicholas Flamel#0001` on discord or submit a PR from the associated GitHub account~~
-> Please go to the [original repository](original-repo) for this.
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[stars-shield]: https://img.shields.io/github/stars/PazerOP/tf2_bot_detector
-[stars-url]: https://github.com/PazerOP/tf2_bot_detector/stargazers
-[issues-shield]: https://img.shields.io/github/issues/PazerOP/tf2_bot_detector
-[issues-url]: https://github.com/surepy/tf2_bot_detector/issues
-[license-shield]: https://img.shields.io/github/license/PazerOP/tf2_bot_detector
-[license-url]: https://github.com/PazerOP/tf2_bot_detector/blob/master/LICENSE
-[actions-build-url]: https://github.com/surepy/tf2_bot_detector/actions?query=workflow%3Abuild
-[build-shield]: https://github.com/surepy/tf2_bot_detector/workflows/build/badge.svg
-[discord-shield]: https://img.shields.io/discord/716525494421553243?label=discord&logo=discord
-[repo-link]: https://github.com/surepy/tf2_bot_detector
-[wiki-link]: https://github.com/PazerOP/tf2_bot_detector/wiki
-[issues-link]: https://github.com/surepy/tf2_bot_detector/issues
-[releases-link]: https://github.com/surepy/tf2_bot_detector/releases
-[discord-link]: https://discord.gg/W8ZSh3Z
-[mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
-[mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
-[zip-image]: https://i.imgur.com/ZeCuUul.png
-[github-sponsors-pazerop]: https://github.com/sponsors/PazerOP
-[wiki-customization-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization#third-party-player-lists-and-rules
-[wiki-installation-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Getting-Started
-[install-video]: https://www.youtube.com/watch?v=MbFDUmsUakQ
-[getting-started-wiki]: https://github.com/PazerOP/tf2_bot_detector/wiki/Getting-Started
-[right-click]: https://i.imgur.com/dOFnkNL.png
-[hover]: https://user-images.githubusercontent.com/6569500/90000207-b8878f00-dc44-11ea-938a-8f802630703d.png
-[pause-box]: https://i.imgur.com/oxTCNH2.png
-[chat-warning]: https://i.imgur.com/5AJvZJG.png
-[first-launch]: https://i.imgur.com/oic9NbS.png
-[update-image]: https://i.imgur.com/q95NMVy.png
-[installation-wiki]: https://github.com/PazerOP/tf2_bot_detector/wiki/Installation
-[api-wiki]: https://github.com/PazerOP/tf2_bot_detector/wiki/Integrations:-Steam-API
-[original-repo]: https://github.com/PazerOP/tf2_bot_detector/
+TF2PL is distributed under the [MIT License](LICENSE).

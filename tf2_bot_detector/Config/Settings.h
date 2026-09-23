@@ -8,6 +8,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <filesystem>
+#include <map>
 #include <optional>
 #include <vector>
 
@@ -130,6 +131,11 @@ namespace tf2_bot_detector
 		/// use recommended launch params (I actually need contimes to not be 0 :DD)
 		/// </summary>
 		bool m_UseLaunchRecommendedParams = true;
+		std::string m_ManagedLaunchOptions;
+		bool m_UseLaunchResolution = false;
+		int m_LaunchWidth = 0;
+		int m_LaunchHeight = 0;
+		std::map<std::string, std::array<float, 4>> m_ScoreboardCustomTagBG;
 
 		/// <summary>
 		/// due to rcon design limitations, ignore team state and try to call a votekick anyways in these maps (vsh_ and ze_)
@@ -265,6 +271,13 @@ namespace tf2_bot_detector
 				std::array<float, 4> m_ScoreboardSuspiciousBG = { 1, 1, 0, 1 };
 				std::array<float, 4> m_ScoreboardExploiterBG = { 0, 1, 1, 1 };
 				std::array<float, 4> m_ScoreboardRacistBG = { 1, 1, 1, 1 };
+				std::array<float, 4> m_ScoreboardHostileBG = { 1, 0.5f, 0.2f, 1 };
+				std::array<float, 4> m_ScoreboardSuspectedCheaterBG = { 1, 0.8f, 0.8f, 1 };
+				std::array<float, 4> m_ScoreboardBlacklistedBG = { 0.4f, 0.4f, 0.9f, 1 };
+				std::array<float, 4> m_ScoreboardVACBannedBG = { 0.3f, 0.3f, 0.3f, 1 };
+				std::array<float, 4> m_ScoreboardGameBannedBG = { 0.9f, 0.6f, 0.3f, 1 };
+				std::array<float, 4> m_ScoreboardSourceBannedBG = { 0.5f, 0.5f, 0.5f, 1 };
+				std::array<float, 4> m_ScoreboardPedophiliaBG = { 1, 0.7f, 0.2f, 1 };
 				std::array<float, 4> m_ScoreboardYouFG = { 0, 1, 0, 1 };
 				std::array<float, 4> m_ScoreboardConnectingFG = { 1, 1, 0, 0.5f };
 

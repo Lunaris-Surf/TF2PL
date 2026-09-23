@@ -72,7 +72,7 @@ namespace tf2_bot_detector
 	{
 		if (info.m_Type == "playerlist" || info.m_Type == "rules")
 			return os << "../schemas/v" << info.m_Version << '/' << info.m_Type << ".schema.json";
-		return os << "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/"
+		return os << "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/"
 			<< info.m_Branch << "/schemas/v"
 			<< info.m_Version << '/'
 			<< info.m_Type << ".schema.json";

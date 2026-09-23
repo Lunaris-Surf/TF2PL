@@ -69,6 +69,7 @@ namespace tf2_bot_detector
 				PushAttribute(PlayerAttribute::Suspicious, "suspicious");
 				PushAttribute(PlayerAttribute::Exploiter, "exploiter");
 				PushAttribute(PlayerAttribute::Racist, "racist");
+				PushAttribute(PlayerAttribute::Hostile, "hostile");
 				PushAttribute(PlayerAttribute::SuspectedCheater, "suspected_cheater");
 				PushAttribute(PlayerAttribute::Blacklisted, "blacklisted");
 				PushAttribute(PlayerAttribute::VACBanned, "vac_banned");
@@ -82,11 +83,13 @@ namespace tf2_bot_detector
 				return attrJson;
 			};
 
-			j = nlohmann::json
-			{
-				{ "steamid", data.GetSteamID() },
-				{ "attributes", SerializeAttributes(data.m_SavedAttributes) }
-			};
+j = nlohmann::json
+    {
+        { "steamid", data.GetSteamID().GetSteamID64() },
+        { "steamid3", data.GetSteamID().GetSteamID3() },
+        { "steamid32", data.GetSteamID().GetSteamID32() },
+        { "attributes", SerializeAttributes(data.m_SavedAttributes) }
+    };
 
 			if (data.m_LastSeen)
 			{
@@ -99,6 +102,69 @@ namespace tf2_bot_detector
 
 			if (!data.m_Proof.empty())
 				j["proof"] = data.m_Proof;
+		}
+
+		std::vector<std::string> GetAttributeNames(const PlayerAttributesList& attrs)
+		{
+			std::vector<std::string> names;
+			const auto Add = [&](PlayerAttribute attr, const char* name)
+				{
+					if (attrs.HasAttribute(attr))
+						names.emplace_back(name);
+				};
+
+			Add(PlayerAttribute::Cheater, "Cheater");
+			Add(PlayerAttribute::Suspicious, "Suspicious");
+			Add(PlayerAttribute::Exploiter, "Exploiter");
+			Add(PlayerAttribute::Racist, "Racist");
+			Add(PlayerAttribute::Hostile, "Hostile");
+			Add(PlayerAttribute::SuspectedCheater, "Suspected Cheater");
+			Add(PlayerAttribute::Blacklisted, "Blacklisted");
+			Add(PlayerAttribute::VACBanned, "VAC Banned");
+			Add(PlayerAttribute::GameBanned, "Game Banned");
+			Add(PlayerAttribute::SourceBanned, "Source Banned");
+			Add(PlayerAttribute::Pedophilia, "Pedophilia");
+			for (const auto& tag : attrs.GetCustomTags())
+				names.push_back(tag);
+			return names;
+		}
+
+		void SerializeTF2BDPlayerData(nlohmann::json& j, const PlayerListData& data)
+		{
+			nlohmann::json attrs = nlohmann::json::array();
+			const auto AddCompatible = [&](PlayerAttribute attr, const char* name)
+				{
+					if (data.m_SavedAttributes.HasAttribute(attr))
+						attrs.push_back(name);
+				};
+			AddCompatible(PlayerAttribute::Cheater, "cheater");
+			AddCompatible(PlayerAttribute::Racist, "racist");
+			AddCompatible(PlayerAttribute::Exploiter, "exploiter");
+			AddCompatible(PlayerAttribute::Suspicious, "suspicious");
+
+			j = { { "steamid", data.GetSteamID().GetSteamID64() }, { "attributes", std::move(attrs) } };
+			if (data.m_LastSeen)
+			{
+				auto& lastSeen = j["last_seen"];
+				if (!data.m_LastSeen->m_PlayerName.empty())
+					lastSeen["player_name"] = data.m_LastSeen->m_PlayerName;
+				lastSeen["time"] = std::chrono::duration_cast<std::chrono::seconds>(
+					data.m_LastSeen->m_Time.time_since_epoch()).count();
+			}
+
+			j["proof"] = data.m_Proof;
+			const auto names = GetAttributeNames(data.m_SavedAttributes);
+			if (!names.empty())
+			{
+				std::string marks = "TF2PL - ";
+				for (size_t i = 0; i < names.size(); i++)
+				{
+					if (i)
+						marks += ", ";
+					marks += names[i];
+				}
+				j["proof"].push_back(std::move(marks));
+			}
 		}
 	}
 }
@@ -209,15 +275,15 @@ void PlayerListExporter::RunExport()
 		if (m_Cancel)
 			return;
 
-		SetStage(Progress::Stage::Writing, "Writing cfg/playerlist.export.json...");
-		WriteFile();
+		SetStage(Progress::Stage::Writing, "Writing TF2PL and TF2BD export files...");
+		WriteFiles();
 
 		if (m_Cancel)
 			return;
 
 		const size_t finalCount = m_Players.size();
 		SetProgress(Progress::Stage::Finished, finalCount, finalCount,
-			"Done! Exported "s << finalCount << " players to cfg/playerlist.export.json.");
+			"Done! Exported "s << finalCount << " players in TF2PL and TF2BD formats.");
 		Log("Total Export: exported {} players.", finalCount);
 	}
 	catch (...)
@@ -393,10 +459,12 @@ void PlayerListExporter::RefreshSourceBans()
 		mh::fmtstr<192>("Refreshed SourceBans: {} SourceBan records.", m_Worker.m_SourceBanned).c_str());
 }
 
-void PlayerListExporter::WriteFile() const
+void PlayerListExporter::WriteFiles() const
 {
-	nlohmann::json json;
-	json["$schema"] = ConfigSchemaInfo("playerlist", EXPORT_SCHEMA_VERSION);
+	nlohmann::json tf2pl;
+	tf2pl["$schema"] = ConfigSchemaInfo("playerlist", EXPORT_SCHEMA_VERSION);
+	nlohmann::json tf2bd;
+	tf2bd["$schema"] = ConfigSchemaInfo("playerlist", EXPORT_SCHEMA_VERSION);
 
 	ConfigFileInfo fileInfo;
 	fileInfo.m_Authors = { "Total Export" };
@@ -404,10 +472,13 @@ void PlayerListExporter::WriteFile() const
 	fileInfo.m_Description =
 		"Automatically merged list of every player across all loaded playerlists. "
 		"Names, VAC/game bans and SourceBans were refreshed from the APIs at export time.";
-	json["file_info"] = fileInfo;
+	tf2pl["file_info"] = fileInfo;
+	fileInfo.m_Title = "Total Export - TF2BD Compatible";
+	fileInfo.m_Description = "TF2BD-compatible export. Full TF2PL marks are preserved in proof entries.";
+	tf2bd["file_info"] = fileInfo;
 
-	auto& players = json["players"];
-	players = nlohmann::json::array();
+	auto& tf2plPlayers = tf2pl["players"] = nlohmann::json::array();
+	auto& tf2bdPlayers = tf2bd["players"] = nlohmann::json::array();
 
 	for (const auto& [id, data] : m_Players)
 	{
@@ -416,12 +487,19 @@ void PlayerListExporter::WriteFile() const
 
 		nlohmann::json entry;
 		SerializePlayerData(entry, data);
-		players.push_back(std::move(entry));
+		tf2plPlayers.push_back(std::move(entry));
+
+		nlohmann::json compatibleEntry;
+		SerializeTF2BDPlayerData(compatibleEntry, data);
+		tf2bdPlayers.push_back(std::move(compatibleEntry));
 	}
 
-	const std::filesystem::path path("cfg/playerlist.export.json");
-	const std::string content = json.dump(1, '\t', true, nlohmann::detail::error_handler_t::ignore) + '\n';
-
-	IFilesystem::Get().WriteFile(path, content, PathUsage::WriteRoaming);
-	Log("Total Export: wrote {} players to {}", players.size(), path.string());
+	const auto Write = [](const std::filesystem::path& path, const nlohmann::json& json)
+		{
+			const std::string content = json.dump(1, '\t', true, nlohmann::detail::error_handler_t::ignore) + '\n';
+			IFilesystem::Get().WriteFile(path, content, PathUsage::WriteRoaming);
+			Log("Total Export: wrote {} players to {}", json.at("players").size(), path.string());
+		};
+	Write("cfg/playerlist.export.tf2pl.json", tf2pl);
+	Write("cfg/playerlist.export.tf2bd.json", tf2bd);
 }

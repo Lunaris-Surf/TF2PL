@@ -15,7 +15,7 @@ namespace tf2_bot_detector
 {
 	/// <summary>
 	/// Combines every loaded playerlist into a single merged list
-	/// (cfg/playerlist.export.json, schema v3). Fills in missing names, refreshes
+	/// (TF2PL and TF2BD-compatible schema-v3 files). Fills in missing names, refreshes
 	/// VAC/game/SourceBan markers from the APIs, and drops accounts that no longer
 	/// exist on Steam. Runs on a background thread; the UI polls GetProgress().
 	/// </summary>
@@ -76,7 +76,7 @@ namespace tf2_bot_detector
 		void RefreshSummaries();
 		void RefreshBans();
 		void RefreshSourceBans();
-		void WriteFile() const;
+		void WriteFiles() const;
 
 		void SetStage(Progress::Stage stage, std::string message);
 		void SetProgress(Progress::Stage stage, size_t completed, size_t total, std::string message);

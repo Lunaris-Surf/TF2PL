@@ -69,7 +69,9 @@ namespace tf2_bot_detector
 				ID != 0;
 		}
 		std::string str() const;
-
+		std::string GetSteamID32() const;
+		std::string GetSteamID3() const { return str(); }
+		uint64_t GetSteamID64() const { return ID64; }
 		uint32_t GetAccountID() const { return static_cast<uint32_t>(ID); }
 
 		union

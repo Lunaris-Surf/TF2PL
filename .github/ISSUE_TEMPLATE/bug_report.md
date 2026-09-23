@@ -28,7 +28,7 @@ assignees: ''
 
 **Desktop (please complete the following information):**
 > - OS: [e.g. Windows 10, 8, 7]
-> - Version of bot detector [e.g. 1.1.0.674]
+> - TF2PL version [e.g. 2.0.0.123]
 
 **Additional context**
 > Add any other context about the problem here.

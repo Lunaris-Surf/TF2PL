@@ -6,7 +6,7 @@
 			"LunarisV contributors"
 		],
 		"title": "LunarisV default rules",
-		"description": "TF2BD rules plus shared chat / SourceBan moderation patterns. Edit locally; upstream auto-update is disabled for this file."
+		"description": "TF2PL rules plus shared chat and SourceBan moderation patterns. Edit locally; upstream auto-update is disabled for this file."
 	},
 	"rules": [
 		{
@@ -581,7 +581,7 @@
 			}
 		},
 		{
-			"description": "LunarisV: Racist/Hostile language",
+			"description": "LunarisV: Racist language",
 			"sources": [
 				"chat",
 				"sourcebans"
@@ -593,10 +593,31 @@
 					"patterns": [
 						"[\\s\\S]*\\bn[i1!|][g69]{2}[e3]r(?:s)?\\b[\\s\\S]*",
 						"[\\s\\S]*\\bn[i1!|][g69]{2}[a4](?:s)?\\b[\\s\\S]*",
-						"[\\s\\S]*\\bf[a4]gg?[o0]t(?:s)?\\b[\\s\\S]*",
 						"[\\s\\S]*\\bk[i1]ke(?:s)?\\b[\\s\\S]*",
 						"[\\s\\S]*\\b(?:heil\\s+hitler|sieg\\s+heil|white\\s+power)\\b[\\s\\S]*",
-						"[\\s\\S]*\\b(?:kill|gas|exterminate)\\s+(?:all\\s+|the\\s+)?(?:jews|blacks|gays|muslims|immigrants)\\b[\\s\\S]*",
+						"[\\s\\S]*\\b(?:kill|gas|exterminate)\\s+(?:all\\s+|the\\s+)?(?:jews|blacks|muslims|immigrants)\\b[\\s\\S]*"
+					]
+				}
+			},
+			"actions": {
+				"mark": [
+					"racist"
+				]
+			}
+		},
+		{
+			"description": "LunarisV: Hostile language",
+			"sources": [
+				"chat",
+				"sourcebans"
+			],
+			"triggers": {
+				"chatmsg_text_match": {
+					"mode": "regex",
+					"case_sensitive": false,
+					"patterns": [
+						"[\\s\\S]*\\bf[a4]gg?[o0]t(?:s)?\\b[\\s\\S]*",
+						"[\\s\\S]*\\b(?:kill|gas|exterminate)\\s+(?:all\\s+|the\\s+)?gays\\b[\\s\\S]*",
 						"[\\s\\S]*\\b(?:kill\\s+yourself|go\\s+kill\\s+yourself|kys)\\b[\\s\\S]*",
 						"[\\s\\S]*\\b(?:i(?:\\s+will|\\x27ll|m\\s+going\\s+to)|i\\x27m\\s+going\\s+to)\\s+(?:kill|murder|dox)\\s+(?:you|your\\s+family)\\b[\\s\\S]*"
 					]
@@ -604,7 +625,7 @@
 			},
 			"actions": {
 				"mark": [
-					"racist"
+					"hostile"
 				]
 			}
 		},
@@ -634,7 +655,7 @@
 			}
 		},
 		{
-			"description": "LunarisV: SourceBan Racist/Hostile reason",
+			"description": "LunarisV: SourceBan Racist reason",
 			"sources": [
 				"sourcebans"
 			],
@@ -643,13 +664,33 @@
 					"mode": "regex",
 					"case_sensitive": false,
 					"patterns": [
-						"[\\s\\S]*\\b(?:racis[mt]|racial\\s+(?:slurs?|abuse)|hate\\s+speech|hostil(?:e|ity)|harass(?:ment|ing)|death\\s+threats?|homophobi[ac])\\b[\\s\\S]*"
+						"[\\s\\S]*\\b(?:racis[mt]|racial\\s+(?:slurs?|abuse))\\b[\\s\\S]*"
 					]
 				}
 			},
 			"actions": {
 				"mark": [
 					"racist"
+				]
+			}
+		},
+		{
+			"description": "LunarisV: SourceBan Hostile reason",
+			"sources": [
+				"sourcebans"
+			],
+			"triggers": {
+				"chatmsg_text_match": {
+					"mode": "regex",
+					"case_sensitive": false,
+					"patterns": [
+						"[\\s\\S]*\\b(?:hate\\s+speech|hostil(?:e|ity)|harass(?:ment|ing)|death\\s+threats?|homophobi[ac])\\b[\\s\\S]*"
+					]
+				}
+			},
+			"actions": {
+				"mark": [
+					"hostile"
 				]
 			}
 		},

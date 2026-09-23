@@ -100,6 +100,17 @@ void MainWindow::SetupFonts()
 	// load into config so our glyph loads for all fonts in this config.
 	config.GlyphRanges = ranges.Data;
 
+	const auto LoadFont = [&](const std::filesystem::path& relativePath, float size) -> ImFont*
+		{
+			const auto path = IFilesystem::Get().ResolvePath(relativePath, PathUsage::Read);
+			if (path.empty() || !std::filesystem::is_regular_file(path))
+			{
+				LogError("Unable to load font {}; using the default font instead.", relativePath);
+				return nullptr;
+			}
+			return ImGui::GetIO().Fonts->AddFontFromFileTTF(path.string().c_str(), size, &config);
+		};
+
 	// load ProggyClean font(s)
 	// instead of having two copies of ProggyClean, we can just pull from the IMGUI library.
 	{
@@ -119,18 +130,10 @@ void MainWindow::SetupFonts()
 	// load ProggyTiny font(s)
 	{
 		if (!m_ProggyTiny10Font)
-		{
-			m_ProggyTiny10Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-				IFilesystem::Get().ResolvePath("fonts/ProggyTiny.ttf", PathUsage::Read).string().c_str(),
-				10, &config);
-		}
+			m_ProggyTiny10Font = LoadFont("fonts/ProggyTiny.ttf", 10);
 
 		if (!m_ProggyTiny20Font)
-		{
-			m_ProggyTiny20Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-				IFilesystem::Get().ResolvePath("fonts/ProggyTiny.ttf", PathUsage::Read).string().c_str(),
-				20, &config);
-		}
+			m_ProggyTiny20Font = LoadFont("fonts/ProggyTiny.ttf", 20);
 	}
 
 	// reset so we use defaults again
@@ -143,15 +146,11 @@ void MainWindow::SetupFonts()
 	config.RasterizerMultiply = 2.f;
 	
 	if (!m_Unifont14Font) {
-		m_Unifont14Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-			IFilesystem::Get().ResolvePath("fonts/unifont_jp-15.0.06.ttf", PathUsage::Read).string().c_str(),
-			14, &config);
+		m_Unifont14Font = LoadFont("fonts/unifont_jp-15.0.06.ttf", 14);
 	}
 
 	if (!m_Unifont24Font) {
-		m_Unifont24Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-			IFilesystem::Get().ResolvePath("fonts/unifont_jp-15.0.06.ttf", PathUsage::Read).string().c_str(),
-			24, &config);
+		m_Unifont24Font = LoadFont("fonts/unifont_jp-15.0.06.ttf", 24);
 	}
 
 	ImGui::GetIO().Fonts->Build();
@@ -329,7 +328,7 @@ void MainWindow::OnDrawAboutPopup()
 	{
 		ImGui::PushTextWrapPos();
 
-		ImGui::TextFmt("LunarisV v{}\n"
+		ImGui::TextFmt("TF2PL by LunarisV v{}\n"
 			"\n"
 			"Automatically detects and votekicks cheaters in Team Fortress 2 Casual.\n"
 			"\n"
@@ -339,7 +338,8 @@ void MainWindow::OnDrawAboutPopup()
 
 		ImGui::NewLine();
 
-		ImGui::Text("LunarisV - based on TF2 Bot Detector and the custom fork.\nExpanded player tags and shared chat / SourceBan rules.");
+		ImGui::Text("TF2PL (Team Fortress 2 PlayerList) by LunarisV.\n"
+			"Built from the open-source TF2 Bot Detector project.");
 #ifdef __linux__
 		ImGui::Text("- (Linux ver)");
 #endif
@@ -698,9 +698,10 @@ void MainWindow::OnDrawExportWindow()
 	ImGui::SetNextWindowSize({ 520, 300 }, ImGuiCond_Appearing);
 	if (ImGui::Begin("Total Export", &m_ExportWindowOpen))
 	{
-		ImGui::TextWrapped("Combines every loaded playerlist into one merged list, written to cfg/playerlist.export.json. "
+		ImGui::TextWrapped("Combines every loaded playerlist into TF2PL and TF2BD-compatible exports. "
 			"Names are filled in and VAC/game/SourceBan markers are refreshed from the APIs. "
-			"Accounts that no longer exist on Steam are removed.");
+			"Accounts that no longer exist on Steam are removed. Files are written as "
+			"cfg/playerlist.export.tf2pl.json and cfg/playerlist.export.tf2bd.json.");
 		ImGui::Spacing();
 		ImGui::Separator();
 		ImGui::Spacing();
@@ -904,10 +905,10 @@ void MainWindow::OnDrawMenuBar()
 
 	if (ImGui::BeginMenu("Help"))
 	{
-		if (ImGui::MenuItem("Open GitHub"))
-			Shell::OpenURL("https://github.com/surepy/tf2_bot_detector");
-		if (ImGui::MenuItem("Open Discord"))
-			Shell::OpenURL("https://discord.gg/W8ZSh3Z");
+		if (ImGui::MenuItem("TF2PL on GitHub"))
+			Shell::OpenURL("https://github.com/Lunaris-Surf/TF2PL");
+		if (ImGui::MenuItem("LunarisV Website"))
+			Shell::OpenURL("https://lunaris-surf.github.io/TF2PL/");
 
 		ImGui::Separator();
 
@@ -916,7 +917,7 @@ void MainWindow::OnDrawMenuBar()
 
 		ImGui::Separator();
 
-		if (ImGui::MenuItem("About LunarisV"))
+		if (ImGui::MenuItem("About TF2PL"))
 			OpenAboutPopup();
 
 		ImGui::EndMenu();
@@ -954,7 +955,7 @@ void MainWindow::Draw()
 	ImGui::PushFont(GetFontPointer(m_Settings.m_Theme.m_Font));
 	ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
 
-	if (ImGui::Begin("LunarisV", 0, bd_external_flags)) {
+	if (ImGui::Begin("TF2PL by LunarisV", 0, bd_external_flags)) {
 		this->OnDraw();
 		ImGui::End();
 	}
@@ -1032,4 +1033,3 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 	else
 		return std::errc::operation_in_progress;
 }
-

@@ -91,12 +91,44 @@ SteamID::SteamID(const std::string_view& str)
 		return;
 	}
 
+	// Steam2
+	static std::regex s_SteamID2Regex(R"regex(^STEAM_(\d+):(\d+):(\d+)$)regex", std::regex::optimize);
+	if (std::match_results<std::string_view::const_iterator> result;
+		std::regex_match(str.begin(), str.end(), result, s_SteamID2Regex))
+	{
+		uint32_t universe;
+		if (auto parseResult = from_chars(result[1], universe); !parseResult)
+			throw std::invalid_argument(fmt::format("Out-of-range value for SteamID2 universe: {}", result[1].str()));
+
+		uint32_t y;
+		if (auto parseResult = from_chars(result[2], y); !parseResult)
+			throw std::invalid_argument(fmt::format("Out-of-range value for SteamID2 Y: {}", result[2].str()));
+
+		uint32_t z;
+		if (auto parseResult = from_chars(result[3], z); !parseResult)
+			throw std::invalid_argument(fmt::format("Out-of-range value for SteamID2 Z: {}", result[3].str()));
+
+		Type = SteamAccountType::Individual;
+		Universe = static_cast<SteamAccountUniverse>(universe + 1);
+		Instance = SteamAccountInstance::Desktop;
+		ID = (z << 1) | y;
+		return;
+	}
+
 	throw std::invalid_argument("SteamID string does not match any known formats");
 }
 
 std::string SteamID::str() const
 {
 	return fmt::format("{}", *this);
+}
+
+std::string SteamID::GetSteamID32() const
+{
+	const uint32_t universe = Universe > SteamAccountUniverse::Invalid
+		? static_cast<uint32_t>(Universe) - static_cast<uint32_t>(SteamAccountUniverse::Public)
+		: 0;
+	return fmt::format("STEAM_{}:{}:{}", universe, ID % 2, ID / 2);
 }
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const SteamID& d)

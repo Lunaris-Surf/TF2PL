@@ -32,15 +32,15 @@ namespace
 
 			if (!Platform::IsInstalled())
 			{
-				ImGui::TextFmt("Sensors detect that this version of LunarisV is a \"portable\" version (you"
+				ImGui::TextFmt("TF2PL detected that this is a \"portable\" installation (you"
 					" downloaded a zip file and extracted it). Make sure you haven't extracted it in a place where"
 					" it doesn't have write permissions (like Program Files). If you need help, try asking on Discord"
 					" or creating an issue on GitHub (links are in the About menu, above).");
 			}
 			else
 			{
-				ImGui::TextFmt("This might be due to a problem with the LunarisV installation. You should"
-					" try reinstalling LunarisV first. If the problem persists, try asking for help on Discord"
+				ImGui::TextFmt("This might be due to a problem with the TF2PL installation. You should"
+					" try reinstalling TF2PL first. If the problem persists, open an issue on the TF2PL GitHub"
 					" or creating an issue on GitHub (links are in the About menu, above).");
 			}
 

@@ -177,8 +177,8 @@ void SettingsWindow::OnDrawModerationSettings()
 		{
 			ImGui::TextFmt(
 				{ 1, 0.5f, 0, 1 },
-				"NOTICE: enabling this setting will cause other bot detector users to not be able to recognize your message.\n"
-				"This in effect will cause the \"bot leader\" feature to not work, and multiple bot detector users may over-spam chat.\n"
+				"NOTICE: enabling this setting will prevent other TF2PL users from recognizing your message.\n"
+				"This may prevent coordination between TF2PL users and cause duplicate chat warnings.\n"
 				"By using this option you understand that the above side-effect exists, and still want custom messages anyway."
 			);
 
@@ -279,7 +279,7 @@ void SettingsWindow::OnDrawModSettings()
 		if (m_ModsChanged)
 		{
 			ImGui::NewLine();
-			ImGui::TextFmt({ 1, 1, 0, 1 }, "TF2 and LunarisV must be restarted to apply changes to mods.");
+			ImGui::TextFmt({ 1, 1, 0, 1 }, "TF2 and TF2PL must be restarted to apply changes to mods.");
 		}
 
 		IAddonManager& addonManager = IAddonManager::Get();

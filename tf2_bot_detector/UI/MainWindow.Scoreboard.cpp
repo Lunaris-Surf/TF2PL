@@ -19,6 +19,7 @@
 #include <mh/text/formatters/error_code.hpp>
 
 #include <string_view>
+#include <set>
 
 #include "nlohmann/json.hpp"
 
@@ -59,7 +60,28 @@ void MainWindow::OnDrawScoreboard()
 			{ "Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG },
 			{ "Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG },
 			{ "Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG },
+			{ "Hostile", m_Settings.m_Theme.m_Colors.m_ScoreboardHostileBG },
+			{ "Suspected Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspectedCheaterBG },
+			{ "Blacklisted", m_Settings.m_Theme.m_Colors.m_ScoreboardBlacklistedBG },
+			{ "VAC Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardVACBannedBG },
+			{ "Game Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardGameBannedBG },
+			{ "Source Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardSourceBannedBG },
+			{ "Pedophilia", m_Settings.m_Theme.m_Colors.m_ScoreboardPedophiliaBG },
 		});
+	const auto customTags = m_Application->GetModLogic().GetPlayerList()->GetCustomTags();
+	if (!customTags.empty())
+	{
+		ImGui::HorizontalScrollBox("ScoreboardCustomTagColorPickers", [&]
+			{
+				for (const auto& tag : customTags)
+				{
+					auto found = m_Settings.m_ScoreboardCustomTagBG.try_emplace(
+						tag, m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG).first;
+					OnDrawColorPicker(tag.c_str(), found->second);
+					ImGui::SameLine();
+				}
+			});
+	}
 
 	OnDrawTeamStats();
 
@@ -257,18 +279,6 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 			}
 		}();
 
-		if (playerAttribs.Has(PlayerAttribute::Cheater))
-			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG, m_Application->TimeSine());
-		else if (playerAttribs.Has(PlayerAttribute::Suspicious | PlayerAttribute::SuspectedCheater))
-			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG, m_Application->TimeSine());
-		else if (playerAttribs.Has(PlayerAttribute::Exploiter))
-			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG, m_Application->TimeSine());
-		else if (playerAttribs.Has(PlayerAttribute::Racist | PlayerAttribute::Pedophilia))
-			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG, m_Application->TimeSine());
-
-		else if (!playerAttribs.empty())
-			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG, m_Application->TimeSine());
-
 		ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
 
 		bgColor.w = std::min(bgColor.w + 0.25f, 0.8f);
@@ -304,6 +314,60 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 		{
 			ImGui::SameLine();
 			ImGui::TextFmt({ 1, 0, 0, 1 }, "({})", summary->m_Nickname);
+		}
+
+		const auto DrawMarkPill = [&](const char* label, const std::array<float, 4>& color, int id)
+			{
+				ImGui::SameLine(0, 4);
+				ImGui::PushID(id);
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 5, 1 });
+				const ImVec4 bg{ color[0], color[1], color[2], color[3] };
+				const float luminance = color[0] * 0.299f + color[1] * 0.587f + color[2] * 0.114f;
+				ImGui::PushStyleColor(ImGuiCol_Button, bg);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bg);
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, bg);
+				ImGui::PushStyleColor(ImGuiCol_Text, luminance > 0.55f ? ImVec4{ 0, 0, 0, 1 } : ImVec4{ 1, 1, 1, 1 });
+				ImGui::SmallButton(label);
+				ImGui::PopStyleColor(4);
+				ImGui::PopStyleVar(2);
+				ImGui::PopID();
+			};
+
+		struct MarkPill
+		{
+			PlayerAttribute m_Attribute;
+			const char* m_Label;
+			const std::array<float, 4>* m_Color;
+		};
+		const auto& colors = m_Settings.m_Theme.m_Colors;
+		const MarkPill pills[] = {
+			{ PlayerAttribute::Cheater, "Cheater", &colors.m_ScoreboardCheaterBG },
+			{ PlayerAttribute::Suspicious, "Suspicious", &colors.m_ScoreboardSuspiciousBG },
+			{ PlayerAttribute::Exploiter, "Exploiter", &colors.m_ScoreboardExploiterBG },
+			{ PlayerAttribute::Racist, "Racist", &colors.m_ScoreboardRacistBG },
+			{ PlayerAttribute::Hostile, "Hostile", &colors.m_ScoreboardHostileBG },
+			{ PlayerAttribute::SuspectedCheater, "Suspected Cheater", &colors.m_ScoreboardSuspectedCheaterBG },
+			{ PlayerAttribute::Blacklisted, "Blacklisted", &colors.m_ScoreboardBlacklistedBG },
+			{ PlayerAttribute::VACBanned, "VAC Banned", &colors.m_ScoreboardVACBannedBG },
+			{ PlayerAttribute::GameBanned, "Game Banned", &colors.m_ScoreboardGameBannedBG },
+			{ PlayerAttribute::SourceBanned, "Source Banned", &colors.m_ScoreboardSourceBannedBG },
+			{ PlayerAttribute::Pedophilia, "Pedophilia", &colors.m_ScoreboardPedophiliaBG },
+		};
+		int pillID = 0;
+		for (const auto& pill : pills)
+		{
+			if (playerAttribs.Has(pill.m_Attribute))
+				DrawMarkPill(pill.m_Label, *pill.m_Color, pillID++);
+		}
+		std::set<std::string> customTags;
+		for (const auto& mark : playerAttribs)
+			customTags.insert(mark.m_Attributes.GetCustomTags().begin(), mark.m_Attributes.GetCustomTags().end());
+		for (const auto& tag : customTags)
+		{
+			const auto found = m_Settings.m_ScoreboardCustomTagBG.find(tag);
+			DrawMarkPill(tag.c_str(), found == m_Settings.m_ScoreboardCustomTagBG.end()
+				? colors.m_ScoreboardSuspiciousBG : found->second, pillID++);
 		}
 
 		// Move cursor pos up a few pixels if we have icons to draw
@@ -465,7 +529,10 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 		ImGui::TextFmt(str);
 	}
 
-	if (shouldDrawPlayerTooltip)
+	// Keep the row dossier closed while its context menu is open. Drawing a tooltip
+	// under an active popup gives ImGui two competing popup roots and can trip its
+	// empty-root-ID assertion when moving between menu items.
+	if (shouldDrawPlayerTooltip && !ImGui::IsPopupOpen("PlayerContextMenu"))
 		DrawPlayerTooltip(player, teamShareResult, playerAttribs);
 }
 
@@ -507,26 +574,11 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 
 		DrawPlayerContextMarkMenu(player.GetSteamID(), player.GetNameSafe(), data.m_pendingReason);
 
-		/*
-		TODO: get moderatorlogic playerextradata and make a checkbox for m_IgnoreRules
-		if (ImGui::BeginMenu("Misc"))
-		{
-			const auto extra_data = player.GetData<IModeratorLogic>();
-			if (extra_data != nullptr) {
-
-			}
-			else {
-
-				ImGui::Checkbox("");
-			}
-
-			ImGui::EndMenu();
-		}*/
 #ifdef _DEBUG
 		ImGui::Separator();
 
 		if (bool isRunning = m_Application->GetModLogic().IsUserRunningTool(player);
-			ImGui::MenuItem("Is Running TFBD", nullptr, isRunning))
+			ImGui::MenuItem("Is Running TF2PL", nullptr, isRunning))
 		{
 			m_Application->GetModLogic().SetUserRunningTool(player, !isRunning);
 		}

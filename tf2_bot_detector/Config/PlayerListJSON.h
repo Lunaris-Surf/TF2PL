@@ -31,6 +31,7 @@ namespace tf2_bot_detector
 		Suspicious,
 		Exploiter,
 		Racist,
+		Hostile,
 
 		SuspectedCheater,
 		Blacklisted,
@@ -255,7 +256,6 @@ namespace tf2_bot_detector
 		// this seems like a bad idea, idk why.
 		ConfigFileGroup& GetConfigFileGroup() { return m_CFGGroup; }
 
-		friend class PlayerListManagementWindow;
 	};
 
 	std::string to_string(const PlayerAttribute& d);

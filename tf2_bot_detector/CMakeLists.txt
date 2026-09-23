@@ -31,6 +31,12 @@ if (WIN32)
 	target_link_libraries(tf2_bot_detector_launcher PRIVATE tf2_bot_detector mh::stuff)
 	set_target_properties(tf2_bot_detector_launcher PROPERTIES OUTPUT_NAME "tf2_bot_detector")
 	target_compile_features(tf2_bot_detector_launcher PUBLIC cxx_std_20)
+	add_custom_command(TARGET tf2_bot_detector_launcher POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_directory
+			"${CMAKE_SOURCE_DIR}/staging/fonts"
+			"$<TARGET_FILE_DIR:tf2_bot_detector_launcher>/fonts"
+		COMMENT "Copying runtime font assets"
+	)
 else()
 	add_executable(tf2_bot_detector
 		"Launcher/main.cpp"
@@ -216,8 +222,6 @@ target_sources(tf2_bot_detector PRIVATE
 	"UI/MainWindow.Scoreboard.cpp"
 	"UI/SettingsWindow.cpp"
 	"UI/SettingsWindow.h"
-	"UI/PlayerListManagementWindow.cpp"
-	"UI/PlayerListManagementWindow.h"
 	"Util/JSONUtils.h"
 	"Util/PathUtils.cpp"
 	"Util/PathUtils.h"

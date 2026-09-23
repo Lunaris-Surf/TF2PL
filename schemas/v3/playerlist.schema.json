@@ -31,8 +31,18 @@
 			"description": "A player entry.",
 			"properties": {
 				"steamid": {
-					"description": "The SteamID of the player.",
+					"description": "The SteamID of the player. SteamID64 (integer) is the primary, preferred form.",
 					"$ref": "./shared.schema.json#/definitions/steamid"
+				},
+				"steamid3": {
+					"description": "Optional SteamID3 form of the player (e.g. [U:1:123456]). Must resolve to the same account as steamid.",
+					"type": "string",
+					"pattern": "^\\[([a-zA-Z]):\\d:\\d+(?::\\d+)?\\]$"
+				},
+				"steamid32": {
+					"description": "Optional SteamID2 form of the player (e.g. STEAM_0:1:61728). Must resolve to the same account as steamid.",
+					"type": "string",
+					"pattern": "^STEAM_\\d+:\\d+:\\d+$"
 				},
 				"attributes": {
 					"description": "Attributes applied to the player",

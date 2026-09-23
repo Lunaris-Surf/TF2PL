@@ -29,7 +29,8 @@ namespace tf2_bot_detector
 		case PlayerAttribute::Cheater:      return "Cheater";
 		case PlayerAttribute::Suspicious:	return "Suspicious";
 		case PlayerAttribute::Exploiter:    return "Exploiter";
-		case PlayerAttribute::Racist:		return "Racist/Hostile";
+		case PlayerAttribute::Racist:		return "Racist";
+		case PlayerAttribute::Hostile:		return "Hostile";
 		case PlayerAttribute::SuspectedCheater: return "Suspected Cheater";
 		case PlayerAttribute::Blacklisted: return "Blacklisted";
 		case PlayerAttribute::VACBanned: return "VAC Banned";
@@ -45,10 +46,11 @@ namespace tf2_bot_detector
 	{
 		switch (d)
 		{
-		case PlayerAttribute::Cheater:     j = "cheater"; break;
+		case PlayerAttribute::Cheater:      j = "cheater"; break;
 		case PlayerAttribute::Suspicious:  j = "suspicious"; break;
 		case PlayerAttribute::Exploiter:   j = "exploiter"; break;
 		case PlayerAttribute::Racist:      j = "racist"; break;
+		case PlayerAttribute::Hostile:     j = "hostile"; break;
 
 		case PlayerAttribute::SuspectedCheater: j = "suspected_cheater"; break;
 		case PlayerAttribute::Blacklisted: j = "blacklisted"; break;
@@ -87,7 +89,9 @@ namespace tf2_bot_detector
 	{
 		j = nlohmann::json
 		{
-			{ "steamid", d.GetSteamID() },
+			{ "steamid", d.GetSteamID().GetSteamID64() },
+			{ "steamid3", d.GetSteamID().GetSteamID3() },
+			{ "steamid32", d.GetSteamID().GetSteamID32() },
 			{ "attributes", d.m_SavedAttributes }
 		};
 
@@ -109,6 +113,8 @@ namespace tf2_bot_detector
 			d = PlayerAttribute::Exploiter;
 		else if (str == "racist"sv)
 			d = PlayerAttribute::Racist;
+		else if (str == "hostile"sv)
+			d = PlayerAttribute::Hostile;
 
 		else if (str == "suspected_cheater"sv) d = PlayerAttribute::SuspectedCheater;
 		else if (str == "blacklisted"sv) d = PlayerAttribute::Blacklisted;
@@ -149,7 +155,16 @@ namespace tf2_bot_detector
 	}
 	void from_json(const nlohmann::json& j, PlayerListData& d) try
 	{
-		if (SteamID sid = j.at("steamid"); d.GetSteamID() != sid)
+		const SteamID sid = j.at("steamid");
+
+		if (auto it = j.find("steamid3"); it != j.end() && SteamID(it->get<std::string_view>()) != sid)
+			throw std::runtime_error("Mismatch between json steamid and steamid3 ("s
+				<< sid << " vs " << *it << ')');
+		if (auto it = j.find("steamid32"); it != j.end() && SteamID(it->get<std::string_view>()) != sid)
+			throw std::runtime_error("Mismatch between json steamid and steamid32 ("s
+				<< sid << " vs " << *it << ')');
+
+		if (d.GetSteamID() != sid)
 		{
 			throw std::runtime_error("Mismatch between target PlayerListData SteamID ("s
 				<< d.GetSteamID() << ") and json SteamID (" << sid << ')');

@@ -9,9 +9,9 @@ BEGIN
 	BEGIN
 		BLOCK "040904b0"
 	BEGIN
-		VALUE "FileDescription",  "LunarisV"
+		VALUE "FileDescription",  "TF2PL by LunarisV"
 		VALUE "Comments",         "Automatically detects and votekicks cheaters/bots in TF2 casual."
-		VALUE "ProductName",      "LunarisV"
+		VALUE "ProductName",      "TF2PL"
 		END
 	END
 	BLOCK "VarFileInfo"

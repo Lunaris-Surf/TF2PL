@@ -67,7 +67,7 @@ auto NetworkSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 
 
 	ImGui::NewLine();
-	ImGui::Text("Steam API Integration:\nIt is *VERY strongly* recommended you use tf2 bot detector with the Steam API integration enabled as they provide much more information and utility.");
+	ImGui::Text("Steam API Integration:\nIt is strongly recommended that you use TF2PL with Steam API integration enabled for richer player information and utility.");
 
 	// copypasted from SettingsWindow.cpp#292, move somewhere else later.
 	const auto GetSteamAPIModeString = [](SteamAPIMode mode)

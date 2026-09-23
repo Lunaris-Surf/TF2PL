@@ -1,7 +1,7 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"$id": "whitelist.schema.json",
-	"title": "TF2 Bot Detector Player Whitelist Schema",
+	"title": "TF2PL Player Whitelist Schema",
 	"type": "object",
 	"additionalProperties": false,
 	"properties": {

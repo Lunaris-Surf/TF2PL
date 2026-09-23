@@ -20,8 +20,10 @@
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
+#include <SDL.h>
 
 #include <chrono>
+#include <sstream>
 #include <random>
 #include <ITF2BotDetectorRenderer.h>
 
@@ -243,6 +245,10 @@ static void OpenTF2(const Settings& settings, const std::string_view& rconPasswo
 	}
 
 	std::string args = settings.m_Unsaved.m_IsLaunchedFromSteam ? settings.m_Unsaved.m_ForwardedCommandLineArguments : FindUserLaunchOptions(settings);
+	if (!settings.m_ManagedLaunchOptions.empty())
+		args << ' ' << settings.m_ManagedLaunchOptions;
+	if (settings.m_UseLaunchResolution && settings.m_LaunchWidth > 0 && settings.m_LaunchHeight > 0)
+		args << " -w " << settings.m_LaunchWidth << " -h " << settings.m_LaunchHeight;
 
 	// TODO: scrub any conflicting alias or one-time-use commands from this
 	// required args
@@ -434,6 +440,112 @@ void tf2_bot_detector::TF2CommandLinePage::DrawTF2LaunchMode(const DrawState& ds
 	}
 }
 
+void TF2CommandLinePage::DrawManagedLaunchOptions(const DrawState& ds)
+{
+	auto& options = ds.m_Settings->m_ManagedLaunchOptions;
+	const auto DetectResolution = [&]()
+		{
+			if (ds.m_Settings->m_LaunchWidth > 0 && ds.m_Settings->m_LaunchHeight > 0)
+				return true;
+
+			SDL_DisplayMode mode{};
+			if (SDL_GetDesktopDisplayMode(0, &mode) == 0 && mode.w > 0 && mode.h > 0)
+			{
+				if (ds.m_Settings->m_LaunchWidth <= 0)
+					ds.m_Settings->m_LaunchWidth = mode.w;
+				if (ds.m_Settings->m_LaunchHeight <= 0)
+					ds.m_Settings->m_LaunchHeight = mode.h;
+				return true;
+			}
+			LogWarning("Unable to detect primary display resolution: {}", SDL_GetError());
+			return false;
+		};
+	const auto HasOption = [&](const std::string_view option)
+		{
+			const auto padded = " " + options + " ";
+			return padded.find(" " + std::string(option) + " ") != std::string::npos;
+		};
+	const auto SetOption = [&](const std::string_view option, bool enabled)
+		{
+			std::vector<std::string> values;
+			std::istringstream stream(options);
+			for (std::string value; stream >> value;)
+				if (value != option)
+					values.push_back(std::move(value));
+			if (enabled)
+				values.emplace_back(option);
+			options.clear();
+			for (const auto& value : values)
+			{
+				if (!options.empty()) options += ' ';
+				options += value;
+			}
+			ds.m_Settings->SaveFile();
+		};
+	const auto OptionCheckbox = [&](const char* label, const char* option, const char* description)
+		{
+			bool enabled = HasOption(option);
+			if (ImGui::Checkbox(label, &enabled))
+				SetOption(option, enabled);
+			ImGui::SetHoverTooltip(description);
+		};
+
+	if (ImGui::CollapsingHeader("Launch Options", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::TextWrapped("These options are added whether TF2PL is started from Steam or launches TF2 directly.");
+		if (ImGui::Button("Apply recommended profile"))
+		{
+			options = "-window -noborder -noipx -nosteamcontroller -softparticlesdefaultoff -nohltv -nojoy -enablefakeip";
+			ds.m_Settings->m_UseLaunchResolution = true;
+			DetectResolution();
+			ds.m_Settings->SaveFile();
+		}
+		ImGui::SetHoverTooltip("Applies the recommended borderless-windowed TF2PL launch profile and detects the primary display resolution.");
+		ImGui::SameLine();
+		ImGui::TextDisabled("Recommended for TF2PL");
+		ImGui::Separator();
+		OptionCheckbox("Skip Valve intro", "-novid", "Adds -novid.");
+		OptionCheckbox("Enable developer console", "-console", "Opens the developer console at startup.");
+		OptionCheckbox("Windowed", "-window", "Runs TF2 in a window.");
+		OptionCheckbox("Borderless window", "-noborder", "Removes the window border; normally used with Windowed.");
+		OptionCheckbox("Disable IPX networking", "-noipx", "Disables the legacy IPX networking layer.");
+		OptionCheckbox("Disable joystick support", "-nojoy", "Avoids loading joystick support.");
+		OptionCheckbox("Disable Steam Controller support", "-nosteamcontroller", "Avoids loading Steam Input controller support.");
+		OptionCheckbox("Disable soft particles by default", "-softparticlesdefaultoff", "Starts with soft particles disabled.");
+		OptionCheckbox("Disable HLTV", "-nohltv", "Disables HLTV functionality.");
+		OptionCheckbox("Enable FakeIP", "-enablefakeip", "Enables Steam Networking FakeIP support.");
+		OptionCheckbox("Allow third-party software", "-allow_third_party_software", "Allows software such as OBS game capture to hook TF2.");
+
+		if (ImGui::Checkbox("Set game resolution", &ds.m_Settings->m_UseLaunchResolution))
+			ds.m_Settings->SaveFile();
+		if (ds.m_Settings->m_UseLaunchResolution)
+		{
+			if ((ds.m_Settings->m_LaunchWidth <= 0 || ds.m_Settings->m_LaunchHeight <= 0) && DetectResolution())
+				ds.m_Settings->SaveFile();
+			ImGui::SetNextItemWidth(110);
+			if (ImGui::InputInt("Width", &ds.m_Settings->m_LaunchWidth, 0))
+				ds.m_Settings->SaveFile();
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(110);
+			if (ImGui::InputInt("Height", &ds.m_Settings->m_LaunchHeight, 0))
+				ds.m_Settings->SaveFile();
+			ImGui::SameLine();
+			ImGui::BeginDisabled(ds.m_Settings->m_LaunchWidth > 0 && ds.m_Settings->m_LaunchHeight > 0);
+			if (ImGui::Button("Detect missing values"))
+			{
+				DetectResolution();
+				ds.m_Settings->SaveFile();
+			}
+			ImGui::EndDisabled();
+		}
+
+		ImGui::SetNextItemWidth(-1);
+		if (ImGui::InputText("Custom launch options", &options))
+			ds.m_Settings->SaveFile();
+		ImGui::TextDisabled("Advanced: enter additional TF2 command-line options exactly as TF2 expects them.");
+	}
+}
+
 void TF2CommandLinePage::DrawRconStaticParamsCheckbox(const DrawState& ds)
 {
 	if (ImGui::Checkbox("Use Static Rcon Launch Parameters (Not Recommended)", &ds.m_Settings->m_UseRconStaticParams))
@@ -500,6 +612,7 @@ void TF2CommandLinePage::DrawLaunchTF2Button(const DrawState& ds)
 
 	DrawQuickStartOptions(ds);
 	DrawTF2LaunchMode(ds);
+	DrawManagedLaunchOptions(ds);
 	DrawRconStaticParamsCheckbox(ds);
 }
 
@@ -518,7 +631,7 @@ void TF2CommandLinePage::DrawCommandLineArgsInvalid(const DrawState& ds, const T
 	{
 		ImGui::TextFmt({ 1, 1, 0, 1 }, "Invalid TF2 command line arguments.");
 		ImGui::NewLine();
-		ImGui::TextFmt("TF2 must be launched via LunarisV. Please close it, then open it again with the button below.");
+		ImGui::TextFmt("TF2 must be launched via TF2PL. Please close it, then open it again with the button below.");
 		ImGui::EnabledSwitch(false, [&] { DrawLaunchTF2Button(ds); }, "TF2 is currently running. Please close it first.");
 
 		ImGui::NewLine();
@@ -576,7 +689,7 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 			}
 
 			m_Data.m_TestRCONClient.reset();
-			ImGui::TextFmt("TF2 must be launched via LunarisV. You can open it by clicking the button below.");
+			ImGui::TextFmt("TF2 must be launched via TF2PL. You can open it by clicking the button below.");
 
 			DrawLaunchTF2Button(ds);
 

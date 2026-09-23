@@ -7,7 +7,7 @@ namespace
 	class ErrorCategoryType final : public std::error_category
 	{
 	public:
-		const char* name() const noexcept override { return "LunarisV (Generic)"; }
+		const char* name() const noexcept override { return "TF2PL by LunarisV (Generic)"; }
 		std::string message(int condition) const override
 		{
 			switch (ErrorCode(condition))

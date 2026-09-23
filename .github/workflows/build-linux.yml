@@ -138,7 +138,7 @@ jobs:
           -DDISCORD_GAME_SDK_INCLUDE=/usr/src \
           ../
 
-    - name: Build tf2bd
+    - name: Build TF2PL
       working-directory: ${{needs.config.outputs.tf2bd_build_dir}}
       run: |
         cmake --build . --config ${{matrix.build_type}}
@@ -153,7 +153,7 @@ jobs:
       if: steps.determine_artifact_behavior.outputs.upload
       uses: actions/upload-artifact@v4
       with:
-        name: "tf2-bot-detector_${{ matrix.os }}_${{ matrix.triplet }}_${{ needs.config.outputs.tf2bd_version }}_${{ matrix.build_type }}"
+        name: "TF2PL_${{ matrix.os }}_${{ matrix.triplet }}_${{ needs.config.outputs.tf2bd_version }}_${{ matrix.build_type }}"
         if-no-files-found: error
         path: ${{ needs.config.outputs.tf2bd_workspace }}/staging/
 
@@ -168,6 +168,6 @@ jobs:
       if: steps.determine_artifact_behavior.outputs.upload
       uses: actions/upload-artifact@v4
       with:
-        name: "tf2-bot-detector_appimage_${{ matrix.triplet }}_${{ needs.config.outputs.tf2bd_version }}_${{ matrix.build_type }}"
+        name: "TF2PL_appimage_${{ matrix.triplet }}_${{ needs.config.outputs.tf2bd_version }}_${{ matrix.build_type }}"
         if-no-files-found: error
         path: ${{ needs.config.outputs.tf2bd_workspace }}/dist/

@@ -114,7 +114,6 @@ namespace tf2_bot_detector
 
 		Settings& m_Settings;
 		std::unique_ptr<SettingsWindow> m_SettingsWindow;
-
 		std::unique_ptr<PlayerListExporter> m_PlayerExporter;
 		bool m_ExportWindowOpen = false;
 

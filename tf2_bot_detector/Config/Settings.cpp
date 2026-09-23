@@ -36,6 +36,13 @@ namespace tf2_bot_detector
 			{ "scoreboard_marked_suspicious.bg", d.m_ScoreboardSuspiciousBG },
 			{ "scoreboard_marked_exploiter.bg", d.m_ScoreboardExploiterBG },
 			{ "scoreboard_marked_racism.bg", d.m_ScoreboardRacistBG },
+			{ "scoreboard_marked_hostile.bg", d.m_ScoreboardHostileBG },
+			{ "scoreboard_marked_suspected_cheater.bg", d.m_ScoreboardSuspectedCheaterBG },
+			{ "scoreboard_marked_blacklisted.bg", d.m_ScoreboardBlacklistedBG },
+			{ "scoreboard_marked_vac_banned.bg", d.m_ScoreboardVACBannedBG },
+			{ "scoreboard_marked_game_banned.bg", d.m_ScoreboardGameBannedBG },
+			{ "scoreboard_marked_source_banned.bg", d.m_ScoreboardSourceBannedBG },
+			{ "scoreboard_marked_pedophilia.bg", d.m_ScoreboardPedophiliaBG },
 			{ "scoreboard_you.fg", d.m_ScoreboardYouFG },
 			{ "scoreboard_connecting.fg", d.m_ScoreboardConnectingFG },
 			{ "scoreboard_team_friendly.bg", d.m_ScoreboardFriendlyTeamBG },
@@ -74,6 +81,13 @@ namespace tf2_bot_detector
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardSuspiciousBG, { "scoreboard_marked_suspicious.bg", "scoreboard_suspicious" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardExploiterBG, { "scoreboard_marked_exploiter.bg", "scoreboard_exploiter" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardRacistBG, { "scoreboard_marked_racism.bg", "scoreboard_racism" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardHostileBG, { "scoreboard_marked_hostile.bg", "scoreboard_hostile" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardSuspectedCheaterBG, { "scoreboard_marked_suspected_cheater.bg", "scoreboard_suspected_cheater" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardBlacklistedBG, { "scoreboard_marked_blacklisted.bg", "scoreboard_blacklisted" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardVACBannedBG, { "scoreboard_marked_vac_banned.bg", "scoreboard_vac_banned" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardGameBannedBG, { "scoreboard_marked_game_banned.bg", "scoreboard_game_banned" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardSourceBannedBG, { "scoreboard_marked_source_banned.bg", "scoreboard_source_banned" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardPedophiliaBG, { "scoreboard_marked_pedophilia.bg", "scoreboard_pedophilia" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardYouFG, { "scoreboard_you.fg", "scoreboard_you" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardConnectingFG, { "scoreboard_connecting.fg", "scoreboard_connecting" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardFriendlyTeamBG, { "scoreboard_team_friendly.bg", "friendly_team" });
@@ -530,6 +544,11 @@ void Settings::Deserialize(const nlohmann::json& json)
 			try_get_to_defaulted(*custom_values, m_RconStaticPassword, "rcon_static_password", DEFAULTS.m_RconStaticPassword);
 
 			try_get_to_defaulted(*custom_values, m_UseLaunchRecommendedParams, "use_recommended_launch_params", DEFAULTS.m_UseLaunchRecommendedParams);
+			try_get_to_defaulted(*custom_values, m_ManagedLaunchOptions, "managed_launch_options", DEFAULTS.m_ManagedLaunchOptions);
+			try_get_to_defaulted(*custom_values, m_UseLaunchResolution, "use_launch_resolution", DEFAULTS.m_UseLaunchResolution);
+			try_get_to_defaulted(*custom_values, m_LaunchWidth, "launch_width", DEFAULTS.m_LaunchWidth);
+			try_get_to_defaulted(*custom_values, m_LaunchHeight, "launch_height", DEFAULTS.m_LaunchHeight);
+			try_get_to_defaulted(*custom_values, m_ScoreboardCustomTagBG, "scoreboard_custom_tags", DEFAULTS.m_ScoreboardCustomTagBG);
 
 			// votekick stuff
 			try_get_to_defaulted(*custom_values, m_MinVoteKickInterval, "min_vote_kick_interval", DEFAULTS.m_MinVoteKickInterval);
@@ -598,7 +617,7 @@ void Settings::Serialize(nlohmann::json& json) const
 {
 	json =
 	{
-		{ "$schema", "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/settings.schema.json" },
+		{ "$schema", "https://raw.githubusercontent.com/Lunaris-Surf/TF2PL/main/schemas/v3/settings.schema.json" },
 		{ "theme", m_Theme },
 		{ "general",
 			{
@@ -631,6 +650,11 @@ void Settings::Serialize(nlohmann::json& json) const
 						{ "rcon_static_port", m_RconStaticPort },
 						{ "rcon_static_password", m_RconStaticPassword },
 						{ "use_recommended_launch_params", m_UseLaunchRecommendedParams },
+						{ "managed_launch_options", m_ManagedLaunchOptions },
+						{ "use_launch_resolution", m_UseLaunchResolution },
+						{ "launch_width", m_LaunchWidth },
+						{ "launch_height", m_LaunchHeight },
+						{ "scoreboard_custom_tags", m_ScoreboardCustomTagBG },
 						{ "min_vote_kick_interval", m_MinVoteKickInterval },
 						{ "vote_kick_ignore_team_state_certain_maps", m_VoteKickIgnoreTeamStateOnCertainMaps },
 						{ "tf_binary_mode", m_TFBinaryMode },
