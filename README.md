@@ -1,3 +1,4 @@
+
 <p align="center">
   <img src="docs/images/tf2pl-masthead.png" alt="TF2PL — Team Fortress 2 PlayerList" width="100%">
 </p>
