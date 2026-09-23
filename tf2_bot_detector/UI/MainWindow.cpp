@@ -996,7 +996,10 @@ void MainWindow::DrawPassiveOverlayPane()
 		if (markedPlayers.size() >= 8)
 			continue;
 
-		MarkedPlayer row{ player.GetNameSafe(), {} };
+		std::string playerName = player.GetNameSafe();
+		if (playerName.empty())
+			playerName = "SteamID64: " + std::to_string(player.GetSteamID().ID64);
+		MarkedPlayer row{ std::move(playerName), {} };
 		for (const auto& mark : marks)
 		{
 			for (size_t i = 0; i < size_t(PlayerAttribute::COUNT); i++)
@@ -1016,7 +1019,9 @@ void MainWindow::DrawPassiveOverlayPane()
 
 	const float width = 390.0f;
 	const float headerHeight = 34.0f;
-	const float rowHeight = 45.0f;
+	const float textHeight = ImGui::GetTextLineHeight();
+	const float pillHeight = textHeight + 6.0f;
+	const float rowHeight = textHeight + pillHeight + 14.0f;
 	const float footerHeight = totalMarked > markedPlayers.size() ? 26.0f : 12.0f;
 	const float height = headerHeight + std::max<size_t>(1, markedPlayers.size()) * rowHeight + footerHeight;
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -1048,7 +1053,9 @@ void MainWindow::DrawPassiveOverlayPane()
 	}
 	for (const auto& player : markedPlayers)
 	{
-		DrawOutlinedText({ pos.x + 12.0f, y + 4.0f }, IM_COL32_WHITE, player.m_Name.c_str());
+		const float nameY = y + 5.0f;
+		const float pillY = nameY + textHeight + 4.0f;
+		DrawOutlinedText({ pos.x + 12.0f, nameY }, IM_COL32_WHITE, player.m_Name.c_str());
 		float x = pos.x + 12.0f;
 		const size_t shownTags = std::min<size_t>(3, player.m_Tags.size());
 		for (size_t i = 0; i < shownTags; i++)
@@ -1057,9 +1064,9 @@ void MainWindow::DrawPassiveOverlayPane()
 			if (i + 1 == shownTags && player.m_Tags.size() > shownTags)
 				label += " +" + std::to_string(player.m_Tags.size() - shownTags);
 			const ImVec2 textSize = ImGui::CalcTextSize(label.c_str());
-			const ImVec2 pillEnd{ x + textSize.x + 12.0f, y + 38.0f };
-			draw->AddRectFilled({ x, y + 22.0f }, pillEnd, IM_COL32(145, 45, 125, 230), 7.0f);
-			draw->AddText({ x + 6.0f, y + 23.0f }, IM_COL32(255, 225, 250, 255), label.c_str());
+			const ImVec2 pillEnd{ x + textSize.x + 12.0f, pillY + pillHeight };
+			draw->AddRectFilled({ x, pillY }, pillEnd, IM_COL32(145, 45, 125, 230), 7.0f);
+			draw->AddText({ x + 6.0f, pillY + 3.0f }, IM_COL32(255, 225, 250, 255), label.c_str());
 			x = pillEnd.x + 6.0f;
 		}
 		y += rowHeight;
