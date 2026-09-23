@@ -142,7 +142,13 @@ j = nlohmann::json
 			AddCompatible(PlayerAttribute::Exploiter, "exploiter");
 			AddCompatible(PlayerAttribute::Suspicious, "suspicious");
 
-			j = { { "steamid", data.GetSteamID().GetSteamID64() }, { "attributes", std::move(attrs) } };
+			j =
+			{
+				{ "steamid", data.GetSteamID().GetSteamID64() },
+				{ "steamid3", data.GetSteamID().GetSteamID3() },
+				{ "steamid32", data.GetSteamID().GetSteamID32() },
+				{ "attributes", std::move(attrs) }
+			};
 			if (data.m_LastSeen)
 			{
 				auto& lastSeen = j["last_seen"];

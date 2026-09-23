@@ -10,6 +10,9 @@
 #include <mh/algorithm/algorithm.hpp>
 #include <mh/error/ensure.hpp>
 
+#include <string>
+#include <string_view>
+
 using namespace tf2_bot_detector;
 
 SettingsWindow::SettingsWindow(Settings& settings, MainWindow& mainWindow) :
@@ -28,6 +31,7 @@ void SettingsWindow::OnDraw()
 	OnDrawPerformanceSettings();
 	OnDrawServiceIntegrationSettings();
 	OnDrawUISettings();
+	OnDrawOverlaySettings();
 	OnDrawMiscSettings();
 
 	ImGui::NewLine();
@@ -37,6 +41,64 @@ void SettingsWindow::OnDraw()
 
 	if (CloseAppOnTFCloseCheckbox(m_Settings.m_ShouldCloseWhenTFCloses))
 		m_Settings.SaveFile();
+}
+
+void SettingsWindow::OnDrawOverlaySettings()
+{
+	if (!ImGui::TreeNode("Overlay"))
+		return;
+
+	const bool tf2Running = Platform::Processes::IsTF2Running();
+	const bool launchKnown = tf2Running && m_Settings.m_Unsaved.m_TF2LaunchedByUs;
+	const auto HasLaunchOption = [&](const std::string_view option)
+		{
+			const auto padded = " " + m_Settings.m_Unsaved.m_LastLaunchedTF2Arguments + " ";
+			return padded.find(" " + std::string(option) + " ") != std::string::npos;
+		};
+	const bool requestsWindowed = HasLaunchOption("-window") || HasLaunchOption("-sw") || HasLaunchOption("-startwindowed");
+	const bool requestsFullscreen = HasLaunchOption("-fullscreen") || HasLaunchOption("-full");
+	const bool verifiedExclusiveFullscreen = launchKnown && (requestsFullscreen || !requestsWindowed);
+
+	ImGui::BeginDisabled(verifiedExclusiveFullscreen);
+	if (ImGui::Checkbox("Render TF2PL over the game", &m_Settings.m_EnableGameOverlay))
+		m_Settings.SaveFile();
+	ImGui::EndDisabled();
+	ImGui::BeginDisabled(verifiedExclusiveFullscreen);
+	const int previousOverlayCorner = m_Settings.m_OverlayCorner;
+	ImGui::Combo("Passive pane corner", &m_Settings.m_OverlayCorner,
+		"Top left\0Top right\0Bottom left\0Bottom right\0");
+	if (m_Settings.m_OverlayCorner != previousOverlayCorner)
+		m_Settings.SaveFile();
+	ImGui::EndDisabled();
+
+	if (verifiedExclusiveFullscreen)
+	{
+		if (m_Settings.m_EnableGameOverlay)
+		{
+			m_Settings.m_EnableGameOverlay = false;
+			m_Settings.SaveFile();
+		}
+		ImGui::TextWrapped("Unavailable: TF2PL launched TF2 in exclusive fullscreen. Exclusive fullscreen prevents the external overlay from rendering correctly.");
+	}
+	else if (tf2Running && !launchKnown)
+	{
+		ImGui::TextColored({ 1.0f, 0.78f, 0.25f, 1.0f }, "Caution");
+		ImGui::SameLine();
+		ImGui::TextWrapped("TF2 was not launched by TF2PL, so its display mode cannot be verified. Enable this only when TF2 is windowed or borderless.");
+	}
+	else if (tf2Running)
+	{
+		ImGui::TextWrapped("TF2PL verified that this TF2 session was launched in a supported windowed or borderless mode.");
+	}
+	else
+	{
+		ImGui::TextWrapped("The overlay will attach when TF2 is running in windowed or borderless mode. Exclusive fullscreen is not supported.");
+	}
+
+	ImGui::TextDisabled("The overlay is an external transparent window; TF2PL does not inject anything into the game process.");
+	ImGui::TextWrapped("Press Ctrl+Tab to toggle interaction. Passive mode shows only a static marked-player pane in the selected corner. Interactive mode opens the complete TF2PL interface and blocks input from reaching TF2.");
+	ImGui::NewLine();
+	ImGui::TreePop();
 }
 
 void SettingsWindow::OnDrawASOSettings()

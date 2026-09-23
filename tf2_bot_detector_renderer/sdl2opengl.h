@@ -62,7 +62,11 @@ public:
 	bool InFocus() const;
 
 	std::string RendererInfo() const;
+	void SetGameOverlayEnabled(bool enabled);
+	bool IsGameOverlayEnabled() const override { return gameOverlayApplied; }
+	bool IsGameOverlayInteractive() const override { return gameOverlayApplied && gameOverlayInteractive; }
 private:
+	void UpdateGameOverlay();
 
 	std::vector<DrawableCallbackFn> drawFunctions;
 
@@ -72,4 +76,12 @@ private:
 	bool running = true;
 	// runs 60fps by default
 	float frameTime = 16.6f;
+	bool gameOverlayEnabled = false;
+	bool gameOverlayApplied = false;
+	bool gameOverlayInteractive = false;
+	bool overlayHotkeyWasDown = false;
+	int normalX = 0;
+	int normalY = 0;
+	int normalWidth = 1280;
+	int normalHeight = 720;
 };

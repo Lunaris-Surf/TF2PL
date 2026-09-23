@@ -87,6 +87,8 @@ public:
 	/// </summary>
 	/// <returns></returns>
 	virtual std::string RendererInfo() const = 0;
+	virtual bool IsGameOverlayEnabled() const { return false; }
+	virtual bool IsGameOverlayInteractive() const { return false; }
 
 
 	// do we even need these features?

@@ -59,6 +59,7 @@ namespace tf2_bot_detector
 		void OnDrawStats();
 		void OnDrawScoreboardAndLog();
 		void OnDrawExportWindow();
+		void DrawPassiveOverlayPane();
 
 		void OnDrawScoreboardContextMenu(IPlayer& player);
 		void OnDrawScoreboardRow(IPlayer& player);

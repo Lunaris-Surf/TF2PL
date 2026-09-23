@@ -938,6 +938,18 @@ bool tf2_bot_detector::MainWindow::ShouldUpdate()
 
 void MainWindow::Draw()
 {
+	auto* renderer = TF2BotDetectorRendererBase::GetRenderer();
+	const bool overlayEnabled = renderer && renderer->IsGameOverlayEnabled();
+	const bool overlayInteractive = overlayEnabled && renderer->IsGameOverlayInteractive();
+	if (overlayEnabled && !overlayInteractive)
+	{
+		ImGui::PushFont(GetFontPointer(m_Settings.m_Theme.m_Font));
+		ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
+		DrawPassiveOverlayPane();
+		ImGui::PopFont();
+		return;
+	}
+
 	if (ImGui::BeginMainMenuBar()) {
 		this->OnDrawMenuBar();
 		ImGui::EndMainMenuBar();
@@ -963,8 +975,100 @@ void MainWindow::Draw()
 	this->OnDrawSettings();
 
 	this->OnEndFrame();
-
 	ImGui::PopFont();
+}
+
+void MainWindow::DrawPassiveOverlayPane()
+{
+	struct MarkedPlayer
+	{
+		std::string m_Name;
+		std::vector<std::string> m_Tags;
+	};
+	std::vector<MarkedPlayer> markedPlayers;
+	size_t totalMarked = 0;
+	for (const IPlayer& player : m_Application->GetWorld().GetPlayers())
+	{
+		const auto marks = m_Application->GetModLogic().GetPlayerAttributes(player);
+		if (!marks)
+			continue;
+		totalMarked++;
+		if (markedPlayers.size() >= 8)
+			continue;
+
+		MarkedPlayer row{ player.GetNameSafe(), {} };
+		for (const auto& mark : marks)
+		{
+			for (size_t i = 0; i < size_t(PlayerAttribute::COUNT); i++)
+			{
+				const auto attribute = PlayerAttribute(i);
+				const auto name = to_string(attribute);
+				if (mark.m_Attributes.HasAttribute(attribute) &&
+					std::find(row.m_Tags.begin(), row.m_Tags.end(), name) == row.m_Tags.end())
+					row.m_Tags.push_back(name);
+			}
+			for (const auto& tag : mark.m_Attributes.GetCustomTags())
+				if (std::find(row.m_Tags.begin(), row.m_Tags.end(), tag) == row.m_Tags.end())
+					row.m_Tags.push_back(tag);
+		}
+		markedPlayers.push_back(std::move(row));
+	}
+
+	const float width = 390.0f;
+	const float headerHeight = 34.0f;
+	const float rowHeight = 45.0f;
+	const float footerHeight = totalMarked > markedPlayers.size() ? 26.0f : 12.0f;
+	const float height = headerHeight + std::max<size_t>(1, markedPlayers.size()) * rowHeight + footerHeight;
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
+	const float margin = 18.0f;
+	const int corner = std::clamp(m_Settings.m_OverlayCorner, 0, 3);
+	ImVec2 pos{
+		(corner == 0 || corner == 2) ? viewport->WorkPos.x + margin : viewport->WorkPos.x + viewport->WorkSize.x - width - margin,
+		(corner == 0 || corner == 1) ? viewport->WorkPos.y + margin : viewport->WorkPos.y + viewport->WorkSize.y - height - margin
+	};
+	const ImVec2 end{ pos.x + width, pos.y + height };
+	ImDrawList* draw = ImGui::GetForegroundDrawList(viewport);
+	const auto DrawOutlinedText = [draw](const ImVec2& textPos, ImU32 color, const char* text)
+	{
+		constexpr ImU32 outlineColor = IM_COL32(0, 0, 0, 235);
+		for (int offsetY = -1; offsetY <= 1; offsetY++)
+			for (int offsetX = -1; offsetX <= 1; offsetX++)
+				if (offsetX != 0 || offsetY != 0)
+					draw->AddText({ textPos.x + float(offsetX), textPos.y + float(offsetY) }, outlineColor, text);
+		draw->AddText(textPos, color, text);
+	};
+	draw->AddRectFilled(pos, end, IM_COL32(12, 12, 20, 224), 7.0f);
+	draw->AddRect(pos, end, IM_COL32(70, 220, 210, 185), 7.0f, 0, 1.5f);
+	draw->AddText({ pos.x + 12.0f, pos.y + 9.0f }, IM_COL32(90, 245, 225, 255), "TF2PL // MARKED PLAYERS");
+
+	float y = pos.y + headerHeight;
+	if (markedPlayers.empty())
+	{
+		draw->AddText({ pos.x + 12.0f, y + 12.0f }, IM_COL32(170, 190, 185, 255), "No marked players in the current lobby");
+	}
+	for (const auto& player : markedPlayers)
+	{
+		DrawOutlinedText({ pos.x + 12.0f, y + 4.0f }, IM_COL32_WHITE, player.m_Name.c_str());
+		float x = pos.x + 12.0f;
+		const size_t shownTags = std::min<size_t>(3, player.m_Tags.size());
+		for (size_t i = 0; i < shownTags; i++)
+		{
+			std::string label = player.m_Tags[i];
+			if (i + 1 == shownTags && player.m_Tags.size() > shownTags)
+				label += " +" + std::to_string(player.m_Tags.size() - shownTags);
+			const ImVec2 textSize = ImGui::CalcTextSize(label.c_str());
+			const ImVec2 pillEnd{ x + textSize.x + 12.0f, y + 38.0f };
+			draw->AddRectFilled({ x, y + 22.0f }, pillEnd, IM_COL32(145, 45, 125, 230), 7.0f);
+			draw->AddText({ x + 6.0f, y + 23.0f }, IM_COL32(255, 225, 250, 255), label.c_str());
+			x = pillEnd.x + 6.0f;
+		}
+		y += rowHeight;
+	}
+	if (totalMarked > markedPlayers.size())
+	{
+		const auto remaining = "+ " + std::to_string(totalMarked - markedPlayers.size()) + " more marked players";
+		draw->AddText({ pos.x + 12.0f, y + 3.0f }, IM_COL32(200, 170, 200, 255), remaining.c_str());
+	}
 }
 
 bool MainWindow::IsSleepingEnabled() const

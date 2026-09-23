@@ -144,6 +144,7 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 
 		DebugLog("Entering event loop...");
 		while (!renderer.ShouldQuit()) {
+			renderer.SetGameOverlayEnabled(app->GetSettings().m_EnableGameOverlay);
 			// app is in focus or app queued update (/sleep disabled)
 			if ((renderer.InFocus() || app->ShouldUpdate())) {
 				app->Update();

@@ -135,6 +135,8 @@ namespace tf2_bot_detector
 		bool m_UseLaunchResolution = false;
 		int m_LaunchWidth = 0;
 		int m_LaunchHeight = 0;
+		bool m_EnableGameOverlay = false;
+		int m_OverlayCorner = 1;
 		std::map<std::string, std::array<float, 4>> m_ScoreboardCustomTagBG;
 
 		/// <summary>
@@ -224,6 +226,8 @@ namespace tf2_bot_detector
 			std::string m_ForwardedCommandLineArguments;
 
 			bool m_GameLaunchedAndShouldClose = false;
+			bool m_TF2LaunchedByUs = false;
+			std::string m_LastLaunchedTF2Arguments;
 
 		} m_Unsaved;
 

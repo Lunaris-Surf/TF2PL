@@ -235,7 +235,7 @@ static std::string FindUserLaunchOptions(const Settings& settings)
 /// <param name="settings"></param>
 /// <param name="rconPassword"></param>
 /// <param name="rconPort"></param>
-static void OpenTF2(const Settings& settings, const std::string_view& rconPassword, uint16_t rconPort)
+static void OpenTF2(Settings& settings, const std::string_view& rconPassword, uint16_t rconPort)
 {
 	const std::filesystem::path gameEXE = settings.GetTFDir() / ".." / settings.GetBinaryName();
 
@@ -287,6 +287,9 @@ static void OpenTF2(const Settings& settings, const std::string_view& rconPasswo
 			<< " +contimes 0" // the text in the top left when developer >= 1
 			<< " +alias ip"; // disables the "ip" command
 	}
+
+	settings.m_Unsaved.m_TF2LaunchedByUs = true;
+	settings.m_Unsaved.m_LastLaunchedTF2Arguments = args;
 
 #ifdef __linux__
 	if (args.length() > 512) {
@@ -515,6 +518,41 @@ void TF2CommandLinePage::DrawManagedLaunchOptions(const DrawState& ds)
 		OptionCheckbox("Disable HLTV", "-nohltv", "Disables HLTV functionality.");
 		OptionCheckbox("Enable FakeIP", "-enablefakeip", "Enables Steam Networking FakeIP support.");
 		OptionCheckbox("Allow third-party software", "-allow_third_party_software", "Allows software such as OBS game capture to hook TF2.");
+
+		const auto& launchArgs = ds.m_Settings->m_Unsaved.m_TF2LaunchedByUs
+			? ds.m_Settings->m_Unsaved.m_LastLaunchedTF2Arguments
+			: options;
+		const auto HasLaunchOption = [&](const std::string_view option)
+			{
+				const auto padded = " " + launchArgs + " ";
+				return padded.find(" " + std::string(option) + " ") != std::string::npos;
+			};
+		const bool requestsWindowed = HasLaunchOption("-window") || HasLaunchOption("-sw") || HasLaunchOption("-startwindowed");
+		const bool requestsFullscreen = HasLaunchOption("-fullscreen") || HasLaunchOption("-full");
+		const bool verifiedExclusiveFullscreen = ds.m_Settings->m_Unsaved.m_TF2LaunchedByUs &&
+			(requestsFullscreen || !requestsWindowed);
+		ImGui::BeginDisabled(verifiedExclusiveFullscreen);
+		if (ImGui::Checkbox("Render TF2PL as an in-game overlay", &ds.m_Settings->m_EnableGameOverlay))
+			ds.m_Settings->SaveFile();
+		ImGui::EndDisabled();
+		if (verifiedExclusiveFullscreen)
+		{
+			if (ds.m_Settings->m_EnableGameOverlay)
+			{
+				ds.m_Settings->m_EnableGameOverlay = false;
+				ds.m_Settings->SaveFile();
+			}
+			ImGui::TextDisabled("Unavailable: TF2PL launched TF2 in exclusive fullscreen, which breaks the external overlay.");
+		}
+		else if (!ds.m_Settings->m_Unsaved.m_TF2LaunchedByUs && Platform::Processes::IsTF2Running())
+		{
+			ImGui::TextColored({ 1.0f, 0.78f, 0.25f, 1.0f },
+				"Caution: TF2 was not launched by TF2PL, so its display mode cannot be verified. The overlay requires windowed or borderless mode.");
+		}
+		else
+		{
+			ImGui::TextDisabled("Available for windowed and borderless TF2. Exclusive fullscreen is not supported.");
+		}
 
 		if (ImGui::Checkbox("Set game resolution", &ds.m_Settings->m_UseLaunchResolution))
 			ds.m_Settings->SaveFile();

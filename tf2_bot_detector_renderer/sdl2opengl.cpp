@@ -6,6 +6,7 @@
 
 #include <glad/gl.h>
 #include <SDL.h>
+#include <SDL_syswm.h>
 #include <SDL_opengl.h>
 
 #include <imgui.h>
@@ -119,6 +120,99 @@ TF2BotDetectorSDLRenderer::TF2BotDetectorSDLRenderer() : TF2BotDetectorRendererB
 	SDL_ShowWindow(window);
 }
 
+void TF2BotDetectorSDLRenderer::SetGameOverlayEnabled(bool enabled)
+{
+	gameOverlayEnabled = enabled;
+}
+
+void TF2BotDetectorSDLRenderer::UpdateGameOverlay()
+{
+#ifdef _WIN32
+	SDL_SysWMinfo info{};
+	SDL_VERSION(&info.version);
+	if (!SDL_GetWindowWMInfo(window, &info))
+		return;
+	HWND ownWindow = info.info.win.window;
+	HWND tf2Window = FindWindowA("Valve001", nullptr);
+
+	if (!gameOverlayEnabled || !tf2Window)
+	{
+		if (gameOverlayApplied)
+		{
+			LONG_PTR exStyle = GetWindowLongPtrW(ownWindow, GWL_EXSTYLE);
+			SetWindowLongPtrW(ownWindow, GWL_EXSTYLE,
+				exStyle & ~(WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE));
+			SDL_SetWindowBordered(window, SDL_TRUE);
+			SDL_SetWindowAlwaysOnTop(window, SDL_FALSE);
+			SDL_SetWindowPosition(window, normalX, normalY);
+			SDL_SetWindowSize(window, normalWidth, normalHeight);
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			gameOverlayApplied = false;
+			gameOverlayInteractive = false;
+			overlayHotkeyWasDown = false;
+		}
+		return;
+	}
+
+	RECT client{};
+	POINT origin{};
+	if (!GetClientRect(tf2Window, &client) || !ClientToScreen(tf2Window, &origin))
+		return;
+	const int width = client.right - client.left;
+	const int height = client.bottom - client.top;
+	if (width <= 0 || height <= 0)
+		return;
+	const HWND foreground = GetForegroundWindow();
+	if (IsIconic(tf2Window) || (foreground != tf2Window && foreground != ownWindow))
+	{
+		ShowWindow(ownWindow, SW_HIDE);
+		return;
+	}
+
+	if (!gameOverlayApplied)
+	{
+		SDL_GetWindowPosition(window, &normalX, &normalY);
+		SDL_GetWindowSize(window, &normalWidth, &normalHeight);
+		SDL_SetWindowBordered(window, SDL_FALSE);
+		SDL_SetWindowAlwaysOnTop(window, SDL_TRUE);
+		LONG_PTR exStyle = GetWindowLongPtrW(ownWindow, GWL_EXSTYLE);
+		SetWindowLongPtrW(ownWindow, GWL_EXSTYLE,
+			exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
+		SetLayeredWindowAttributes(ownWindow, RGB(255, 0, 255), 0, LWA_COLORKEY);
+		glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
+		gameOverlayApplied = true;
+		gameOverlayInteractive = false;
+	}
+
+	const bool hotkeyDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 &&
+		(GetAsyncKeyState(VK_TAB) & 0x8000) != 0;
+	if (hotkeyDown && !overlayHotkeyWasDown)
+	{
+		gameOverlayInteractive = !gameOverlayInteractive;
+		LONG_PTR exStyle = GetWindowLongPtrW(ownWindow, GWL_EXSTYLE);
+		if (gameOverlayInteractive)
+		{
+			exStyle &= ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
+			SetWindowLongPtrW(ownWindow, GWL_EXSTYLE, exStyle);
+			SetForegroundWindow(ownWindow);
+			SetFocus(ownWindow);
+		}
+		else
+		{
+			exStyle |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
+			SetWindowLongPtrW(ownWindow, GWL_EXSTYLE, exStyle);
+			SetForegroundWindow(tf2Window);
+		}
+	}
+	overlayHotkeyWasDown = hotkeyDown;
+
+	SetWindowPos(ownWindow, HWND_TOPMOST, origin.x, origin.y, width, height,
+		SWP_SHOWWINDOW | SWP_NOOWNERZORDER | (gameOverlayInteractive ? 0 : SWP_NOACTIVATE));
+#else
+	gameOverlayEnabled = false;
+#endif
+}
+
 TF2BotDetectorSDLRenderer::~TF2BotDetectorSDLRenderer()
 {
 	// Cleanup
@@ -133,6 +227,7 @@ TF2BotDetectorSDLRenderer::~TF2BotDetectorSDLRenderer()
 
 void TF2BotDetectorSDLRenderer::DrawFrame()
 {
+	UpdateGameOverlay();
 	// Poll and handle events (inputs, window resize, etc.)
 	// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
 	// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
@@ -166,14 +261,17 @@ void TF2BotDetectorSDLRenderer::DrawFrame()
 
 	static bool showRendererSettings = false;
 
-	if (ImGui::BeginMainMenuBar()) {
-		if (ImGui::MenuItem("Renderer")) {
-			showRendererSettings = true;
+	if (!gameOverlayApplied || gameOverlayInteractive)
+	{
+		if (ImGui::BeginMainMenuBar()) {
+			if (ImGui::MenuItem("Renderer")) {
+				showRendererSettings = true;
+			}
+			ImGui::EndMainMenuBar();
 		}
-		ImGui::EndMainMenuBar();
 	}
 
-	if (showRendererSettings) {
+	if (showRendererSettings && (!gameOverlayApplied || gameOverlayInteractive)) {
 	if (ImGui::Begin("Renderer Settings", &showRendererSettings)) {
 		ImGui::Text("Note: This setting will still prefer vSync.");
 
@@ -265,4 +363,3 @@ std::string TF2BotDetectorSDLRenderer::RendererInfo() const
 {
 	return "TF2BotDetectorSDLRenderer: OpenGl 4.3 + GLSL 430"; // fmt::format(FMT_COMPILE("TF2BotDetectorSDLRenderer: OpenGl GL 4.3 + GLSL 430"));
 }
-

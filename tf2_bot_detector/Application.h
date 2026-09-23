@@ -46,6 +46,8 @@ namespace tf2_bot_detector
 
 		static TF2BDApplication& GetApplication();
 		DB::ITempDB& GetTempDB();
+		Settings& GetSettings() { return m_Settings; }
+		const Settings& GetSettings() const { return m_Settings; }
 
 	private:
 		std::unique_ptr<DB::ITempDB> m_TempDB;
