@@ -93,7 +93,11 @@ namespace mh
 	template<typename T> constexpr bool operator==(const T& lhs, const property<T>& rhs) { return lhs == rhs.get(); }
 }
 
-static constexpr const char DEFAULT_LARGE_IMAGE_KEY[] = "tf2_1x1";
+// LunarisV Discord application (https://discord.com/developers/applications/1072916577365803119).
+// Art assets on it: "logo" plus one image per class, keyed by TF2's internal class names.
+static constexpr discord::ClientId LUNARISV_DISCORD_APP_ID = 1072916577365803119;
+static constexpr const char DEFAULT_LARGE_IMAGE_KEY[] = "logo";
+static constexpr const char LARGE_IMAGE_TEXT[] = "TF2PL by LunarisV";
 
 static constexpr LogMessageColor DISCORD_LOG_COLOR{ 117 / 255.0f, 136 / 255.0f, 215 / 255.0f };
 
@@ -535,19 +539,12 @@ discord::Activity DiscordGameState::ConstructActivity() const
 
 	std::string details;
 
-	if (m_ConnectionState != ConnectionState::Disconnected && !m_MapName.empty())
-	{
-		if (auto map = m_DRPInfo->FindMap(m_MapName))
-			retVal.GetAssets().SetLargeImage(fmt::format("map_{}", map->m_MapNames.at(0)).c_str());
-		else
-			retVal.GetAssets().SetLargeImage("map_unknown");
+	// The LunarisV app has no per-map art; the logo is always the large image.
+	retVal.GetAssets().SetLargeImage(DEFAULT_LARGE_IMAGE_KEY);
+	retVal.GetAssets().SetLargeText(LARGE_IMAGE_TEXT);
 
+	if (m_ConnectionState != ConnectionState::Disconnected && !m_MapName.empty())
 		details = m_MapName;
-	}
-	else
-	{
-		retVal.GetAssets().SetLargeImage(DEFAULT_LARGE_IMAGE_KEY);
-	}
 
 	const auto GetGameState = [&]
 	{
@@ -627,39 +624,39 @@ discord::Activity DiscordGameState::ConstructActivity() const
 		switch (m_LastSpawnedClass)
 		{
 		case TFClassType::Demoman:
-			assets.SetSmallImage("leaderboard_class_demo");
-			assets.SetSmallText("Demo");
+			assets.SetSmallImage("demoman");
+			assets.SetSmallText("Demoman");
 			break;
 		case TFClassType::Engie:
-			assets.SetSmallImage("leaderboard_class_engineer");
+			assets.SetSmallImage("engineer");
 			assets.SetSmallText("Engineer");
 			break;
 		case TFClassType::Heavy:
-			assets.SetSmallImage("leaderboard_class_heavy");
+			assets.SetSmallImage("heavyweapons");
 			assets.SetSmallText("Heavy");
 			break;
 		case TFClassType::Medic:
-			assets.SetSmallImage("leaderboard_class_medic");
+			assets.SetSmallImage("medic");
 			assets.SetSmallText("Medic");
 			break;
 		case TFClassType::Pyro:
-			assets.SetSmallImage("leaderboard_class_pyro");
+			assets.SetSmallImage("pyro");
 			assets.SetSmallText("Pyro");
 			break;
 		case TFClassType::Scout:
-			assets.SetSmallImage("leaderboard_class_scout");
+			assets.SetSmallImage("scout");
 			assets.SetSmallText("Scout");
 			break;
 		case TFClassType::Sniper:
-			assets.SetSmallImage("leaderboard_class_sniper");
+			assets.SetSmallImage("sniper");
 			assets.SetSmallText("Sniper");
 			break;
 		case TFClassType::Soldier:
-			assets.SetSmallImage("leaderboard_class_soldier");
+			assets.SetSmallImage("soldier");
 			assets.SetSmallText("Soldier");
 			break;
 		case TFClassType::Spy:
-			assets.SetSmallImage("leaderboard_class_spy");
+			assets.SetSmallImage("spy");
 			assets.SetSmallText("Spy");
 			break;
 
@@ -978,7 +975,7 @@ void DiscordState::Update()
 		m_LastDiscordInitializeTime = curTime;
 
 		discord::Core* core = nullptr;
-		if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_NoRequireDiscord, &core);
+		if (auto result = discord::Core::Create(LUNARISV_DISCORD_APP_ID, DiscordCreateFlags_NoRequireDiscord, &core);
 			result != discord::Result::Ok)
 		{
 			DebugLogWarning("Failed to initialize Discord Game SDK: {}", mh::enum_fmt(result));

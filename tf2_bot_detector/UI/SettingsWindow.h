@@ -1,5 +1,10 @@
 #pragma once
 
+#include "ITF2BotDetectorRenderer.h"
+
+#include <optional>
+#include <vector>
+
 namespace tf2_bot_detector
 {
 	class MainWindow;
@@ -19,6 +24,7 @@ namespace tf2_bot_detector
 		void OnDrawModerationSettings();
 		void OnDrawModSettings();
 		void OnDrawPerformanceSettings();
+		void OnDrawGraphicsSettings();
 		void OnDrawServiceIntegrationSettings();
 		void OnDrawUISettings();
 		void OnDrawOverlaySettings();
@@ -28,5 +34,8 @@ namespace tf2_bot_detector
 		MainWindow& m_MainWindow;
 
 		bool m_ModsChanged = false;
+
+		// enumerating GPUs creates a DXGI factory; do it once, not every frame.
+		std::optional<std::vector<TF2BDGpuInfo>> m_GpuList;
 	};
 }

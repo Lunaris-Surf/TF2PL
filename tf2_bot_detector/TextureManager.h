@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 
 namespace tf2_bot_detector
@@ -14,7 +15,8 @@ namespace tf2_bot_detector
 	class ITexture
 	{
 	public:
-		using handle_type = uint32_t;
+		// ImTextureID-compatible: a GL texture name or an ID3D11ShaderResourceView*, depending on the renderer
+		using handle_type = uintptr_t;
 
 		virtual ~ITexture() = default;
 

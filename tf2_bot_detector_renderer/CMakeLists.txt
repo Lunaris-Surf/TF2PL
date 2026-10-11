@@ -121,6 +121,22 @@ else()
 	endif()
 endif()
 
+# backend: Direct3D 11 (windows). Selected at runtime; OpenGL stays available as a fallback.
+if (WIN32)
+	target_sources(
+		tf2_bot_detector_renderer PRIVATE
+		"d3d11_backend.h"
+		"d3d11_backend.cpp"
+	)
+
+	target_sources(imgui PRIVATE
+		"${IMGUI_DIR}/backends/imgui_impl_dx11.cpp"
+		"${IMGUI_DIR}/backends/imgui_impl_dx11.h"
+	)
+	target_compile_definitions(imgui PUBLIC IMGUI_USE_DX11)
+	target_link_libraries(imgui PUBLIC d3d11 dxgi d3dcompiler)
+endif()
+
 # backend: SDL2
 if(imgui_USE_SDL2)
 	find_package(SDL2 CONFIG REQUIRED)

@@ -5,6 +5,7 @@
 #include "ConsoleLog/NetworkStatus.h"
 #include "Platform/Platform.h"
 #include "ImGui_TF2BotDetector.h"
+#include "LunarisUI.h"
 #include "Actions/ActionGenerators.h"
 #include "BaseTextures.h"
 #include "Filesystem.h"
@@ -28,6 +29,7 @@
 #include <Util/ScopeGuards.h>
 #include <Util/ImguiHelpers.h>
 #include <imgui.h>
+#include <imgui_internal.h> // menu bar layout (ImGuiWindow::DC)
 #include <libzippp/libzippp.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <mh/math/interpolation.hpp>
@@ -40,6 +42,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <cmath>
 #include <chrono>
 #include <filesystem>
 #include <string>
@@ -153,6 +156,52 @@ void MainWindow::SetupFonts()
 		m_Unifont24Font = LoadFont("fonts/unifont_jp-15.0.06.ttf", 24);
 	}
 
+	// LunarisV fonts (same families as lunaris.surf). Latin only, so the body font gets unifont
+	// merged in underneath for Cyrillic/CJK player names.
+	{
+		auto& lunarisFonts = LunarisUI::Fonts();
+		const auto LoadLatin = [&](const std::filesystem::path& relativePath, float size, float multiply = 1.0f) -> ImFont*
+			{
+				ImFontConfig latin{};
+				latin.OversampleH = 2;
+				latin.OversampleV = 1;
+				latin.RasterizerMultiply = multiply;
+				const auto path = IFilesystem::Get().ResolvePath(relativePath, PathUsage::Read);
+				if (path.empty() || !std::filesystem::is_regular_file(path))
+				{
+					LogError("Unable to load font {}; using the default font instead.", relativePath);
+					return nullptr;
+				}
+				return ImGui::GetIO().Fonts->AddFontFromFileTTF(path.string().c_str(), size, &latin);
+			};
+
+		if (!m_ChakraPetch16Font)
+		{
+			m_ChakraPetch16Font = LoadLatin("fonts/ChakraPetch-Regular.ttf", 16);
+			if (m_ChakraPetch16Font)
+			{
+				ImFontConfig merge = config;
+				merge.MergeMode = true;
+				merge.PixelSnapH = true;
+				merge.GlyphOffset.y = 1;
+				if (const auto path = IFilesystem::Get().ResolvePath("fonts/unifont_jp-15.0.06.ttf", PathUsage::Read);
+					!path.empty() && std::filesystem::is_regular_file(path))
+				{
+					ImGui::GetIO().Fonts->AddFontFromFileTTF(path.string().c_str(), 16, &merge);
+				}
+			}
+		}
+
+		lunarisFonts.m_Body = m_ChakraPetch16Font;
+		lunarisFonts.m_BodyBold = LoadLatin("fonts/ChakraPetch-SemiBold.ttf", 16);
+		lunarisFonts.m_Label = LoadLatin("fonts/ChakraPetch-SemiBoldItalic.ttf", 11, 1.2f);
+		lunarisFonts.m_Display = LoadLatin("fonts/Michroma-Regular.ttf", 12);
+		lunarisFonts.m_DisplayTitle = LoadLatin("fonts/Michroma-Regular.ttf", 15);
+		lunarisFonts.m_DisplayLarge = LoadLatin("fonts/Michroma-Regular.ttf", 20);
+		lunarisFonts.m_Mono = LoadLatin("fonts/ShareTechMono-Regular.ttf", 15);
+		lunarisFonts.m_Segment = LoadLatin("fonts/DSEG7Classic-BoldItalic.ttf", 18);
+	}
+
 	ImGui::GetIO().Fonts->Build();
 }
 
@@ -182,6 +231,8 @@ ImFont* MainWindow::GetFontPointer(Font f) const
 		return m_Unifont14Font ? m_Unifont14Font : defaultFont;
 	case Font::UniFont_24px:
 		return m_Unifont24Font ? m_Unifont24Font : defaultFont;
+	case Font::ChakraPetch_16px:
+		return m_ChakraPetch16Font ? m_ChakraPetch16Font : defaultFont;
 	default:
 		LogError("Unknown font {}", mh::enum_fmt(f));
 	case Font::ProggyClean_13px:
@@ -207,8 +258,9 @@ void MainWindow::OnDrawColorPickers(const char* id, const std::initializer_list<
 		});
 }
 
-void MainWindow::OnDrawChat()
+void MainWindow::DrawThemeColorSettings()
 {
+	LunarisUI::MicroLabel("Chat");
 	OnDrawColorPickers("ChatColorPickers",
 		{
 			{ "You", m_Settings.m_Theme.m_Colors.m_ChatLogYouFG },
@@ -216,6 +268,53 @@ void MainWindow::OnDrawChat()
 			{ "Friendlies", m_Settings.m_Theme.m_Colors.m_ChatLogFriendlyTeamFG },
 		});
 
+	LunarisUI::MicroLabel("Scoreboard");
+	OnDrawColorPickers("ScoreboardColorPickers",
+		{
+			{ "You", m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG },
+			{ "Connecting", m_Settings.m_Theme.m_Colors.m_ScoreboardConnectingFG },
+			{ "Friendly", m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG },
+			{ "Enemy", m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG },
+		});
+
+	LunarisUI::MicroLabel("Marks");
+	OnDrawColorPickers("ScoreboardMarkColorPickers",
+		{
+			{ "Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG },
+			{ "Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG },
+			{ "Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG },
+			{ "Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG },
+			{ "Hostile", m_Settings.m_Theme.m_Colors.m_ScoreboardHostileBG },
+			{ "Suspected Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspectedCheaterBG },
+			{ "Blacklisted", m_Settings.m_Theme.m_Colors.m_ScoreboardBlacklistedBG },
+			{ "VAC Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardVACBannedBG },
+			{ "Game Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardGameBannedBG },
+			{ "Source Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardSourceBannedBG },
+			{ "Pedophilia", m_Settings.m_Theme.m_Colors.m_ScoreboardPedophiliaBG },
+		});
+
+	if (m_Application->GetMainState())
+	{
+		const auto customTags = m_Application->GetModLogic().GetPlayerList()->GetCustomTags();
+		if (!customTags.empty())
+		{
+			LunarisUI::MicroLabel("Custom tags");
+			ImGui::HorizontalScrollBox("ScoreboardCustomTagColorPickers", [&]
+				{
+					for (const auto& tag : customTags)
+					{
+						auto found = m_Settings.m_ScoreboardCustomTagBG.try_emplace(
+							tag, m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG).first;
+						OnDrawColorPicker(tag.c_str(), found->second);
+						ImGui::SameLine();
+					}
+				});
+		}
+	}
+}
+
+void MainWindow::OnDrawChat()
+{
 	ImGui::AutoScrollBox("##fileContents", { 0, 0 }, [&]()
 		{
 			if (!m_Application->GetMainState())
@@ -285,12 +384,15 @@ void MainWindow::OnDrawSettings()
 		return;
 	}
 
-	ImGui::SetNextWindowSize({ 720, 520 }, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize({ 760, 600 }, ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_FirstUseEver, { 0.5f, 0.5f });
-	if (ImGui::Begin("Settings", &b_SettingsOpen)) {
+	if (LunarisUI::BeginWindow("Settings", "Configuration", &b_SettingsOpen))
+	{
+		ImGui::BeginChild("SettingsScroll", { 0, 0 }, ImGuiChildFlags_None);
 		m_SettingsWindow->OnDraw();
-		ImGui::End();
+		ImGui::EndChild();
 	}
+	ImGui::End();
 }
 
 void MainWindow::OnDrawUpdateCheckPopup()
@@ -505,14 +607,25 @@ void MainWindow::OnDraw()
 	OnDrawAboutPopup();
 	OnDrawExportWindow();
 
+	// First launch / setup pages get one big glass panel.
+	if (m_Application->m_SetupFlow.ShouldDraw())
 	{
-		ISetupFlowPage::DrawState ds;
-		ds.m_ActionManager = &m_Application->GetActionManager();
-		ds.m_UpdateManager = m_Application->m_UpdateManager.get();
-		ds.m_Settings = &m_Settings;
+		ImGui::SetCursorPos({ 30, 18 });
+		const ImVec2 avail = ImGui::GetContentRegionAvail();
+		if (LunarisUI::BeginPanel("SetupPanel", "Setup", "First launch", { avail.x - 18, avail.y - 16 }))
+		{
+			ISetupFlowPage::DrawState ds;
+			ds.m_ActionManager = &m_Application->GetActionManager();
+			ds.m_UpdateManager = m_Application->m_UpdateManager.get();
+			ds.m_Settings = &m_Settings;
 
-		if (m_Application->m_SetupFlow.OnDraw(m_Settings, ds))
-			return;
+			ImGui::BeginChild("SetupScroll", { 0, 0 });
+			// returns whether it drew a page; we already checked ShouldDraw() above
+			(void)m_Application->m_SetupFlow.OnDraw(m_Settings, ds);
+			ImGui::EndChild();
+		}
+		LunarisUI::EndPanel();
+		return;
 	}
 
 	if (!m_Application->GetMainState())
@@ -520,43 +633,19 @@ void MainWindow::OnDraw()
 
 	const auto& mainWindowState = m_Settings.m_UIState.m_MainWindow;
 
-	ImGui::HorizontalScrollBox("SettingsScroller", [&]
-		{
-			ImGui::Checkbox("Pause", &m_Application->m_Paused); ImGui::SameLine();
+	OnDrawStatusStrip();
+	OnDrawControlChips();
+	OnDrawStats(); // debug builds only
 
-			auto& settings = m_Settings;
-			const auto ModerationCheckbox = [&settings](const char* name, bool& value, const char* tooltip)
-			{
-				{
-					ImGuiDesktop::ScopeGuards::TextColor text({ 1, 0.5f, 0, 1 }, !value);
-					if (ImGui::Checkbox(name, &value))
-						settings.SaveFile();
-				}
+	// panes: chat on the left, scoreboard over app log on the right
+	constexpr float leftInset = 30.0f;  // clears the orange hatch stripe
+	constexpr float rightInset = 18.0f;
+	constexpr float bottomInset = 16.0f;
+	constexpr float paneSpacing = 10.0f;
 
-				const char* orangeReason = "";
-				if (!value)
-					orangeReason = "\n\nThis label is orange to highlight the fact that it is currently disabled.";
-
-				ImGui::SameLine();
-				ImGui::SetHoverTooltip("{}{}", tooltip, orangeReason);
-			};
-
-			ModerationCheckbox("Enable Chat Warnings", m_Settings.m_AutoChatWarnings, "Enables chat message warnings about cheaters.");
-			ModerationCheckbox("Enable Chat Warnings (Party)", m_Settings.m_AutoChatWarningsConnectingParty, "Enables party message warnings about cheaters.");
-			ModerationCheckbox("Enable Auto Votekick", m_Settings.m_AutoVotekick, "Automatically votekicks cheaters on your team.");
-			ModerationCheckbox("Enable Auto-mark", m_Settings.m_AutoMark, "Automatically marks players matching the detection rules.");
-			ModerationCheckbox("Auto-mark ban records", m_Settings.m_AutoMarkBans, "Requires Auto-mark. Marks VAC/game ban history and SourceBans; scans SourceBan reasons with rules whose sources include sourcebans. Requires the relevant API integration.");
-
-			ImGui::Checkbox("Show Commands", &m_Settings.m_Unsaved.m_DebugShowCommands); ImGui::SameLine();
-			ImGui::SetHoverTooltip("Prints out all game commands to the log.");
-		});
-
-	OnDrawStats();
-	ImGui::Separator();
-
-	const float availWidth = ImGui::GetContentRegionAvail().x;
-	const float availHeight = ImGui::GetContentRegionAvail().y;
-	constexpr float paneSpacing = 6.0f;
+	ImGui::SetCursorPosX(leftInset);
+	const float availWidth = ImGui::GetContentRegionAvail().x - rightInset;
+	const float availHeight = ImGui::GetContentRegionAvail().y - bottomInset;
 
 	const bool chatEnabled = mainWindowState.m_ChatEnabled;
 	const bool hasRightPane = mainWindowState.m_ScoreboardEnabled || mainWindowState.m_AppLogEnabled;
@@ -568,11 +657,12 @@ void MainWindow::OnDraw()
 		? std::max(0.0f, availWidth - chatWidth - (chatEnabled && hasRightPane ? paneSpacing : 0.0f))
 		: 0.0f;
 
+	ImGui::BeginGroup();
 	if (chatEnabled)
 	{
-		ImGui::BeginChild("ChatPane", { chatWidth, availHeight });
-		OnDrawChat();
-		ImGui::EndChild();
+		if (LunarisUI::BeginPanel("ChatPane", "Comms", "Chat", { chatWidth, availHeight }))
+			OnDrawChat();
+		LunarisUI::EndPanel();
 
 		if (hasRightPane)
 			ImGui::SameLine(0, paneSpacing);
@@ -580,10 +670,13 @@ void MainWindow::OnDraw()
 
 	if (hasRightPane)
 	{
-		ImGui::BeginChild("RightPane", { rightWidth, availHeight });
-		OnDrawScoreboardAndLog();
-		ImGui::EndChild();
+		ImGui::BeginGroup();
+		ImGui::PushID("RightPane");
+		OnDrawScoreboardAndLog(rightWidth, availHeight);
+		ImGui::PopID();
+		ImGui::EndGroup();
 	}
+	ImGui::EndGroup();
 
 	if (!chatEnabled && !hasRightPane)
 		OnDrawAllPanesDisabled();
@@ -591,7 +684,10 @@ void MainWindow::OnDraw()
 
 void MainWindow::OnDrawStats()
 {
+	// Release builds show their numbers in the status strip (OnDrawStatusStrip); this is the debug readout.
 #ifdef _DEBUG
+	ImGui::SetCursorPosX(30);
+	ImGui::BeginGroup();
 	{
 		ImGui::Value("Time (Compensated)", to_seconds<float>(m_Application->GetCurrentTimestampCompensated() - m_Application->m_OpenTime));
 
@@ -639,54 +735,39 @@ void MainWindow::OnDrawStats()
 			ImGui::TextFmt("HTTP Requests: HTTPClient Unavailable");
 		}
 	}
+	ImGui::EndGroup();
 #endif
-
-	{
-		ImGui::Value("Blacklisted user count", m_Application->GetModLogic().GetBlacklistedPlayerCount());
-		ImGui::SameLine();
-		ImGui::Value("Rule count", m_Application->GetModLogic().GetRuleCount());
-
-		if (m_Application->GetMainState())
-		{
-			auto& world = m_Application->GetWorld();
-			const auto parsedLineCount = m_Application->m_ParsedLineCount;
-			const auto parseProgress = m_Application->GetMainState()->m_Parser.GetParseProgress();
-
-			if (parseProgress < 0.95f)
-			{
-				ImGui::ProgressBar(parseProgress, { 0, 0 }, mh::pfstr<64>("%1.2f %%", parseProgress * 100).c_str());
-				ImGui::SameLine(0, 4);
-			}
-
-			ImGui::Value("Parsed line count", parsedLineCount);
-			ImGui::SameLine();
-
-			ImGui::Text("Connected To:");
-			ImGui::SameLine();
-			std::string hostname = world.GetServerHostName();
-			if (!hostname.empty())
-				ImGui::Text(hostname.c_str());
-			else
-				ImGui::TextFmt({ 1, 1, 0, 1 }, "unconnected");
-		}
-	}
 }
 
-void MainWindow::OnDrawScoreboardAndLog()
+void MainWindow::OnDrawScoreboardAndLog(float width, float height)
 {
 	const auto& mainWindowState = m_Settings.m_UIState.m_MainWindow;
 	const bool scoreboardEnabled = mainWindowState.m_ScoreboardEnabled;
 	const bool appLogEnabled = mainWindowState.m_AppLogEnabled;
 
+	constexpr float spacing = 10.0f;
+	const float scoreboardHeight = scoreboardEnabled
+		? (appLogEnabled ? std::floor(height * 0.64f) : height)
+		: 0.0f;
+	const float logHeight = appLogEnabled
+		? std::max(80.0f, height - scoreboardHeight - (scoreboardEnabled ? spacing : 0.0f))
+		: 0.0f;
+
 	if (scoreboardEnabled)
-		OnDrawScoreboard();
+	{
+		if (LunarisUI::BeginPanel("ScoreboardPane", "Roster", "Scoreboard", { width, scoreboardHeight }))
+			OnDrawScoreboard();
+		LunarisUI::EndPanel();
+
+		if (appLogEnabled)
+			ImGui::Dummy({ 1, spacing - ImGui::GetStyle().ItemSpacing.y });
+	}
 
 	if (appLogEnabled)
 	{
-		const float logHeight = std::max(0.0f, ImGui::GetContentRegionAvail().y - (scoreboardEnabled ? 8.0f : 0.0f));
-		ImGui::BeginChild("AppLogPane", { 0, logHeight });
-		OnDrawAppLog();
-		ImGui::EndChild();
+		if (LunarisUI::BeginPanel("AppLogPane", "System", "App log", { width, logHeight }))
+			OnDrawAppLog();
+		LunarisUI::EndPanel();
 	}
 }
 
@@ -793,11 +874,223 @@ void MainWindow::OnEndFrame()
 	m_TextureManager->EndFrame();
 }
 
+void MainWindow::OnDrawHeaderBar()
+{
+	using namespace LunarisPalette;
+
+	// taller menu bar = the site's HUD header. The padding only needs to be in effect while the bar
+	// is created (it sets the height) and around each top-level BeginMenu (popup placement).
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 12, 15 });
+	const bool barOpen = ImGui::BeginMainMenuBar();
+	ImGui::PopStyleVar();
+	if (barOpen)
+	{
+		ImDrawList* dl = ImGui::GetWindowDrawList();
+		const ImVec2 wp = ImGui::GetWindowPos();
+		const ImVec2 ws = ImGui::GetWindowSize();
+		const float barH = ws.y;
+		dl->AddLine({ wp.x, wp.y + barH - 1 }, { wp.x + ws.x, wp.y + barH - 1 }, U32(Line));
+
+		// logo + wordmark (textures are 2x, drawn at half size)
+		float x = 14.0f;
+		if (m_BaseTextures)
+		{
+			if (auto icon = m_BaseTextures->GetLunarisIcon())
+			{
+				ImGui::SetCursorPos({ x, (barH - 36) * 0.5f });
+				ImGui::Image((ImTextureID)(intptr_t)icon->GetHandle(), { 36, 36 });
+				x += 36 + 10;
+			}
+			if (auto wordmark = m_BaseTextures->GetLunarisWordmark(); wordmark && wordmark->GetHeight() > 0)
+			{
+				const float h = 28.0f;
+				const float w = h * wordmark->GetWidth() / wordmark->GetHeight();
+				ImGui::SetCursorPos({ x, (barH - h) * 0.5f });
+				ImGui::Image((ImTextureID)(intptr_t)wordmark->GetHandle(), { w, h });
+				x += w + 18;
+			}
+		}
+
+		// "SCREEN / SCOREBOARD"
+		{
+			const bool setup = m_Application->m_SetupFlow.ShouldDraw();
+			dl->AddLine({ wp.x + x, wp.y + 14 }, { wp.x + x, wp.y + barH - 14 }, U32(Line));
+			LunarisUI::AddSpacedText(dl, LunarisUI::Fonts().m_Label, { wp.x + x + 14, wp.y + 10 }, Muted, "SCREEN", 3);
+			LunarisUI::AddSpacedText(dl, LunarisUI::Fonts().m_Display, { wp.x + x + 14, wp.y + 25 }, Ink,
+				setup ? "SETUP" : "SCOREBOARD", 1);
+			x += 14 + 150;
+		}
+
+		// top-level menu labels position themselves vertically (see BeginTopMenu in OnDrawMenuBar)
+		ImGui::SetCursorPosX(x);
+		OnDrawMenuBar();
+
+		// Settings as the orange call-to-action on the right
+		const bool isInSetupFlow = m_Application->m_SetupFlow.ShouldDraw();
+		if (!isInSetupFlow || m_Application->m_SetupFlow.GetCurrentPage() == SetupFlowPage::TF2CommandLine)
+		{
+			constexpr ImVec2 buttonSize = { 150, 34 };
+			ImGui::SetCursorPos({ ws.x - buttonSize.x - 18, (barH - buttonSize.y) * 0.5f });
+			if (LunarisUI::SkewButton("Settings##HeaderSettings", LunarisUI::ButtonStyle::Primary, buttonSize))
+				ToggleSettingsPopup();
+		}
+
+		ImGui::EndMainMenuBar();
+	}
+}
+
+void MainWindow::OnDrawStatusStrip()
+{
+	using namespace LunarisPalette;
+
+	ImDrawList* dl = ImGui::GetWindowDrawList();
+	const ImVec2 p = ImGui::GetCursorScreenPos();
+	const float w = ImGui::GetContentRegionAvail().x;
+	constexpr float h = 34.0f;
+	dl->AddRectFilledMultiColor(p, { p.x + w, p.y + h }, U32(Orange, 0.10f), U32(Orange, 0.0f), U32(Orange, 0.0f), U32(Orange, 0.10f));
+	dl->AddLine({ p.x, p.y + h }, { p.x + w, p.y + h }, U32(Line));
+
+	auto& world = m_Application->GetWorld();
+	auto& modLogic = m_Application->GetModLogic();
+
+	ImGui::SetCursorScreenPos({ p.x + 30, p.y + (h - ImGui::GetFrameHeight()) * 0.5f });
+	LunarisUI::MicroLabel("Information ///", Orange, false);
+
+	// where we are
+	ImGui::SameLine(0, 24);
+	ImGui::AlignTextToFramePadding();
+	if (const std::string& hostname = world.GetServerHostName(); !hostname.empty())
+	{
+		ImGui::TextColored(Muted, "%s", hostname.c_str());
+		if (const std::string& map = world.GetMapName(); !map.empty())
+		{
+			ImGui::SameLine(0, 10);
+			ImGui::TextColored(Dim, "//");
+			ImGui::SameLine(0, 10);
+			ImGui::TextColored(TealHi, "%s", map.c_str());
+		}
+	}
+	else
+	{
+		ImGui::TextColored(Orange, "Not connected");
+	}
+
+	// log parse progress only while catching up
+	if (const auto parseProgress = m_Application->GetMainState()->m_Parser.GetParseProgress(); parseProgress < 0.95f)
+	{
+		ImGui::SameLine(0, 16);
+		ImGui::ProgressBar(parseProgress, { 140, 0 }, mh::pfstr<64>("parsing %1.0f%%", parseProgress * 100).c_str());
+	}
+
+	// counters on the right
+	int playerCount = 0;
+	int markedCount = 0;
+	for (IPlayer& player : m_Application->GetMainState()->GeneratePlayerPrintData())
+	{
+		playerCount++;
+		if (modLogic.GetPlayerAttributes(player))
+			markedCount++;
+	}
+
+	constexpr float countersWidth = 470.0f;
+	ImGui::SameLine(std::max(ImGui::GetCursorPosX() + 16, w - countersWidth));
+	LunarisUI::SegmentCounter("Players", playerCount);
+	ImGui::SameLine(0, 22);
+	LunarisUI::SegmentCounter("Marked", markedCount, 2, markedCount > 0 ? Orange : TealHi);
+	ImGui::SameLine(0, 22);
+	LunarisUI::SegmentCounter("Rules", int(modLogic.GetRuleCount()), 3);
+	ImGui::SetHoverTooltip("{} rules loaded, {} blacklisted players across all player lists",
+		modLogic.GetRuleCount(), modLogic.GetBlacklistedPlayerCount());
+
+	ImGui::SetCursorScreenPos({ p.x, p.y + h + 10 });
+}
+
+void MainWindow::OnDrawControlChips()
+{
+	ImGui::SetCursorPosX(30);
+
+	auto& settings = m_Settings;
+	const auto Chip = [&settings](const char* name, bool& value, bool warnWhenOff, const char* tooltip)
+	{
+		if (LunarisUI::ToggleChip(name, &value, warnWhenOff))
+			settings.SaveFile();
+
+		if (warnWhenOff && !value)
+			ImGui::SetHoverTooltip("{}\n\nThis is orange because it is currently disabled.", tooltip);
+		else
+			ImGui::SetHoverTooltip("{}", tooltip);
+
+		ImGui::SameLine(0, 6);
+	};
+
+	ImGui::HorizontalScrollBox("ControlChips", [&]
+		{
+			if (LunarisUI::ToggleChip("Pause", &m_Application->m_Paused, false))
+				QueueUpdate();
+			ImGui::SetHoverTooltip("Stops reading the console and sending commands until unpaused.");
+			ImGui::SameLine(0, 6);
+
+			Chip("Chat warnings", m_Settings.m_AutoChatWarnings, true, "Enables chat message warnings about cheaters.");
+			Chip("Party warnings", m_Settings.m_AutoChatWarningsConnectingParty, true, "Enables party message warnings about cheaters.");
+			Chip("Auto votekick", m_Settings.m_AutoVotekick, true, "Automatically votekicks cheaters on your team.");
+			Chip("Auto-mark", m_Settings.m_AutoMark, true, "Automatically marks players matching the detection rules.");
+			Chip("Mark ban records", m_Settings.m_AutoMarkBans, true, "Requires Auto-mark. Marks VAC/game ban history and SourceBans; scans SourceBan reasons with rules whose sources include sourcebans. Requires the relevant API integration.");
+
+			LunarisUI::ToggleChip("Show commands", &m_Settings.m_Unsaved.m_DebugShowCommands, false);
+			ImGui::SetHoverTooltip("Prints out all game commands to the log.");
+		});
+
+	ImGui::Dummy({ 1, 4 });
+}
+
 void MainWindow::OnDrawMenuBar()
 {
 	const bool isInSetupFlow = m_Application->m_SetupFlow.ShouldDraw();
-	
-	if (ImGui::BeginMenu("File"))
+
+	// top-level labels use the display font; menu contents stay in the body font
+	// Top-level labels use the display font; menu contents use the body font.
+	// Careful: PushFont/PopFont act on the *current window's* draw list, and BeginMenu switches the
+	// current window to the dropdown when it opens. So the display font is popped in the menu bar
+	// when closed, or after EndMenu when open (see EndTopMenu); popping it inside the dropdown
+	// strips the dropdown's font texture and all of its text renders invisible.
+	ImFont* const bodyFont = ImGui::GetFont();
+	const auto BeginTopMenu = [bodyFont](const char* label, bool enabled = true)
+	{
+		ImFont* display = LunarisUI::Fonts().m_Display ? LunarisUI::Fonts().m_Display : bodyFont;
+
+		// Pin every top-level label to the same row, vertically centred in the tall header bar.
+		// (Left alone, the first label inherits a text-baseline offset from the logo images and
+		// sits lower than the rest.)
+		if (ImGuiWindow* bar = ImGui::GetCurrentWindow(); bar->DC.LayoutType == ImGuiLayoutType_Horizontal)
+		{
+			const float labelH = display->FontSize * ImGui::GetIO().FontGlobalScale;
+			bar->DC.CursorPos.y = bar->Pos.y + std::floor((bar->Size.y - labelH) * 0.5f);
+			bar->DC.CurrLineTextBaseOffset = 0.0f;
+		}
+
+		ImGui::PushFont(display);                                     // on the menu bar
+		ImGui::PushStyleColor(ImGuiCol_Text, LunarisPalette::Muted);
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 12, 15 }); // matches the header bar height
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 18, 6 });   // gap between top-level labels
+		const bool open = ImGui::BeginMenu(label, enabled);
+		ImGui::PopStyleVar(2);   // style stacks are global, safe either way
+		ImGui::PopStyleColor();
+
+		if (open)
+			ImGui::PushFont(bodyFont); // on the dropdown, popped in EndTopMenu
+		else
+			ImGui::PopFont();          // still on the menu bar
+
+		return open;
+	};
+	const auto EndTopMenu = []()
+	{
+		ImGui::PopFont();  // body font, dropdown
+		ImGui::EndMenu();
+		ImGui::PopFont();  // display font, menu bar
+	};
+
+	if (BeginTopMenu("FILE"))
 	{
 		if (ImGui::MenuItem("Open Config Folder"))
 			Shell::ExploreTo(IFilesystem::Get().GetConfigDir());
@@ -836,10 +1129,10 @@ void MainWindow::OnDrawMenuBar()
 		//if (ImGui::MenuItem("Exit", "Alt+F4"))
 		//	SetShouldClose(true);
 
-		ImGui::EndMenu();
+		EndTopMenu();
 	}
 
-	if (!isInSetupFlow && ImGui::BeginMenu("View"))
+	if (!isInSetupFlow && BeginTopMenu("VIEW"))
 	{
 		if (ImGui::MenuItem("Show Chat Log", nullptr, &m_Settings.m_UIState.m_MainWindow.m_ChatEnabled))
 			m_Settings.SaveFile();
@@ -850,11 +1143,15 @@ void MainWindow::OnDrawMenuBar()
 		if (ImGui::MenuItem("Show Scoreboard", nullptr, &m_Settings.m_UIState.m_MainWindow.m_ScoreboardEnabled))
 			m_Settings.SaveFile();
 
-		ImGui::EndMenu();
+		ImGui::Separator();
+		if (auto* renderer = TF2BotDetectorRendererBase::GetRenderer(); renderer && ImGui::MenuItem("Renderer stats"))
+			renderer->SetRendererSettingsOpen(true);
+
+		EndTopMenu();
 	}
 
 #ifdef _DEBUG
-	if (ImGui::BeginMenu("Debug"))
+	if (BeginTopMenu("DEBUG"))
 	{
 		ImGui::Separator();
 
@@ -874,18 +1171,18 @@ void MainWindow::OnDrawMenuBar()
 			Test* testPtr = nullptr;
 			testPtr->i = 42;
 		}
-		ImGui::EndMenu();
+		EndTopMenu();
 	}
 
 #ifdef _DEBUG
 	static bool s_ImGuiDemoWindow = false;
 #endif
-	if (ImGui::BeginMenu("Window"))
+	if (BeginTopMenu("WINDOW"))
 	{
 #ifdef _DEBUG
 		ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ImGuiDemoWindow);
 #endif
-		ImGui::EndMenu();
+		EndTopMenu();
 	}
 
 #ifdef _DEBUG
@@ -894,16 +1191,9 @@ void MainWindow::OnDrawMenuBar()
 #endif
 #endif
 
-	if (!isInSetupFlow || m_Application->m_SetupFlow.GetCurrentPage() == SetupFlowPage::TF2CommandLine)
-	{
-		//if (ImGui::MenuItem("PlayerList")) {}
+	// (Settings is the orange button on the right of the header now, see OnDrawHeaderBar)
 
-		if (ImGui::MenuItem("Settings")) {
-			ToggleSettingsPopup();
-		}
-	}
-
-	if (ImGui::BeginMenu("Help"))
+	if (BeginTopMenu("HELP"))
 	{
 		if (ImGui::MenuItem("TF2PL on GitHub"))
 			Shell::OpenURL("https://github.com/Lunaris-Surf/TF2PL");
@@ -920,7 +1210,7 @@ void MainWindow::OnDrawMenuBar()
 		if (ImGui::MenuItem("About TF2PL"))
 			OpenAboutPopup();
 
-		ImGui::EndMenu();
+		EndTopMenu();
 	}
 }
 
@@ -950,32 +1240,239 @@ void MainWindow::Draw()
 		return;
 	}
 
-	if (ImGui::BeginMainMenuBar()) {
-		this->OnDrawMenuBar();
-		ImGui::EndMainMenuBar();
-	}
+	ImGui::PushFont(GetFontPointer(m_Settings.m_Theme.m_Font));
+	ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
 
-	ImGuiWindowFlags bd_external_flags = ImGuiWindowFlags_NoDecoration |
+	// LunarisV field behind everything (static, cheap)
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
+	LunarisUI::DrawBackground(ImGui::GetBackgroundDrawList(viewport), viewport->Pos,
+		{ viewport->Pos.x + viewport->Size.x, viewport->Pos.y + viewport->Size.y });
+
+	OnDrawHeaderBar();
+
+	ImGuiWindowFlags bd_external_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground |
 		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoDocking;
 
 	// make it fullscreen to our main viewport.
-	ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
 	ImGui::SetNextWindowSize(viewport->WorkSize);
 	ImGui::SetNextWindowViewport(viewport->ID);
 
-	ImGui::PushFont(GetFontPointer(m_Settings.m_Theme.m_Font));
-	ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
-
-	if (ImGui::Begin("TF2PL by LunarisV", 0, bd_external_flags)) {
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
+	const bool mainOpen = ImGui::Begin("TF2PL by LunarisV", 0, bd_external_flags);
+	ImGui::PopStyleVar();
+	if (mainOpen)
 		this->OnDraw();
-		ImGui::End();
-	}
+	ImGui::End(); // must always pair with Begin
 
 	this->OnDrawSettings();
+	this->OnDrawGpuPrompt();
+	this->OnDrawUntrustedListWarning();
 
 	this->OnEndFrame();
 	ImGui::PopFont();
+}
+
+void MainWindow::OnDrawUntrustedListWarning()
+{
+	using namespace LunarisPalette;
+	constexpr const char POPUP[] = "Untrusted player list";
+
+	// Collect anything new from the list loader (it can run more than once, e.g. Reload Playerlists).
+	if (UntrustedLists::HasReport())
+	{
+		auto report = UntrustedLists::TakeReport();
+
+		const auto IsAcknowledged = [&](const std::filesystem::path& path)
+		{
+			const auto name = path.filename().string();
+			return std::find(m_Settings.m_AcknowledgedUntrustedLists.begin(),
+				m_Settings.m_AcknowledgedUntrustedLists.end(), name) != m_Settings.m_AcknowledgedUntrustedLists.end();
+		};
+		std::erase_if(report.m_Contaminated, IsAcknowledged);
+		std::erase_if(report.m_PossiblyContaminatedExports, IsAcknowledged);
+
+		const auto Merge = [](std::vector<std::filesystem::path>& into, const std::vector<std::filesystem::path>& from)
+		{
+			for (const auto& p : from)
+				if (std::find(into.begin(), into.end(), p) == into.end())
+					into.push_back(p);
+		};
+		Merge(m_UntrustedListReport.m_Deleted, report.m_Deleted);
+		Merge(m_UntrustedListReport.m_Contaminated, report.m_Contaminated);
+		Merge(m_UntrustedListReport.m_PossiblyContaminatedExports, report.m_PossiblyContaminatedExports);
+
+		if (!m_UntrustedListReport.empty())
+			m_UntrustedListPopupPending = true;
+	}
+
+	if (m_UntrustedListPopupPending && !ImGui::IsPopupOpen(POPUP))
+	{
+		ImGui::OpenPopup(POPUP);
+		m_UntrustedListPopupPending = false;
+	}
+
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, { 0.5f, 0.5f });
+	ImGui::SetNextWindowSizeConstraints({ 520, 0 }, { 760, FLT_MAX });
+	if (!ImGui::BeginPopupModal(POPUP, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		return;
+
+	const auto& report = m_UntrustedListReport;
+	const auto FileList = [](const std::vector<std::filesystem::path>& files)
+	{
+		if (LunarisUI::Fonts().m_Mono)
+			ImGui::PushFont(LunarisUI::Fonts().m_Mono);
+		for (const auto& file : files)
+			ImGui::BulletText("%s", file.filename().string().c_str());
+		if (LunarisUI::Fonts().m_Mono)
+			ImGui::PopFont();
+	};
+
+	LunarisUI::MicroLabel("Security notice", Red);
+	ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 700);
+
+	if (!report.m_Deleted.empty())
+	{
+		ImGui::TextColored(Ink, "TF2PL removed vorobey's hackerpolice player list.");
+		ImGui::TextColored(Muted, "It was found adding incorrect and fake cheater listings, so it is no longer trusted and was deleted:");
+		FileList(report.m_Deleted);
+		ImGui::Spacing();
+	}
+
+	if (!report.m_Contaminated.empty())
+	{
+		ImGui::TextColored(Orange, "These lists contain entries from vorobey's hackerpolice list and are unreliable:");
+		FileList(report.m_Contaminated);
+		ImGui::TextColored(Muted, "Players marked by these lists may not be cheaters. Double-check before acting on them, or remove the lists.");
+		ImGui::Spacing();
+	}
+
+	if (!report.m_PossiblyContaminatedExports.empty())
+	{
+		ImGui::TextColored(Orange, "These exports were combined from all your lists while it was installed and may include its entries:");
+		FileList(report.m_PossiblyContaminatedExports);
+		ImGui::TextColored(Muted, "Consider deleting them and running File > Total Export again.");
+		ImGui::Spacing();
+	}
+
+	ImGui::PopTextWrapPos();
+	LunarisUI::Rule();
+
+	const bool hasKeptLists = !report.m_Contaminated.empty() || !report.m_PossiblyContaminatedExports.empty();
+	bool close = false;
+	if (LunarisUI::SkewButton("Understood##UntrustedOK", LunarisUI::ButtonStyle::Primary))
+		close = true;
+
+	if (hasKeptLists)
+	{
+		ImGui::SameLine(0, 10);
+		if (LunarisUI::SkewButton("Don't warn about these again##UntrustedAck", LunarisUI::ButtonStyle::Ghost))
+		{
+			for (const auto* files : { &report.m_Contaminated, &report.m_PossiblyContaminatedExports })
+			{
+				for (const auto& file : *files)
+				{
+					const auto name = file.filename().string();
+					auto& acked = m_Settings.m_AcknowledgedUntrustedLists;
+					if (std::find(acked.begin(), acked.end(), name) == acked.end())
+						acked.push_back(name);
+				}
+			}
+			m_Settings.SaveFile();
+			close = true;
+		}
+		ImGui::SetHoverTooltip("You'll still be warned again if a list from vorobey's hackerpolice is installed.");
+	}
+
+	if (close)
+	{
+		m_UntrustedListReport = {};
+		ImGui::CloseCurrentPopup();
+	}
+
+	ImGui::EndPopup();
+}
+
+void MainWindow::OnDrawGpuPrompt()
+{
+	auto* renderer = TF2BotDetectorRendererBase::GetRenderer();
+	if (!renderer)
+		return;
+
+	constexpr const char POPUP_CHOOSE[] = "Choose a GPU";
+	constexpr const char POPUP_RESTART[] = "GPU changed";
+
+	if (!m_Settings.m_GpuChoiceMade && renderer->GetBackend() == TF2BDRenderBackend::D3D11)
+	{
+		if (!m_GpuPromptList)
+			m_GpuPromptList = renderer->GetAvailableGpus();
+
+		// Nothing to choose between: remember that and never ask.
+		if (m_GpuPromptList->size() <= 1)
+		{
+			m_Settings.m_GpuChoiceMade = true;
+			m_Settings.SaveFile();
+			return;
+		}
+
+		if (!ImGui::IsPopupOpen(POPUP_CHOOSE))
+			ImGui::OpenPopup(POPUP_CHOOSE);
+	}
+
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, { 0.5f, 0.5f });
+	if (ImGui::BeginPopupModal(POPUP_CHOOSE, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		const auto active = renderer->GetActiveGpu();
+
+		ImGui::TextUnformatted("TF2PL found more than one graphics card. Which one should it run on?");
+		ImGui::TextUnformatted("Using the same GPU as TF2 (usually the dedicated one) is smoothest.");
+		ImGui::TextUnformatted("You can change this later in Settings > Graphics.");
+		ImGui::Spacing();
+
+		std::optional<std::string> picked;
+		for (const auto& gpu : *m_GpuPromptList)
+		{
+			std::string label = gpu.m_Name + (gpu.m_IsDiscrete ? "  (dedicated, recommended)" : "  (integrated)");
+			if (gpu.m_ID == active.m_ID)
+				label += "  - in use now";
+			label += "##" + gpu.m_ID;
+
+			if (ImGui::Button(label.c_str(), { -FLT_MIN, 0 }))
+				picked = gpu.m_ID;
+		}
+
+		ImGui::Spacing();
+		if (ImGui::Button("Automatic (prefer dedicated)", { -FLT_MIN, 0 }))
+			picked = std::string();
+
+		if (picked)
+		{
+			m_Settings.m_PreferredGpuID = *picked;
+			m_Settings.m_GpuChoiceMade = true;
+			m_Settings.SaveFile();
+
+			// Automatic already picked the high-performance GPU at startup.
+			m_GpuRestartNotice = !picked->empty() && *picked != active.m_ID;
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+
+	if (m_GpuRestartNotice)
+	{
+		ImGui::OpenPopup(POPUP_RESTART);
+		m_GpuRestartNotice = false;
+	}
+
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, { 0.5f, 0.5f });
+	if (ImGui::BeginPopupModal(POPUP_RESTART, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::TextUnformatted("Restart TF2PL to switch to the selected GPU.");
+		if (ImGui::Button("OK", { 120, 0 }))
+			ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
+	}
 }
 
 void MainWindow::DrawPassiveOverlayPane()
@@ -1042,14 +1539,16 @@ void MainWindow::DrawPassiveOverlayPane()
 					draw->AddText({ textPos.x + float(offsetX), textPos.y + float(offsetY) }, outlineColor, text);
 		draw->AddText(textPos, color, text);
 	};
-	draw->AddRectFilled(pos, end, IM_COL32(12, 12, 20, 224), 7.0f);
-	draw->AddRect(pos, end, IM_COL32(70, 220, 210, 185), 7.0f, 0, 1.5f);
-	draw->AddText({ pos.x + 12.0f, pos.y + 9.0f }, IM_COL32(90, 245, 225, 255), "TF2PL // MARKED PLAYERS");
+	// Opaque on purpose: the overlay window is color-keyed on magenta, so anything translucent
+	// would blend into a pink fringe over the game.
+	LunarisUI::DrawGlassPanel(draw, pos, end, 12.0f, true, true);
+	LunarisUI::AddSpacedText(draw, LunarisUI::Fonts().m_Label, { pos.x + 12.0f, pos.y + 11.0f },
+		LunarisPalette::Orange, "TF2PL // MARKED PLAYERS", 2.0f);
 
 	float y = pos.y + headerHeight;
 	if (markedPlayers.empty())
 	{
-		draw->AddText({ pos.x + 12.0f, y + 12.0f }, IM_COL32(170, 190, 185, 255), "No marked players in the current lobby");
+		draw->AddText({ pos.x + 12.0f, y + 12.0f }, LunarisPalette::U32(LunarisPalette::Muted), "No marked players in the current lobby");
 	}
 	for (const auto& player : markedPlayers)
 	{
@@ -1064,9 +1563,12 @@ void MainWindow::DrawPassiveOverlayPane()
 			if (i + 1 == shownTags && player.m_Tags.size() > shownTags)
 				label += " +" + std::to_string(player.m_Tags.size() - shownTags);
 			const ImVec2 textSize = ImGui::CalcTextSize(label.c_str());
-			const ImVec2 pillEnd{ x + textSize.x + 12.0f, pillY + pillHeight };
-			draw->AddRectFilled({ x, pillY }, pillEnd, IM_COL32(145, 45, 125, 230), 7.0f);
-			draw->AddText({ x + 6.0f, pillY + 3.0f }, IM_COL32(255, 225, 250, 255), label.c_str());
+			constexpr float skew = 5.0f;
+			const ImVec2 pillEnd{ x + textSize.x + 12.0f + skew, pillY + pillHeight };
+			const ImVec2 pill[4] = { { x + skew, pillY }, { pillEnd.x, pillY }, { pillEnd.x - skew, pillEnd.y }, { x, pillEnd.y } };
+			draw->AddConvexPolyFilled(pill, 4, IM_COL32(150, 30, 128, 255));
+			draw->AddPolyline(pill, 4, LunarisPalette::U32(LunarisPalette::Magenta), ImDrawFlags_Closed, 1.0f);
+			draw->AddText({ x + 6.0f + skew * 0.5f, pillY + 3.0f }, IM_COL32(255, 225, 250, 255), label.c_str());
 			x = pillEnd.x + 6.0f;
 		}
 		y += rowHeight;
@@ -1074,7 +1576,7 @@ void MainWindow::DrawPassiveOverlayPane()
 	if (totalMarked > markedPlayers.size())
 	{
 		const auto remaining = "+ " + std::to_string(totalMarked - markedPlayers.size()) + " more marked players";
-		draw->AddText({ pos.x + 12.0f, y + 3.0f }, IM_COL32(200, 170, 200, 255), remaining.c_str());
+		draw->AddText({ pos.x + 12.0f, y + 3.0f }, LunarisPalette::U32(LunarisPalette::OrangeHi), remaining.c_str());
 	}
 }
 

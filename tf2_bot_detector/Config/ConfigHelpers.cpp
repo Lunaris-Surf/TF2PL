@@ -8,6 +8,7 @@
 #include "Log.h"
 #include "Version.h"
 #include "Settings.h"
+#include "UntrustedLists.h"
 
 #include <mh/text/formatters/error_code.hpp>
 #include <mh/text/case_insensitive_string.hpp>
@@ -29,6 +30,10 @@ using namespace tf2_bot_detector;
 auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> ConfigFilePaths
 {
 	ConfigFilePaths retVal;
+
+	// Remove known-bad player lists (and note lists carrying their entries) before anything loads them.
+	if (basename == "playerlist")
+		UntrustedLists::ScreenPlayerLists();
 
 	if (auto path = fmt::format("cfg/{}.official.json", basename); IFilesystem::Get().Exists(path))
 		retVal.m_Official = path;
@@ -102,6 +107,14 @@ static mh::task<bool> TryAutoUpdate(std::filesystem::path filename, const nlohma
 	{
 		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {}: failed to parse new json from {}", filename, info.m_UpdateURL);
+		co_return false;
+	}
+
+	// Never let an auto-update pull an untrusted list back in (or turn another list into one).
+	if (UntrustedLists::IsUntrustedListJson(newJson) || UntrustedLists::ContainsUntrustedMarker(info.m_UpdateURL))
+	{
+		LogWarning("Refusing to auto-update {} from {}: the new data is from an untrusted player list (vorobey-hackerpolice)",
+			filename, info.m_UpdateURL);
 		co_return false;
 	}
 

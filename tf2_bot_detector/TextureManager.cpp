@@ -1,72 +1,65 @@
 #include "TextureManager.h"
 #include "Bitmap.h"
 
-/*
-#if IMGUI_USE_GLBINDING
-#define GLBINDING_AVAILABLE 1
-#include <glbinding-aux/ContextInfo.h>
-#include <glbinding/gl21/gl.h>
-#include <glbinding/gl21ext/gl.h>
-#include <glbinding/gl30/gl.h>
-using namespace gl21;
-#elif IMGUI_USE_GLAD2
-#include <glad/gl.h>
-#else
-#include <Windows.h>
-#include <gl/GL.h>
-#endif
-*/
-
-// TODO: reimplemnent glad stuff
-//#include <Windows.h>
-#include <glad/gl.h>
+#include "ITF2BotDetectorRenderer.h"
 
 #include <mh/concurrency/thread_sentinel.hpp>
-#include <mh/memory/unique_object.hpp>
 
+#include <cassert>
+#include <cstddef>
 #include <vector>
-#include <array>
-#include <set>
 
 using namespace tf2_bot_detector;
 
+// Textures are created through the active renderer (Direct3D 11 or OpenGL),
+// so nothing here talks to a graphics API directly.
+
 namespace
 {
-	struct TextureHandleTraits final
-	{
-		static void delete_obj(GLuint t)
-		{
-			glDeleteTextures(1, &t);
-		}
-		static GLuint release_obj(GLuint& t)
-		{
-			auto retVal = t;
-			t = {};
-			return retVal;
-		}
-		static bool is_obj_valid(GLuint t)
-		{
-			return t > 0;
-		}
-	};
-
-	using TextureHandle = mh::unique_object<GLuint, TextureHandleTraits>;
-
 	class TextureManager;
+
+	/// <summary>
+	/// expand 1/2/3/4 channel 8-bit pixels to RGBA8, which both backends accept.
+	/// 1 channel = grey, 2 channels = grey + alpha (matches the old GL swizzles).
+	/// </summary>
+	std::vector<uint8_t> ToRGBA8(const Bitmap& bitmap)
+	{
+		const size_t pixelCount = size_t(bitmap.GetWidth()) * bitmap.GetHeight();
+		const auto* src = static_cast<const uint8_t*>(bitmap.GetData());
+		const uint8_t channels = bitmap.GetChannelCount();
+
+		std::vector<uint8_t> rgba(pixelCount * 4);
+		for (size_t i = 0; i < pixelCount; i++)
+		{
+			uint8_t* dst = &rgba[i * 4];
+			const uint8_t* px = &src[i * channels];
+			switch (channels)
+			{
+			case 1: dst[0] = dst[1] = dst[2] = px[0]; dst[3] = 255; break;
+			case 2: dst[0] = dst[1] = dst[2] = px[0]; dst[3] = px[1]; break;
+			case 3: dst[0] = px[0]; dst[1] = px[1]; dst[2] = px[2]; dst[3] = 255; break;
+			default: dst[0] = px[0]; dst[1] = px[1]; dst[2] = px[2]; dst[3] = px[3]; break;
+			}
+		}
+
+		return rgba;
+	}
 
 	class Texture final : public ITexture
 	{
 	public:
-		Texture(const TextureManager& manager, const Bitmap& bitmap, const TextureSettings& settings);
+		Texture(const Bitmap& bitmap, const TextureSettings& settings);
+		~Texture() override;
 
-		handle_type GetHandle() const override { return m_Handle; }
+		handle_type GetHandle() const override { return reinterpret_cast<handle_type>(m_Handle); }
 		const TextureSettings& GetSettings() const override { return m_Settings; }
 
 		uint16_t GetWidth() const override { return m_Width; }
 		uint16_t GetHeight() const override { return m_Height; }
 
 	private:
-		TextureHandle m_Handle{};
+		TF2BotDetectorRendererBase* m_Renderer = nullptr;
+		void* m_Handle = nullptr;
 		TextureSettings m_Settings{};
 		uint16_t m_Width{};
 		uint16_t m_Height{};
@@ -75,26 +68,11 @@ namespace
 	class TextureManager final : public ITextureManager
 	{
 	public:
-		TextureManager();
-
 		void EndFrame() override;
 		std::shared_ptr<ITexture> CreateTexture(const Bitmap& bitmap, const TextureSettings& settings) override;
 		size_t GetActiveTextureCount() const override { return m_Textures.size(); }
 
-#ifdef IMGUI_USE_GLBINDING
-		bool HasExtension(GLextension ext) const { return GetExtensions().contains(ext); }
-		const std::set<GLextension>& GetExtensions() const { return m_Extensions; }
-
-		const glbinding::Version& GetContextVersion() const { return m_ContextVersion; }
-#endif
-
 	private:
-#ifdef IMGUI_USE_GLBINDING
-		glbinding::Version m_ContextVersion{};
-		const std::set<GLextension> m_Extensions = glbinding::aux::ContextInfo::extensions();
-#endif
-
-		uint64_t m_FrameCount{};
 		std::vector<std::shared_ptr<Texture>> m_Textures;
 		mh::thread_sentinel m_Sentinel;
 	};
@@ -103,13 +81,6 @@ namespace
 std::shared_ptr<ITextureManager> tf2_bot_detector::ITextureManager::Create()
 {
 	return std::make_unique<TextureManager>();
-}
-
-TextureManager::TextureManager()
-{
-#ifdef IMGUI_USE_GLBINDING
-	m_ContextVersion = glbinding::aux::ContextInfo::version();
-#endif
 }
 
 void TextureManager::EndFrame()
@@ -124,73 +95,26 @@ void TextureManager::EndFrame()
 std::shared_ptr<ITexture> TextureManager::CreateTexture(const Bitmap& bitmap, const TextureSettings& settings)
 {
 	m_Sentinel.check();
-	return m_Textures.emplace_back(std::make_shared<Texture>(*this, bitmap, settings));
+	return m_Textures.emplace_back(std::make_shared<Texture>(bitmap, settings));
 }
 
-Texture::Texture(const TextureManager& manager, const Bitmap& bitmap, const TextureSettings& settings) :
+Texture::Texture(const Bitmap& bitmap, const TextureSettings& settings) :
+	m_Renderer(TF2BotDetectorRendererBase::GetRenderer()),
 	m_Settings(settings),
-	m_Width(bitmap.GetWidth()),
-	m_Height(bitmap.GetHeight())
+	m_Width(static_cast<uint16_t>(bitmap.GetWidth())),
+	m_Height(static_cast<uint16_t>(bitmap.GetHeight()))
 {
-	GLenum internalFormat{};
-	GLenum sourceFormat{};
-	std::array<GLint, 4> swizzle{};
-	constexpr GLenum sourceType = GL_UNSIGNED_BYTE;
-	switch (bitmap.GetChannelCount())
-	{
-	case 1:
-		internalFormat = GL_RED;
-		sourceFormat = GL_RED;
-		swizzle = { GL_RED, GL_RED, GL_RED, GL_ONE };
-		break;
-	case 2:
-		internalFormat = GL_RGB;
-		sourceFormat = GL_RGB;
-		swizzle = { GL_RED, GL_RED, GL_RED, GL_GREEN };
-		break;
-	case 3:
-		internalFormat = GL_RGB;
-		sourceFormat = GL_RGB;
-		swizzle = { GL_RED, GL_GREEN, GL_BLUE, GL_ONE };
-		break;
-	case 4:
-		internalFormat = GL_RGBA;
-		sourceFormat = GL_RGBA;
-		swizzle = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
-		break;
-	}
+	assert(m_Renderer);
+	if (!m_Renderer || bitmap.empty())
+		return;
 
-	glGenTextures(1, &m_Handle.reset_and_get_ref());
-	assert(m_Handle);
+	// mipmaps were already disabled in the GL path; m_EnableMips is kept for API compatibility.
+	const auto rgba = ToRGBA8(bitmap);
+	m_Handle = m_Renderer->CreateTextureRGBA(rgba.data(), bitmap.GetWidth(), bitmap.GetHeight());
+}
 
-	glBindTexture(GL_TEXTURE_2D, m_Handle);
-	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, bitmap.GetWidth(), bitmap.GetHeight(), 0,
-		sourceFormat, sourceType, bitmap.GetData());
-
-#if IMGUI_USE_GLAD2
-	if (GLAD_GL_ARB_texture_swizzle)
-	{
-		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle.data());
-	}
-	else if (GLAD_GL_EXT_texture_swizzle)
-	{
-		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA_EXT, swizzle.data());
-	}
-#endif
-
-#if 0
-	if (glGenerateMipmap)
-	{
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else if (glGenerateMipmapEXT)
-	{
-		glGenerateMipmapEXT(GL_TEXTURE_2D);
-	}
-	else
-#endif
-	{
-		// just disable mipmaps
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	}
+Texture::~Texture()
+{
+	if (m_Renderer && m_Handle)
+		m_Renderer->DestroyTexture(m_Handle);
 }

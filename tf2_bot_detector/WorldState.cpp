@@ -5,6 +5,7 @@
 #include "ConsoleLog/ConsoleLogParser.h"
 #include "GameData/TFClassType.h"
 #include "GameData/UserMessageType.h"
+#include "GameData/G15Dump.h"
 #include "Networking/HTTPHelpers.h"
 #include "Networking/SteamAPI.h"
 #include "Networking/SteamHistoryAPI.h"
@@ -180,6 +181,55 @@ mh::task<> WorldState::AddConsoleOutputLine(std::string line)
 		for (auto listener : m_ConsoleLineListeners)
 			listener->OnConsoleLineUnparsed(*worldState, std::move(line));
 	}
+}
+
+bool WorldState::ApplyG15Dump(const std::vector<G15PlayerData>& players)
+{
+	const auto now = GetCurrentTime();
+	bool needsStatus = false;
+
+	for (const G15PlayerData& g15 : players)
+	{
+		if (!g15.m_AccountID || *g15.m_AccountID == 0 || !g15.m_UserID)
+			continue;
+
+		const SteamID steamID(*g15.m_AccountID, SteamAccountType::Individual);
+		const bool isKnown = m_CurrentPlayerData.contains(steamID);
+		Player& player = FindOrCreatePlayer(steamID);
+
+		PlayerStatus status = player.GetStatus();
+
+		// New player, rejoined (new userid), or never seen in `status`:
+		// ask for a status so we get real connection time / loss / state.
+		if (!isKnown || status.m_UserID != *g15.m_UserID || status.m_State == PlayerStatusState::Invalid)
+			needsStatus = true;
+
+		status.m_SteamID = steamID;
+		status.m_UserID = *g15.m_UserID;
+		if (g15.m_Name)
+			status.m_Name = *g15.m_Name;
+		if (g15.m_Ping)
+			status.m_Ping = *g15.m_Ping;
+
+		if (status.m_State == PlayerStatusState::Invalid)
+		{
+			// Best guess until `status` arrives: on a team means they're in the game.
+			const bool onTeam = g15.m_Team == TFTeam::Red || g15.m_Team == TFTeam::Blue;
+			status.m_State = onTeam ? PlayerStatusState::Active : PlayerStatusState::Spawning;
+			if (status.m_ConnectionTime == time_point_t{})
+				status.m_ConnectionTime = now;
+		}
+
+		player.SetStatus(std::move(status), now);
+
+		if (g15.m_Team && (*g15.m_Team == TFTeam::Red || *g15.m_Team == TFTeam::Blue || *g15.m_Team == TFTeam::Spectator))
+			player.m_Team = *g15.m_Team;
+
+		m_LastStatusUpdateTime = std::max(m_LastStatusUpdateTime, player.GetLastStatusUpdateTime());
+		InvokeEventListener(&IWorldEventListener::OnPlayerStatusUpdate, *this, player);
+	}
+
+	return needsStatus;
 }
 
 void WorldState::UpdateTimestamp(const ConsoleLogParser& parser)

@@ -18,5 +18,9 @@ namespace tf2_bot_detector
 		virtual const ITexture* GetVACShield_16() const = 0;
 		virtual const ITexture* GetGameBanIcon_16() const = 0;
 		virtual const ITexture* GetSourceBansIcon_16() const = 0;
+
+		// LunarisV header art (2x resolution, drawn at half size)
+		virtual const ITexture* GetLunarisIcon() const = 0;
+		virtual const ITexture* GetLunarisWordmark() const = 0;
 	};
 }

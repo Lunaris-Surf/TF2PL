@@ -2,6 +2,7 @@
 #include "Config/Settings.h"
 #include "Platform/Platform.h"
 #include "UI/ImGui_TF2BotDetector.h"
+#include "UI/LunarisUI.h"
 #include "BaseTextures.h"
 #include "GameData/IPlayer.h"
 #include "Networking/SteamAPI.h"
@@ -49,39 +50,7 @@ void MainWindow::OnDrawScoreboard()
 	static constexpr float contentWidthMin = 500;
 	float contentWidthMinOuter = contentWidthMin + style.WindowPadding.x * 2;
 
-	// Horizontal scroller for color pickers
-	OnDrawColorPickers("ScoreboardColorPickers",
-		{
-			{ "You", m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG },
-			{ "Connecting", m_Settings.m_Theme.m_Colors.m_ScoreboardConnectingFG },
-			{ "Friendly", m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG },
-			{ "Enemy", m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG },
-			{ "Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG },
-			{ "Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG },
-			{ "Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG },
-			{ "Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG },
-			{ "Hostile", m_Settings.m_Theme.m_Colors.m_ScoreboardHostileBG },
-			{ "Suspected Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspectedCheaterBG },
-			{ "Blacklisted", m_Settings.m_Theme.m_Colors.m_ScoreboardBlacklistedBG },
-			{ "VAC Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardVACBannedBG },
-			{ "Game Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardGameBannedBG },
-			{ "Source Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardSourceBannedBG },
-			{ "Pedophilia", m_Settings.m_Theme.m_Colors.m_ScoreboardPedophiliaBG },
-		});
-	const auto customTags = m_Application->GetModLogic().GetPlayerList()->GetCustomTags();
-	if (!customTags.empty())
-	{
-		ImGui::HorizontalScrollBox("ScoreboardCustomTagColorPickers", [&]
-			{
-				for (const auto& tag : customTags)
-				{
-					auto found = m_Settings.m_ScoreboardCustomTagBG.try_emplace(
-						tag, m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG).first;
-					OnDrawColorPicker(tag.c_str(), found->second);
-					ImGui::SameLine();
-				}
-			});
-	}
+	// (color pickers moved to Settings > UI > Colors in the LunarisV redesign)
 
 	OnDrawTeamStats();
 
@@ -94,18 +63,18 @@ void MainWindow::OnDrawScoreboard()
 		extraScoreboardHeight += style.ScrollbarSize;
 	}
 
-	// kind of ugly number of 1.5, but applog takes too much space...
-	const float scoreboardHeight = ImGui::GetContentRegionAvail().y / (m_Settings.m_UIState.m_MainWindow.m_AppLogEnabled ? 1.5f : 1);
+	// the scoreboard and app log are separate panels now, so take whatever height the panel gives us
+	const float scoreboardHeight = std::max(0.0f, ImGui::GetContentRegionAvail().y - extraScoreboardHeight);
 
-	// this shit is ass
-	if (ImGui::BeginChild("Scoreboard", { 0, scoreboardHeight + extraScoreboardHeight }, true, ImGuiWindowFlags_HorizontalScrollbar))
+	if (ImGui::BeginChild("Scoreboard", { 0, scoreboardHeight + extraScoreboardHeight }, false, ImGuiWindowFlags_HorizontalScrollbar))
 	{
 		{
 			// Real table begins here.
 			ImGuiTableFlags flags = ImGuiTableFlags_NoSavedSettings |
 				ImGuiTableFlags_Resizable |
 				ImGuiTableFlags_Sortable |
-				ImGuiTableFlags_SizingStretchSame;
+				ImGuiTableFlags_SizingStretchSame |
+				ImGuiTableFlags_BordersInnerH;
 
 			if (ImGui::BeginTable("ScoreboardTable", 7, flags)) {
 				// Name header and column setup
@@ -120,7 +89,16 @@ void MainWindow::OnDrawScoreboard()
 				}
 
 				//ImGui::TableSetupScrollFreeze();
-				ImGui::TableHeadersRow();
+				if (auto* labelFont = LunarisUI::Fonts().m_Label)
+				{
+					ImGui::PushFont(labelFont);
+					ImGui::TableHeadersRow();
+					ImGui::PopFont();
+				}
+				else
+				{
+					ImGui::TableHeadersRow();
+				}
 
 				// this is mostly copied from m_Application->m_MainState->GeneratePlayerPrintData().
 				// 100 = player compatiblilty.

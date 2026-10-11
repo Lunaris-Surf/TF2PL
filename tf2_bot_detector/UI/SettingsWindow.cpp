@@ -29,6 +29,7 @@ void SettingsWindow::OnDraw()
 	OnDrawModerationSettings();
 	OnDrawModSettings();
 	OnDrawPerformanceSettings();
+	OnDrawGraphicsSettings();
 	OnDrawServiceIntegrationSettings();
 	OnDrawUISettings();
 	OnDrawOverlaySettings();
@@ -429,6 +430,100 @@ void SettingsWindow::OnDrawPerformanceSettings()
 			ImGui::SetHoverTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
 		}
 
+		// Player data source
+		{
+			if (ImGui::Checkbox("Use G15 player data (recommended)", &m_Settings.m_UseG15PlayerData))
+				m_Settings.SaveFile();
+			ImGui::SetHoverTooltip(
+				"Reads players with TF2's g15_dumpplayer instead of polling `status` every few seconds.\n"
+				"Gives teams, health and SteamIDs directly (also on community servers) and prints less to console.\n"
+				"Requires -g15 in TF2's launch options (added automatically when TF2PL launches TF2).\n"
+				"Falls back to `status` automatically if G15 isn't available.");
+		}
+
+		ImGui::NewLine();
+		ImGui::TreePop();
+	}
+}
+
+void SettingsWindow::OnDrawGraphicsSettings()
+{
+	if (ImGui::TreeNode("Graphics"))
+	{
+		auto* renderer = TF2BotDetectorRendererBase::GetRenderer();
+		bool changed = false;
+
+#ifdef _WIN32
+		// Renderer
+		{
+			int backend = m_Settings.GetRenderBackend() == TF2BDRenderBackend::OpenGL ? 1 : 0;
+			if (ImGui::Combo("Renderer", &backend, "DirectX 11 (recommended)\0OpenGL\0"))
+			{
+				m_Settings.m_RenderBackend = backend == 1 ? "opengl" : "d3d11";
+				changed = true;
+			}
+			ImGui::SetHoverTooltip("DirectX 11 lets TF2PL pick which GPU it renders on. OpenGL is kept as a fallback.");
+		}
+
+		// GPU (D3D11 only)
+		if (m_Settings.GetRenderBackend() == TF2BDRenderBackend::D3D11)
+		{
+			if (!m_GpuList && renderer)
+				m_GpuList = renderer->GetAvailableGpus();
+
+			const auto& gpus = m_GpuList ? *m_GpuList : std::vector<TF2BDGpuInfo>{};
+
+			std::string preview = "Automatic (prefer dedicated)";
+			for (const auto& gpu : gpus)
+			{
+				if (gpu.m_ID == m_Settings.m_PreferredGpuID)
+					preview = gpu.m_Name;
+			}
+
+			if (ImGui::BeginCombo("GPU", preview.c_str()))
+			{
+				if (ImGui::Selectable("Automatic (prefer dedicated)", m_Settings.m_PreferredGpuID.empty()))
+				{
+					m_Settings.m_PreferredGpuID.clear();
+					changed = true;
+				}
+
+				for (const auto& gpu : gpus)
+				{
+					const std::string label = gpu.m_Name + (gpu.m_IsDiscrete ? "  (dedicated)" : "  (integrated)") + "##" + gpu.m_ID;
+					if (ImGui::Selectable(label.c_str(), gpu.m_ID == m_Settings.m_PreferredGpuID))
+					{
+						m_Settings.m_PreferredGpuID = gpu.m_ID;
+						changed = true;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::SetHoverTooltip("Running on the same GPU as TF2 is usually smoothest.");
+		}
+
+		if (changed)
+		{
+			m_Settings.m_GpuChoiceMade = true;
+			m_Settings.SaveFile();
+		}
+#endif
+
+		if (renderer)
+		{
+			ImGui::TextFmt("In use: {}", renderer->RendererInfo());
+
+#ifdef _WIN32
+			const auto active = renderer->GetActiveGpu();
+			const bool backendDiffers = renderer->GetBackend() != m_Settings.GetRenderBackend();
+			const bool gpuDiffers = m_Settings.GetRenderBackend() == TF2BDRenderBackend::D3D11 &&
+				!m_Settings.m_PreferredGpuID.empty() && m_Settings.m_PreferredGpuID != active.m_ID;
+			if (backendDiffers || gpuDiffers)
+				ImGui::TextFmt({ 1, 1, 0, 1 }, "Restart TF2PL to apply graphics changes.");
+#endif
+		}
+
 		ImGui::NewLine();
 		ImGui::TreePop();
 	}
@@ -562,6 +657,7 @@ void SettingsWindow::OnDrawUISettings()
 			case Font::ProggyTiny_20px:  return "Proggy Tiny, 20px";
 			case Font::UniFont_14px:  return "UniFont, 14px";
 			case Font::UniFont_24px:  return "UniFont, 24px";
+			case Font::ChakraPetch_16px:  return "Chakra Petch, 16px (LunarisV)";
 			}
 		};
 
@@ -584,6 +680,7 @@ void SettingsWindow::OnDrawUISettings()
 
 			// FIXME <- fix what please elaborate
 			// what did he mean by this
+			FontSelectable(Font::ChakraPetch_16px);
 			FontSelectable(Font::ProggyTiny_10px);
 			FontSelectable(Font::ProggyTiny_20px);
 			FontSelectable(Font::ProggyClean_13px);
@@ -592,6 +689,14 @@ void SettingsWindow::OnDrawUISettings()
 			FontSelectable(Font::UniFont_24px);
 
 			ImGui::EndCombo();
+		}
+
+		// scoreboard / chat color pickers (moved here from above the panes in the redesign)
+		ImGui::NewLine();
+		if (ImGui::TreeNode("Colors"))
+		{
+			m_MainWindow.DrawThemeColorSettings();
+			ImGui::TreePop();
 		}
 
 		ImGui::NewLine();

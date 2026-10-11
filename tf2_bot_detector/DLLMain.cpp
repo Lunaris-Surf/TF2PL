@@ -113,9 +113,15 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 
 #ifndef TF2BD_OVERLAY_BUILD
 		DebugLog("Initializing TF2PL by LunarisV...");
-		TF2BDRenderer renderer;
 
+		// app (and settings) first: the renderer needs the backend/GPU choice before it creates its device.
 		std::shared_ptr<TF2BDApplication> app = std::make_shared<TF2BDApplication>();
+
+		TF2BDRendererOptions rendererOptions;
+		rendererOptions.m_Backend = app->GetSettings().GetRenderBackend();
+		rendererOptions.m_PreferredGpuID = app->GetSettings().m_PreferredGpuID;
+		TF2BDRenderer renderer(rendererOptions);
+		DebugLog("Renderer: {}", renderer.RendererInfo());
 
 		app.get()->SetForwardedCommandLineArguments(forwarded_arg);
 		app.get()->SetLaunchedFromSteam(running_from_steam);

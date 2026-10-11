@@ -53,6 +53,7 @@ namespace tf2_bot_detector
 	enum class LobbyMemberTeam : uint8_t;
 	class Settings;
 	enum class TFClassType;
+	struct G15PlayerData;
 
 	enum class TeamShareResult
 	{
@@ -96,6 +97,13 @@ namespace tf2_bot_detector
 
 		virtual void AddConsoleOutputChunk(const std::string_view& chunk) = 0;
 		virtual mh::task<> AddConsoleOutputLine(std::string line) = 0;
+
+		/// <summary>
+		/// Apply a parsed g15_dumpplayer snapshot to the player list.
+		/// </summary>
+		/// <returns>true if a player was new or changed userid, so a `status` should be run
+		/// to fill in connection time / loss / state.</returns>
+		virtual bool ApplyG15Dump(const std::vector<G15PlayerData>& players) = 0;
 
 		virtual std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const = 0;
 		virtual std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const = 0;
@@ -160,6 +168,7 @@ namespace tf2_bot_detector
 
 		void AddConsoleOutputChunk(const std::string_view& chunk) override;
 		mh::task<> AddConsoleOutputLine(std::string line) override;
+		bool ApplyG15Dump(const std::vector<G15PlayerData>& players) override;
 
 		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const override;
 		std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const override;

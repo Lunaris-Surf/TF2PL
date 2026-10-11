@@ -7,6 +7,7 @@
 #include "ConsoleLog/ConsoleLineListener.h"
 #include "ConsoleLog/ConsoleLogParser.h"
 #include "Config/Settings.h"
+#include "Config/UntrustedLists.h"
 #include "DiscordRichPresence.h"
 #include "Networking/GithubAPI.h"
 #include "ModeratorLogic.h"
@@ -48,7 +49,17 @@ namespace tf2_bot_detector
 		void DrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult, const PlayerMarks& playerAttribs);
 		void DrawPlayerContextMarkMenu(const SteamID& steamid, const std::string& name, std::string& reasons);
 
+		/// <summary>
+		/// scoreboard/chat color pickers, drawn in Settings > UI > Colors.
+		/// </summary>
+		void DrawThemeColorSettings();
+
 	private:
+		// LunarisV chrome
+		void OnDrawHeaderBar();
+		void OnDrawStatusStrip();
+		void OnDrawControlChips();
+
 		void OnDrawMenuBar();
 		void OnDraw();
 		void OnEndFrame();
@@ -57,7 +68,7 @@ namespace tf2_bot_detector
 		void OnDrawAllPanesDisabled();
 
 		void OnDrawStats();
-		void OnDrawScoreboardAndLog();
+		void OnDrawScoreboardAndLog(float width, float height);
 		void OnDrawExportWindow();
 		void DrawPassiveOverlayPane();
 
@@ -106,6 +117,9 @@ namespace tf2_bot_detector
 		ImFont* m_Unifont14Font{};
 		ImFont* m_Unifont24Font{};
 
+		// LunarisV body font (Chakra Petch with unifont merged in for non-latin names)
+		ImFont* m_ChakraPetch16Font{};
+
 
 		TF2BDApplication* m_Application;
 
@@ -115,6 +129,16 @@ namespace tf2_bot_detector
 
 		Settings& m_Settings;
 		std::unique_ptr<SettingsWindow> m_SettingsWindow;
+
+		// warning when an untrusted player list was removed / other lists carry its entries
+		void OnDrawUntrustedListWarning();
+		UntrustedLists::Report m_UntrustedListReport;
+		bool m_UntrustedListPopupPending = false;
+
+		// first-run "which GPU?" prompt
+		void OnDrawGpuPrompt();
+		std::optional<std::vector<TF2BDGpuInfo>> m_GpuPromptList;
+		bool m_GpuRestartNotice = false;
 		std::unique_ptr<PlayerListExporter> m_PlayerExporter;
 		bool m_ExportWindowOpen = false;
 

@@ -6,6 +6,7 @@ namespace tf2_bot_detector
 {
 	class IAction;
 	class IActionManager;
+	class Settings;
 
 	class IActionGenerator
 	{
@@ -32,6 +33,8 @@ namespace tf2_bot_detector
 		time_point_t m_LastRunTime{};
 	};
 
+	// Legacy status/ping polling. Player data polling now lives in RCONActionManager
+	// (hybrid g15_dumpplayer + status); kept for reference, not registered.
 	class StatusUpdateActionGenerator final : public IPeriodicActionGenerator
 	{
 	public:
@@ -57,9 +60,15 @@ namespace tf2_bot_detector
 	class LobbyDebugActionGenerator final : public IPeriodicActionGenerator
 	{
 	public:
-		duration_t GetInterval() const override { return std::chrono::seconds(1); }
+		explicit LobbyDebugActionGenerator(const Settings& settings) : m_Settings(&settings) {}
+
+		// With G15 we already get teams directly, so the lobby dump is only a slower cross-check.
+		duration_t GetInterval() const override;
 
 	protected:
 		bool ExecuteImpl(IActionManager& manager) override;
+
+	private:
+		const Settings* m_Settings = nullptr;
 	};
 }

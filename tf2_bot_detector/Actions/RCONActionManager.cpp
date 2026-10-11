@@ -5,6 +5,7 @@
 #include "Log.h"
 #include "WorldEventListener.h"
 #include "WorldState.h"
+#include "GameData/G15Dump.h"
 
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -117,8 +118,15 @@ void RCONActionManager::ProcessRunningCommands()
 				DebugLog({ 1, 1, 1, 0.5f }, std::move(msg));
 			}
 
-			if (!resultStr.empty())
+			if (cmd.m_Command == "g15_dumpplayer")
+			{
+				// Handled directly: ~20KB of netprop dump we don't want going through the line parser.
+				HandleG15Reply(resultStr, tfbd_clock_t::now());
+			}
+			else if (!resultStr.empty())
+			{
 				m_WorldState.AddConsoleOutputChunk(resultStr);
+			}
 		}
 		catch (const std::future_error& e)
 		{
@@ -173,6 +181,9 @@ void RCONActionManager::ProcessQueuedCommands()
 	const auto curTime = tfbd_clock_t::now();
 	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
 		return;
+
+	// Player data (g15_dumpplayer / status / ping)
+	UpdatePlayerDataPolling(curTime);
 
 	// Update periodic actions
 	for (const auto& generator : m_PeriodicActionGenerators)
@@ -236,6 +247,90 @@ void RCONActionManager::ProcessQueuedCommands()
 	}
 
 	m_LastUpdateTime = curTime;
+}
+
+bool RCONActionManager::IsUsingG15(time_point_t curTime)
+{
+	if (!m_Settings.m_UseG15PlayerData)
+		return false;
+
+	// TF2 may have been restarted with -g15 since we gave up; try again now and then.
+	if (m_G15Unavailable && (curTime - m_G15UnavailableSince) >= G15_RETRY_INTERVAL)
+	{
+		m_G15Unavailable = false;
+		m_G15EmptyReplies = 0;
+	}
+
+	return !m_G15Unavailable;
+}
+
+void RCONActionManager::UpdatePlayerDataPolling(time_point_t curTime)
+{
+	if (IsUsingG15(curTime))
+	{
+		// Primary source: names, userids, SteamIDs, ping, team, health in one reply.
+		if ((curTime - m_LastG15Time) >= G15_INTERVAL)
+		{
+			if (QueueAction<GenericCommandAction>("g15_dumpplayer"))
+				m_LastG15Time = curTime;
+		}
+
+		// `status` only when someone new shows up, plus a slow refresh for connection time/loss/state.
+		const auto sinceStatus = curTime - m_LastStatusTime;
+		if ((m_StatusRequested && sinceStatus >= G15_STATUS_MIN_INTERVAL) || sinceStatus >= G15_STATUS_REFRESH_INTERVAL)
+		{
+			if (QueueAction<GenericCommandAction>("status"))
+			{
+				m_LastStatusTime = curTime;
+				m_StatusRequested = false;
+			}
+		}
+	}
+	else
+	{
+		// Legacy: alternate status / ping every 3 seconds.
+		if ((curTime - m_LastStatusTime) >= LEGACY_STATUS_INTERVAL)
+		{
+			if (QueueAction<GenericCommandAction>(m_LegacyNextPing ? "ping" : "status"))
+			{
+				m_LastStatusTime = curTime;
+				m_LegacyNextPing = !m_LegacyNextPing;
+			}
+		}
+	}
+}
+
+void RCONActionManager::HandleG15Reply(const std::string& reply, time_point_t curTime)
+{
+	if (IsG15CommandUnavailable(reply))
+	{
+		if (!m_G15Unavailable)
+			LogWarning("g15_dumpplayer is unavailable (TF2 was not launched with -g15). Falling back to status polling.");
+
+		m_G15Unavailable = true;
+		m_G15UnavailableSince = curTime;
+		return;
+	}
+
+	const auto players = ParseG15Dump(reply);
+
+	if (players.empty())
+	{
+		// An empty dump is normal in the main menu. But if `status` recently saw players and G15 keeps
+		// coming back empty, the command isn't doing anything useful: fall back for a while.
+		const bool statusSeesPlayers = (m_WorldState.GetCurrentTime() - m_WorldState.GetLastStatusUpdateTime()) < std::chrono::seconds(35);
+		if (statusSeesPlayers && ++m_G15EmptyReplies >= 3)
+		{
+			LogWarning("g15_dumpplayer keeps returning no players while status does. Falling back to status polling for now.");
+			m_G15Unavailable = true;
+			m_G15UnavailableSince = curTime;
+		}
+		return;
+	}
+
+	m_G15EmptyReplies = 0;
+	if (m_WorldState.ApplyG15Dump(players))
+		m_StatusRequested = true;
 }
 
 void RCONActionManager::Update()

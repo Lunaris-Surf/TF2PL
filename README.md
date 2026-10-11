@@ -20,7 +20,7 @@
 
 TF2PL — **Team Fortress 2 PlayerList** — keeps useful player context close while you play. It reads TF2's console output, enriches player records with supported public data, displays an at-a-glance dossier, and lets you maintain local or subscribed player lists with clear, color-coded marks.
 
-Version 2.0 expands the project into a single place to launch TF2, inspect a server, mark players, manage lists, and export data for compatible tools.
+Version 2.0 expanded the project into a single place to launch TF2, inspect a server, mark players, manage lists, and export data for compatible tools. Version 3.0 rebuilds the interface in the LunarisV style, adds a DirectX 11 renderer with GPU selection, reads players through TF2's G15 interface, and cuts the overhead TF2PL adds while you play.
 
 > [!IMPORTANT]
 > TF2PL assists human moderation. A mark is context, not proof by itself. Review evidence and follow the rules of the server or community you are playing on.
@@ -47,30 +47,58 @@ TF2PL is **not intended to replace TF2 Bot Detector**. It is a personal, expande
 - **Complete Steam identity sets:** records retain SteamID, SteamID3/SteamID32, and SteamID64, with SteamID64 as the primary identity.
 - **Two-format total export:** export a full TF2PL list and a TF2BD-compatible list. Marks unsupported by TF2BD are preserved in the proof field.
 - **Local-first lists:** your local data remains under your control, while optional subscribed lists can add shared context.
+- **LunarisV interface:** a HUD-style interface matching [lunaris.surf](https://lunaris-surf.github.io/TF2PL/), with an opaque in-game overlay. Its visual styling is inspired by **CyberiaStyle LAST APPROACH**.
+- **DirectX 11 with GPU selection:** renders on your dedicated GPU by default; pick a GPU on first run or in Settings > Graphics. OpenGL remains available as a fallback.
+- **G15 player data:** player names, SteamIDs, teams, ping and health come from TF2's `g15_dumpplayer` in a single reply, with `status` used only when someone joins. This works on community servers and prints far less to the console.
+- **Low overhead:** TF2PL idles when it isn't focused and paces frames instead of competing with TF2 for the GPU.
+- **Untrusted list protection:** unsupported or malicious player lists are removed automatically, and lists carrying their entries are flagged.
 
-## Launcher
+## Compatibility and safety notice
 
-The launcher can manage TF2 directly or apply the same selected launch options when TF2PL is started through Steam. Recommended settings are available in one click and remain individually editable.
+> [!WARNING]
+> **Vorobey's HackerPolice is not supported by TF2PL.** The project considers the list malicious because it accepts manipulated replays and false evidence and publishes fake cheater listings. TF2PL removes this list automatically and flags lists that carry its entries.
+
+## Preview
+
+### Game launcher
 
 <p align="center">
-  <img src="docs/images/launcher.png" alt="TF2PL launcher and launch options" width="100%">
+  <img src="docs/images/game-launcher.png" alt="TF2PL game launcher and launch options" width="100%">
 </p>
 
-## Player dossier
+### Settings
+
+<p align="center">
+  <img src="docs/images/settings.png" alt="TF2PL settings window" width="760">
+</p>
+
+### Overlay
+
+<p align="center">
+  <img src="docs/images/overlay.png" alt="TF2PL in-game marked players overlay" width="385">
+</p>
+
+### In game
+
+<p align="center">
+  <img src="docs/images/in-game.png" alt="TF2PL live in-game scoreboard and app log" width="100%">
+</p>
+
+### Player dossier
+
+<p align="center">
+  <img src="docs/images/player-dossier.png" alt="TF2PL player dossier shown on hover" width="428">
+</p>
 
 Hover a player in the live scoreboard to open a compact dossier. Data appears as it becomes available, so TF2PL stays useful even when an external service is unavailable or a Steam profile is private.
 
-<p align="center">
-  <img src="docs/images/player-dossier.png" alt="TF2PL player dossier shown on hover" width="760">
-</p>
+### Markings GUI
 
-## Marks and custom tags
+<p align="center">
+  <img src="docs/images/markings-gui.png" alt="TF2PL player markings menu" width="411">
+</p>
 
 Right-click a player to copy identifiers, visit supported profile services, initiate an eligible votekick, or update your local player list. Built-in marks cover common cases; custom lowercase tags let you build a system that fits your own community.
-
-<p align="center">
-  <img src="docs/images/marker-menu.png" alt="TF2PL player marking menu" width="430">
-</p>
 
 `Racist` is reserved for racial hatred. `Hostile` covers hateful behavior directed at other protected groups, including anti-LGBT harassment. This separation keeps rules and exports explicit.
 
@@ -81,6 +109,8 @@ Right-click a player to copy identifiers, visit supported profile services, init
 3. Open TF2PL and complete the first-run setup.
 4. Allow Steam integration and internet features only if you want to use them.
 5. Launch TF2 from TF2PL when prompted.
+
+TF2PL adds the launch options it needs when it starts TF2. If you start TF2 yourself instead, include `-condebug -conclearlog -usercon -g15`; without `-g15` TF2PL falls back to slower `status` polling.
 
 Keep the packaged `cfg`, `fonts`, `images`, `licenses`, and `schemas` folders beside the executable. Missing packaged resources can prevent parts of the interface from loading correctly.
 
@@ -97,14 +127,14 @@ See [LUNARISV.md](LUNARISV.md) for schema details, tag IDs, rule examples, and v
 
 ## Versioning and releases
 
-The repository root [`VERSION`](VERSION) file is the single source of truth for the public release version. It contains a three-part semantic version such as `2.0.0`.
+The repository root [`VERSION`](VERSION) file is the single source of truth for the public release version. It contains a three-part semantic version such as `3.0.0`.
 
 For the absolute earliest builds, visit [GitHub Actions](https://github.com/Lunaris-Surf/TF2PL/actions) and download an artifact from a successful workflow run. These builds contain the newest changes but receive less testing and may be unstable. [GitHub Releases](https://github.com/Lunaris-Surf/TF2PL/releases) are reserved for comparatively stable builds intended for general use.
 
 - Change `VERSION` when preparing a release.
 - CMake reads its major, minor, and patch values automatically.
 - GitHub Actions appends its run number as the fourth build component.
-- Release tags should use the matching `vMAJOR.MINOR.PATCH` form, such as `v2.0.0`.
+- Release tags should use the matching `vMAJOR.MINOR.PATCH` form, such as `v3.0.0`.
 - The in-app updater checks releases from this repository.
 
 This keeps local builds, Windows resources, CI artifacts, and the updater aligned without copying a version number through several files.
@@ -122,8 +152,6 @@ TF2PL can operate with network features disabled. When enabled, it may contact S
 ## Credits
 
 TF2PL is maintained by **LunarisV**. It is derived from [TF2 Bot Detector](https://github.com/PazerOP/tf2_bot_detector), originally created by Matt “pazer” Haynie, and retains contributions and third-party attributions from that project. Full dependency license texts are shipped in the `staging/licenses` directory.
-
-The TF2PL masthead features Mimi Vesper and was created for this repository from the maintainer-provided character design.
 
 TF2PL is an independent community project and is not affiliated with or endorsed by Valve Corporation.
 

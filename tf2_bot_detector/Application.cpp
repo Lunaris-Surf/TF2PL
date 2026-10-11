@@ -78,9 +78,9 @@ TF2BDApplication::TF2BDApplication() :
 
 	m_OpenTime = clock_t::now();
 
-	GetActionManager().AddPeriodicActionGenerator<StatusUpdateActionGenerator>();
+	// status/ping/g15_dumpplayer polling is handled by RCONActionManager (see UpdatePlayerDataPolling)
 	GetActionManager().AddPeriodicActionGenerator<ConfigActionGenerator>();
-	GetActionManager().AddPeriodicActionGenerator<LobbyDebugActionGenerator>();
+	GetActionManager().AddPeriodicActionGenerator<LobbyDebugActionGenerator>(m_Settings);
 
 	// always run at first tick.
 	QueueUpdate();

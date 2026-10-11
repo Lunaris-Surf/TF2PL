@@ -267,6 +267,7 @@ static void OpenTF2(Settings& settings, const std::string_view& rconPassword, ui
 		" +con_timestamp 1"
 		" -condebug"
 		" -conclearlog"
+		" -g15" // enables g15_dumpplayer, used as the primary player data source
 		;
 
 

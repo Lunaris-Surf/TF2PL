@@ -15,6 +15,11 @@
 
 #include "UI/AppStyle.h"
 
+#ifdef _WIN32
+#include "d3d11_backend.h"
+#include <backends/imgui_impl_dx11.h>
+#endif
+
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
@@ -28,7 +33,7 @@ using namespace std::string_literals;
 
 static std::string version_string = fmt::format(FMT_COMPILE("LunarisV v{} (External)"), BD_VERSION);
 
-TF2BotDetectorSDLRenderer::TF2BotDetectorSDLRenderer() : TF2BotDetectorRendererBase()
+TF2BotDetectorSDLRenderer::TF2BotDetectorSDLRenderer(const TF2BDRendererOptions& options) : TF2BotDetectorRendererBase()
 {
 	// Setup SDL
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -37,39 +42,88 @@ TF2BotDetectorSDLRenderer::TF2BotDetectorSDLRenderer() : TF2BotDetectorRendererB
 		// TODO: crash
 	}
 
-	// ~~GL 3.0 + GLSL 130~~
+	bool initialized = false;
+
+#ifdef _WIN32
+	if (options.m_Backend == TF2BDRenderBackend::D3D11)
+	{
+		initialized = InitD3D11(options.m_PreferredGpuID);
+		if (!initialized)
+		{
+			OutputDebugStringA("[!] Direct3D 11 init failed, falling back to OpenGL\n");
+			DestroyWindowAndBackend();
+		}
+	}
+#endif
+
+	if (!initialized)
+		initialized = InitOpenGL();
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// https://github.com/ocornut/imgui/issues/2117
+	// multi window causes problems in linux, apparently; investigate?
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+#ifndef TF2BD_IMGUI_NO_MUTLI_VIEWPORTS
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+#endif
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	tf2_bot_detector::ApplyModernDarkTheme();
+
+	// Setup Platform/Renderer backends
+	if (backend == TF2BDRenderBackend::OpenGL)
+	{
+		ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+		ImGui_ImplOpenGL3_Init("#version 430 core");
+	}
+	else
+	{
+		// the DX11 imgui backend is initialized by D3D11Backend on the first NewFrame
+		ImGui_ImplSDL2_InitForD3D(window);
+	}
+
+	// show our window cuz SDL_WINDOW_HIDDEN funny
+	SDL_ShowWindow(window);
+}
+
+// SDL_WINDOW_HIDDEN: Why? Why do I have to do this or it complains constantly about IID_ITfUIElementSink not being registered, why???
+// - a born-visible window gets its first WM_SETFOCUS synchronously inside SDL_CreateWindow, which kicks SDL's TSF/IME setup
+//   before that subsystem is fully initialized. so windows are created hidden and shown at the end of the constructor.
+static SDL_Window* CreateMainWindow(SDL_WindowFlags apiFlag)
+{
+	const auto window_flags = (SDL_WindowFlags)(apiFlag | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_HIDDEN);
+	SDL_Window* window = SDL_CreateWindow(version_string.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, window_flags);
+	if (!window)
+		printf("[!] SDL_CreateWindow failed! (SDL_GetError(): %s)!\n", SDL_GetError());
+	return window;
+}
+
+bool TF2BotDetectorSDLRenderer::InitOpenGL()
+{
+	backend = TF2BDRenderBackend::OpenGL;
+
 	// * GL 4.3 + GLSL 430 core *
-	const char* glsl_version = "#version 430 core";
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-
-	// Create window with graphics context
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-	// Create our window
-	// 
-	// SDL_WINDOW_HIDDEN: Why? Why do I have to do this or it complains constantly about IID_ITfUIElementSink not being registered, why???
-	// why do i have to create it with SDL_WINDOW_HIDDEN and then call SDL_ShowWindow at the bottom of this constructor??
-	// it's also how pazer's imgui_desktop handled it;; but, but why??
-	//
-	// - a born-visible window gets its first WM_SETFOCUS synchronously inside DL_CreateWindow, which kicks SDL's TSF/IME setup before that subsystem is fully initialized.
-	// so this is needed or we crash /shrug
-	SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_HIDDEN);
-	window = SDL_CreateWindow(version_string.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, window_flags);
-	// uh oh.
-	if (!window) {
-		printf("[!] SDL_CreateWindow failed! (SDL_GetError(): %s)!\n", SDL_GetError());
-	}
-
+	window = CreateMainWindow(SDL_WINDOW_OPENGL);
 	gl_context = SDL_GL_CreateContext(window);
 
 	// uh oh.
 	if (!gl_context) {
 		printf("[!] gl_context is null (SDL_GetError(): %s)!\n", SDL_GetError());
+		return false;
 	}
 
 	SDL_GL_MakeCurrent(window, gl_context);
@@ -94,30 +148,113 @@ TF2BotDetectorSDLRenderer::TF2BotDetectorSDLRenderer() : TF2BotDetectorRendererB
 	}
 #endif
 
-	// Setup Dear ImGui context
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	if (const auto* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER)))
+		activeGpu.m_Name = renderer;
 
-	// https://github.com/ocornut/imgui/issues/2117
-	// multi window causes problems in linux, apparently; investigate?
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
-#ifndef TF2BD_IMGUI_NO_MUTLI_VIEWPORTS
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+	return true;
+}
+
+#ifdef _WIN32
+bool TF2BotDetectorSDLRenderer::InitD3D11(const std::string& preferredGpuID)
+{
+	backend = TF2BDRenderBackend::D3D11;
+
+	window = CreateMainWindow((SDL_WindowFlags)0);
+	if (!window)
+		return false;
+
+	SDL_SysWMinfo info{};
+	SDL_VERSION(&info.version);
+	if (!SDL_GetWindowWMInfo(window, &info))
+		return false;
+
+	d3d11 = std::make_unique<D3D11Backend>();
+	if (!d3d11->Init(info.info.win.window, preferredGpuID))
+	{
+		d3d11.reset();
+		return false;
+	}
+
+	activeGpu = d3d11->GetActiveGpu();
+	return true;
+}
 #endif
 
-	// Setup Dear ImGui style
-	ImGui::StyleColorsDark();
-	tf2_bot_detector::ApplyModernDarkTheme();
+void TF2BotDetectorSDLRenderer::DestroyWindowAndBackend()
+{
+#ifdef _WIN32
+	d3d11.reset();
+#endif
+	if (gl_context)
+	{
+		SDL_GL_DeleteContext(gl_context);
+		gl_context = nullptr;
+	}
+	if (window)
+	{
+		SDL_DestroyWindow(window);
+		window = nullptr;
+	}
+}
 
-	// Setup Platform/Renderer backends
-	ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-	ImGui_ImplOpenGL3_Init(glsl_version);
+void TF2BotDetectorSDLRenderer::SetClearColor(float r, float g, float b, float a)
+{
+	clearColor[0] = r;
+	clearColor[1] = g;
+	clearColor[2] = b;
+	clearColor[3] = a;
+}
 
-	// show our window cuz SDL_WINDOW_HIDDEN funny
-	SDL_ShowWindow(window);
+std::vector<TF2BDGpuInfo> TF2BotDetectorSDLRenderer::GetAvailableGpus() const
+{
+#ifdef _WIN32
+	return D3D11Backend::EnumerateGpus();
+#else
+	return {};
+#endif
+}
+
+void* TF2BotDetectorSDLRenderer::CreateTextureRGBA(const void* rgba, uint32_t width, uint32_t height)
+{
+#ifdef _WIN32
+	if (d3d11)
+		return d3d11->CreateTextureRGBA(rgba, width, height);
+#endif
+
+	GLuint handle = 0;
+	glGenTextures(1, &handle);
+	if (!handle)
+		return nullptr;
+
+	glBindTexture(GL_TEXTURE_2D, handle);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(width), static_cast<GLsizei>(height), 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+
+	return reinterpret_cast<void*>(static_cast<uintptr_t>(handle));
+}
+
+void TF2BotDetectorSDLRenderer::DestroyTexture(void* texture)
+{
+	if (!texture)
+		return;
+
+#ifdef _WIN32
+	if (backend == TF2BDRenderBackend::D3D11)
+	{
+		D3D11Backend::DestroyTexture(texture);
+		return;
+	}
+#endif
+
+	// textures can outlive the GL context during shutdown; the context took them with it.
+	if (!gl_context)
+		return;
+
+	const GLuint handle = static_cast<GLuint>(reinterpret_cast<uintptr_t>(texture));
+	glDeleteTextures(1, &handle);
 }
 
 void TF2BotDetectorSDLRenderer::SetGameOverlayEnabled(bool enabled)
@@ -139,7 +276,17 @@ void TF2BotDetectorSDLRenderer::UpdateGameOverlay()
 	if (!SDL_GetWindowWMInfo(window, &info))
 		return;
 	HWND ownWindow = info.info.win.window;
-	HWND tf2Window = FindWindowA("Valve001", nullptr);
+
+	// FindWindowA walks every top-level window; only do it about once a second,
+	// or straight away if the window we cached has gone away.
+	const uint64_t nowMs = SDL_GetTicks64();
+	HWND tf2Window = static_cast<HWND>(cachedTF2Window);
+	if (!tf2Window || !IsWindow(tf2Window) || (nowMs - lastTF2WindowLookupMs) >= 1000)
+	{
+		tf2Window = FindWindowA("Valve001", nullptr);
+		cachedTF2Window = tf2Window;
+		lastTF2WindowLookupMs = nowMs;
+	}
 
 	if (!gameOverlayEnabled || !tf2Window)
 	{
@@ -152,10 +299,14 @@ void TF2BotDetectorSDLRenderer::UpdateGameOverlay()
 			SDL_SetWindowAlwaysOnTop(window, SDL_FALSE);
 			SDL_SetWindowPosition(window, normalX, normalY);
 			SDL_SetWindowSize(window, normalWidth, normalHeight);
-			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			if (overlayHidden)
+				ShowWindow(ownWindow, SW_SHOW);
+			SetClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			gameOverlayApplied = false;
 			gameOverlayInteractive = false;
 			overlayHotkeyWasDown = false;
+			overlayHidden = false;
+			overlayPlacementValid = false;
 		}
 		return;
 	}
@@ -171,7 +322,11 @@ void TF2BotDetectorSDLRenderer::UpdateGameOverlay()
 	const HWND foreground = GetForegroundWindow();
 	if (IsIconic(tf2Window) || (foreground != tf2Window && foreground != ownWindow))
 	{
-		ShowWindow(ownWindow, SW_HIDE);
+		if (!overlayHidden)
+		{
+			ShowWindow(ownWindow, SW_HIDE);
+			overlayHidden = true;
+		}
 		return;
 	}
 
@@ -185,9 +340,10 @@ void TF2BotDetectorSDLRenderer::UpdateGameOverlay()
 		SetWindowLongPtrW(ownWindow, GWL_EXSTYLE,
 			exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
 		SetLayeredWindowAttributes(ownWindow, RGB(255, 0, 255), 0, LWA_COLORKEY);
-		glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
+		SetClearColor(1.0f, 0.0f, 1.0f, 0.0f);
 		gameOverlayApplied = true;
 		gameOverlayInteractive = false;
+		overlayPlacementValid = false;
 	}
 
 	const bool controlDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -211,7 +367,7 @@ void TF2BotDetectorSDLRenderer::UpdateGameOverlay()
 			SetWindowLongPtrW(ownWindow, GWL_EXSTYLE, exStyle);
 			SetWindowPos(ownWindow, HWND_TOPMOST, origin.x, origin.y, width, height,
 				SWP_SHOWWINDOW | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-			glClearColor(0.035f, 0.035f, 0.055f, 1.0f);
+			SetClearColor(0.035f, 0.035f, 0.055f, 1.0f);
 			BringWindowToTop(ownWindow);
 			SetForegroundWindow(ownWindow);
 			SetActiveWindow(ownWindow);
@@ -224,14 +380,36 @@ void TF2BotDetectorSDLRenderer::UpdateGameOverlay()
 			SetLayeredWindowAttributes(ownWindow, RGB(255, 0, 255), 0, LWA_COLORKEY);
 			SetWindowPos(ownWindow, HWND_TOPMOST, origin.x, origin.y, width, height,
 				SWP_SHOWWINDOW | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
-			glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
+			SetClearColor(1.0f, 0.0f, 1.0f, 0.0f);
 			SetForegroundWindow(tf2Window);
 		}
+		overlayHidden = false;
+		overlayLastX = origin.x;
+		overlayLastY = origin.y;
+		overlayLastW = width;
+		overlayLastH = height;
+		overlayLastInteractive = gameOverlayInteractive;
+		overlayPlacementValid = true;
 	}
 	overlayHotkeyWasDown = hotkeyDown;
 
-	SetWindowPos(ownWindow, HWND_TOPMOST, origin.x, origin.y, width, height,
-		SWP_SHOWWINDOW | SWP_NOOWNERZORDER | (gameOverlayInteractive ? 0 : SWP_NOACTIVATE));
+	// Only reposition when TF2 moved/resized, we were hidden, or the mode changed.
+	const bool placementChanged = !overlayPlacementValid || overlayHidden ||
+		origin.x != overlayLastX || origin.y != overlayLastY ||
+		width != overlayLastW || height != overlayLastH ||
+		gameOverlayInteractive != overlayLastInteractive;
+	if (placementChanged)
+	{
+		SetWindowPos(ownWindow, HWND_TOPMOST, origin.x, origin.y, width, height,
+			SWP_SHOWWINDOW | SWP_NOOWNERZORDER | (gameOverlayInteractive ? 0 : SWP_NOACTIVATE));
+		overlayHidden = false;
+		overlayLastX = origin.x;
+		overlayLastY = origin.y;
+		overlayLastW = width;
+		overlayLastH = height;
+		overlayLastInteractive = gameOverlayInteractive;
+		overlayPlacementValid = true;
+	}
 #else
 	gameOverlayEnabled = false;
 #endif
@@ -240,18 +418,34 @@ void TF2BotDetectorSDLRenderer::UpdateGameOverlay()
 TF2BotDetectorSDLRenderer::~TF2BotDetectorSDLRenderer()
 {
 	// Cleanup
-	ImGui_ImplOpenGL3_Shutdown();
+#ifdef _WIN32
+	if (d3d11)
+		d3d11->Shutdown(); // shuts down the imgui DX11 backend, must happen before DestroyContext
+#endif
+	if (backend == TF2BDRenderBackend::OpenGL)
+		ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
 
-	SDL_GL_DeleteContext(gl_context);
-	SDL_DestroyWindow(window);
+	DestroyWindowAndBackend();
 	SDL_Quit();
 }
 
 void TF2BotDetectorSDLRenderer::DrawFrame()
 {
 	UpdateGameOverlay();
+
+	// When nobody is looking at us, don't render at full rate next to TF2.
+	// Wait for input (or 100ms, so app updates/RCON still tick ~10x a second).
+	// SDL_WaitEventTimeout(nullptr, ...) does not remove the event, the poll loop below handles it.
+	{
+		const bool overlayHiddenNow = gameOverlayApplied && overlayHidden;
+		const bool unfocusedWindow = !gameOverlayApplied && !InFocus();
+		if (overlayHiddenNow || unfocusedWindow || windowOccluded)
+			SDL_WaitEventTimeout(nullptr, 100);
+	}
+
+	frameStartMs = SDL_GetTicks64();
 	// Poll and handle events (inputs, window resize, etc.)
 	// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
 	// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
@@ -266,10 +460,22 @@ void TF2BotDetectorSDLRenderer::DrawFrame()
 			running = false;
 		if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
 			running = false;
+#ifdef _WIN32
+		if (d3d11 && event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED &&
+			event.window.windowID == SDL_GetWindowID(window))
+		{
+			d3d11->OnResize();
+		}
+#endif
 	}
 
 	// Start the Dear ImGui frame
-	ImGui_ImplOpenGL3_NewFrame();
+#ifdef _WIN32
+	if (d3d11)
+		d3d11->NewFrame();
+	else
+#endif
+		ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
 
@@ -283,21 +489,11 @@ void TF2BotDetectorSDLRenderer::DrawFrame()
 		}
 	}
 
-	static bool showRendererSettings = false;
-
-	if (!gameOverlayApplied)
-	{
-		if (ImGui::BeginMainMenuBar()) {
-			if (ImGui::MenuItem("Renderer")) {
-				showRendererSettings = true;
-			}
-			ImGui::EndMainMenuBar();
-		}
-	}
-
-	if (showRendererSettings && !gameOverlayApplied) {
-	if (ImGui::Begin("Renderer Settings", &showRendererSettings)) {
+	// opened from View > Renderer stats (the app's header bar owns the menu bar)
+	if (rendererSettingsOpen && !gameOverlayApplied) {
+	if (ImGui::Begin("Renderer Settings", &rendererSettingsOpen)) {
 		ImGui::Text("Note: This setting will still prefer vSync.");
+		ImGui::TextUnformatted(RendererInfo().c_str());
 
 		ImGui::SliderFloat("Set Frame Time", &frameTime, 0.0f, 66.6f);
 
@@ -311,33 +507,63 @@ void TF2BotDetectorSDLRenderer::DrawFrame()
 			ImGui::Text("Application State: <Active>");
 		}
 #endif // _DEBUG
-		ImGui::End();
 	}
+	ImGui::End(); // must pair with Begin even when collapsed
 	}
 
 
 	// Rendering
 	ImGui::Render();
-	glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
-	glClear(GL_COLOR_BUFFER_BIT);
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-	// Update and Render additional Platform Windows
-	// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
-	//  For this specific demo app we could also call SDL_GL_MakeCurrent(window, gl_context) directly)
-	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+#ifdef _WIN32
+	if (d3d11)
 	{
-		SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
-		SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
-		ImGui::UpdatePlatformWindows();
-		ImGui::RenderPlatformWindowsDefault();
-		SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+		d3d11->Render(ImGui::GetDrawData(), clearColor);
+
+		// Update and Render additional Platform Windows
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+		}
+
+		windowOccluded = !d3d11->Present(true);
+	}
+	else
+#endif
+	{
+		glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+		glClear(GL_COLOR_BUFFER_BIT);
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		// Update and Render additional Platform Windows
+		// (Platform functions may change the current OpenGL context, so we save/restore it)
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
+			SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+			SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+		}
+
+		SDL_GL_SwapWindow(window);
 	}
 
-	SDL_GL_SwapWindow(window);
+	// Frame pacing: only sleep for whatever is left of the frame budget.
+	// (Previously this always slept the full frameTime on top of vsync, which halved the framerate.)
+	{
+		float budgetMs = this->frameTime;
 
-	// lmfao
-	SDL_Delay(static_cast<Uint32>(this->frameTime));
+		// The passive (click-through) overlay is just a list of names; ~20 FPS is plenty
+		// and leaves the GPU to TF2.
+		if (gameOverlayApplied && !gameOverlayInteractive && budgetMs < 50.0f)
+			budgetMs = 50.0f;
+
+		const uint64_t elapsedMs = SDL_GetTicks64() - frameStartMs;
+		if (budgetMs > 0.0f && static_cast<float>(elapsedMs) < budgetMs)
+			SDL_Delay(static_cast<Uint32>(budgetMs - static_cast<float>(elapsedMs)));
+	}
 }
 
 std::size_t TF2BotDetectorSDLRenderer::RegisterDrawCallback(DrawableCallbackFn function)
@@ -385,5 +611,6 @@ bool TF2BotDetectorSDLRenderer::InFocus() const
 
 std::string TF2BotDetectorSDLRenderer::RendererInfo() const
 {
-	return "TF2BotDetectorSDLRenderer: OpenGl 4.3 + GLSL 430"; // fmt::format(FMT_COMPILE("TF2BotDetectorSDLRenderer: OpenGl GL 4.3 + GLSL 430"));
+	const char* api = backend == TF2BDRenderBackend::D3D11 ? "Direct3D 11" : "OpenGL 4.3";
+	return activeGpu.m_Name.empty() ? std::string(api) : fmt::format("{} on {}", api, activeGpu.m_Name);
 }

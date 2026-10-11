@@ -4,6 +4,7 @@
 #include "ChatWrappers.h"
 #include "Clock.h"
 #include "SteamID.h"
+#include "ITF2BotDetectorRenderer.h" // TF2BDRenderBackend
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -26,7 +27,8 @@ namespace tf2_bot_detector
 		ProggyTiny_20px,
 		ProggyClean_26px,
 		UniFont_14px,
-		UniFont_24px
+		UniFont_24px,
+		ChakraPetch_16px, // LunarisV default (unifont merged in for non-latin names)
 	};
 
 	void to_json(nlohmann::json& j, const Font& d);
@@ -139,6 +141,42 @@ namespace tf2_bot_detector
 		int m_OverlayCorner = 1;
 		int m_OverlayHotkeyKey = 0x09; // Tab
 		int m_OverlayHotkeyModifiers = 1; // Ctrl = 1, Alt = 2, Shift = 4
+
+		/// <summary>
+		/// get player data from TF2's g15_dumpplayer (needs -g15) instead of polling `status`.
+		/// `status` is still used occasionally for connection time / loss / connection state.
+		/// </summary>
+		bool m_UseG15PlayerData = true;
+
+		/// <summary>
+		/// graphics: "d3d11" (windows default) or "opengl". applied on next launch.
+		/// </summary>
+		std::string m_RenderBackend = "d3d11";
+
+		/// <summary>
+		/// GPU to render on (D3D11 only), "vvvv:dddd" vendor:device id. empty = automatic (prefer discrete).
+		/// </summary>
+		std::string m_PreferredGpuID;
+
+		/// <summary>
+		/// has the user been asked which GPU to use (first run prompt)?
+		/// </summary>
+		bool m_GpuChoiceMade = false;
+
+		/// <summary>
+		/// player lists (file names) the user chose to keep after being told they contain entries
+		/// from an untrusted list; we don't warn about these again.
+		/// </summary>
+		std::vector<std::string> m_AcknowledgedUntrustedLists;
+
+		TF2BDRenderBackend GetRenderBackend() const
+		{
+#ifdef _WIN32
+			return m_RenderBackend == "opengl" ? TF2BDRenderBackend::OpenGL : TF2BDRenderBackend::D3D11;
+#else
+			return TF2BDRenderBackend::OpenGL;
+#endif
+		}
 		std::map<std::string, std::array<float, 4>> m_ScoreboardCustomTagBG;
 
 		/// <summary>
@@ -269,7 +307,7 @@ namespace tf2_bot_detector
 		struct Theme
 		{
 			float m_GlobalScale = 1.0f;
-			Font m_Font = Font::UniFont_14px;
+			Font m_Font = Font::ChakraPetch_16px;
 
 			struct Colors
 			{
@@ -284,15 +322,16 @@ namespace tf2_bot_detector
 				std::array<float, 4> m_ScoreboardGameBannedBG = { 0.9f, 0.6f, 0.3f, 1 };
 				std::array<float, 4> m_ScoreboardSourceBannedBG = { 0.5f, 0.5f, 0.5f, 1 };
 				std::array<float, 4> m_ScoreboardPedophiliaBG = { 1, 0.7f, 0.2f, 1 };
-				std::array<float, 4> m_ScoreboardYouFG = { 0, 1, 0, 1 };
-				std::array<float, 4> m_ScoreboardConnectingFG = { 1, 1, 0, 0.5f };
+				// LunarisV palette: green "you", orange connecting, teal friendly, red enemy
+				std::array<float, 4> m_ScoreboardYouFG = { 0.553f, 1.0f, 0.416f, 1 };
+				std::array<float, 4> m_ScoreboardConnectingFG = { 1.0f, 0.812f, 0.478f, 0.6f };
 
-				std::array<float, 4> m_ScoreboardFriendlyTeamBG = { 0.19704340398311615f, 0.5180000066757202f, 0.25745877623558044f, 0.5f };
-				std::array<float, 4> m_ScoreboardEnemyTeamBG = { 0.8270000219345093f, 0.42039787769317627f, 0.38951700925827026f, 0.5f };
+				std::array<float, 4> m_ScoreboardFriendlyTeamBG = { 0.247f, 0.902f, 0.847f, 0.12f };
+				std::array<float, 4> m_ScoreboardEnemyTeamBG = { 1.0f, 0.310f, 0.427f, 0.14f };
 
-				std::array<float, 4> m_ChatLogYouFG = { 0, 1, 0, 1 };
-				std::array<float, 4> m_ChatLogFriendlyTeamFG = { 0.7f, 1, 0.7f, 1 };
-				std::array<float, 4> m_ChatLogEnemyTeamFG = { 1, 0.535f, 0.5f, 1 };
+				std::array<float, 4> m_ChatLogYouFG = { 0.553f, 1.0f, 0.416f, 1 };
+				std::array<float, 4> m_ChatLogFriendlyTeamFG = { 0.725f, 1.0f, 0.969f, 1 };
+				std::array<float, 4> m_ChatLogEnemyTeamFG = { 1.0f, 0.541f, 0.6f, 1 };
 			} m_Colors;
 
 		} m_Theme;
@@ -336,6 +375,7 @@ MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::Font)
 	MH_ENUM_REFLECT_VALUE(ProggyClean_26px)
 	MH_ENUM_REFLECT_VALUE(UniFont_14px)
 	MH_ENUM_REFLECT_VALUE(UniFont_24px)
+	MH_ENUM_REFLECT_VALUE(ChakraPetch_16px)
 MH_ENUM_REFLECT_END()
 
 MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::SteamAPIMode)

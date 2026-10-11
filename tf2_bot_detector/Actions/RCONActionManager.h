@@ -61,6 +61,25 @@ namespace tf2_bot_detector
 		void ProcessRunningCommands();
 		void ProcessQueuedCommands();
 
+		// Player data polling (hybrid G15 + status, or legacy status/ping)
+		void UpdatePlayerDataPolling(time_point_t curTime);
+		void HandleG15Reply(const std::string& reply, time_point_t curTime);
+		bool IsUsingG15(time_point_t curTime);
+
+		static constexpr duration_t G15_INTERVAL = std::chrono::seconds(3);
+		static constexpr duration_t G15_STATUS_REFRESH_INTERVAL = std::chrono::seconds(30);
+		static constexpr duration_t G15_STATUS_MIN_INTERVAL = std::chrono::seconds(2);
+		static constexpr duration_t G15_RETRY_INTERVAL = std::chrono::seconds(60);
+		static constexpr duration_t LEGACY_STATUS_INTERVAL = std::chrono::seconds(3);
+
+		time_point_t m_LastG15Time{};
+		time_point_t m_LastStatusTime{};
+		time_point_t m_G15UnavailableSince{};
+		bool m_G15Unavailable = false;
+		bool m_StatusRequested = false;
+		int m_G15EmptyReplies = 0;
+		bool m_LegacyNextPing = false;
+
 		struct Writer;
 
 		static constexpr duration_t UPDATE_INTERVAL = std::chrono::milliseconds(250);

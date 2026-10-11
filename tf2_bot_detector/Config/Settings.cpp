@@ -60,7 +60,8 @@ namespace tf2_bot_detector
 		{
 			{ "colors", d.m_Colors },
 			{ "global_scale", d.m_GlobalScale },
-			{ "font_temp", d.m_Font },
+			{ "font", d.m_Font },
+			{ "colors_version", 2 },
 		};
 	}
 
@@ -102,7 +103,25 @@ namespace tf2_bot_detector
 	{
 		d.m_Colors = j.at("colors");
 		try_get_to_defaulted(j, d, &Settings::Theme::m_GlobalScale, "global_scale");
-		try_get_to_defaulted(j, d, &Settings::Theme::m_Font, "font_temp");
+
+		// "font" replaced "font_temp" with the LunarisV redesign, so everyone starts on the new font once.
+		try_get_to_defaulted(j, d, &Settings::Theme::m_Font, "font");
+
+		// Pre-redesign team/you/chat colors were tuned for the old grey theme; reset just those once.
+		int colorsVersion = 1;
+		if (auto found = j.find("colors_version"); found != j.end() && found->is_number_integer())
+			colorsVersion = found->get<int>();
+		if (colorsVersion < 2)
+		{
+			const Settings::Theme::Colors defaults{};
+			d.m_Colors.m_ScoreboardYouFG = defaults.m_ScoreboardYouFG;
+			d.m_Colors.m_ScoreboardConnectingFG = defaults.m_ScoreboardConnectingFG;
+			d.m_Colors.m_ScoreboardFriendlyTeamBG = defaults.m_ScoreboardFriendlyTeamBG;
+			d.m_Colors.m_ScoreboardEnemyTeamBG = defaults.m_ScoreboardEnemyTeamBG;
+			d.m_Colors.m_ChatLogYouFG = defaults.m_ChatLogYouFG;
+			d.m_Colors.m_ChatLogFriendlyTeamFG = defaults.m_ChatLogFriendlyTeamFG;
+			d.m_Colors.m_ChatLogEnemyTeamFG = defaults.m_ChatLogEnemyTeamFG;
+		}
 	}
 
 	void from_json(const nlohmann::json& j, GotoProfileSite& d)
@@ -322,6 +341,7 @@ void tf2_bot_detector::to_json(nlohmann::json& j, const Font& d)
 	case Font::ProggyClean_26px:  j = "proggy_clean_26px"; break;
 	case Font::UniFont_14px:  j = "unifont_14px"; break;
 	case Font::UniFont_24px:  j = "unifont_28px"; break;
+	case Font::ChakraPetch_16px:  j = "chakra_petch_16px"; break;
 	}
 }
 
@@ -338,8 +358,10 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, Font& d)
 		d = Font::ProggyClean_26px;
 	else if (value == "unifont_14px")
 		d = Font::UniFont_14px;
-	else if (value == "unifont_24px")
+	else if (value == "unifont_24px" || value == "unifont_28px")
 		d = Font::UniFont_24px;
+	else if (value == "chakra_petch_16px")
+		d = Font::ChakraPetch_16px;
 	else
 		throw std::invalid_argument(fmt::format("{}: Unknown font {}", mh::source_location::current(), fmt::streamed(std::quoted(value))));
 }
@@ -552,6 +574,11 @@ void Settings::Deserialize(const nlohmann::json& json)
 			try_get_to_defaulted(*custom_values, m_OverlayCorner, "overlay_corner", DEFAULTS.m_OverlayCorner);
 			try_get_to_defaulted(*custom_values, m_OverlayHotkeyKey, "overlay_hotkey_key", DEFAULTS.m_OverlayHotkeyKey);
 			try_get_to_defaulted(*custom_values, m_OverlayHotkeyModifiers, "overlay_hotkey_modifiers", DEFAULTS.m_OverlayHotkeyModifiers);
+			try_get_to_defaulted(*custom_values, m_UseG15PlayerData, "use_g15_player_data", DEFAULTS.m_UseG15PlayerData);
+			try_get_to_defaulted(*custom_values, m_RenderBackend, "render_backend", DEFAULTS.m_RenderBackend);
+			try_get_to_defaulted(*custom_values, m_PreferredGpuID, "preferred_gpu_id", DEFAULTS.m_PreferredGpuID);
+			try_get_to_defaulted(*custom_values, m_GpuChoiceMade, "gpu_choice_made", DEFAULTS.m_GpuChoiceMade);
+			try_get_to_defaulted(*custom_values, m_AcknowledgedUntrustedLists, "acknowledged_untrusted_lists", DEFAULTS.m_AcknowledgedUntrustedLists);
 			try_get_to_defaulted(*custom_values, m_ScoreboardCustomTagBG, "scoreboard_custom_tags", DEFAULTS.m_ScoreboardCustomTagBG);
 
 			// votekick stuff
@@ -662,6 +689,11 @@ void Settings::Serialize(nlohmann::json& json) const
 						{ "overlay_corner", m_OverlayCorner },
 						{ "overlay_hotkey_key", m_OverlayHotkeyKey },
 						{ "overlay_hotkey_modifiers", m_OverlayHotkeyModifiers },
+						{ "use_g15_player_data", m_UseG15PlayerData },
+						{ "render_backend", m_RenderBackend },
+						{ "preferred_gpu_id", m_PreferredGpuID },
+						{ "gpu_choice_made", m_GpuChoiceMade },
+						{ "acknowledged_untrusted_lists", m_AcknowledgedUntrustedLists },
 						{ "scoreboard_custom_tags", m_ScoreboardCustomTagBG },
 						{ "min_vote_kick_interval", m_MinVoteKickInterval },
 						{ "vote_kick_ignore_team_state_certain_maps", m_VoteKickIgnoreTeamStateOnCertainMaps },

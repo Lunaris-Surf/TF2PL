@@ -23,6 +23,8 @@ namespace
 		const ITexture* GetVACShield_16() const override { return m_VACShield_16.get(); }
 		const ITexture* GetGameBanIcon_16() const override { return m_GameBanIcon_16.get(); }
 		const ITexture* GetSourceBansIcon_16() const override { return m_SourceBansIcon_16.get(); }
+		const ITexture* GetLunarisIcon() const override { return m_LunarisIcon.get(); }
+		const ITexture* GetLunarisWordmark() const override { return m_LunarisWordmark.get(); }
 		
 	private:
 		ITextureManager& m_TextureManager;
@@ -31,6 +33,8 @@ namespace
 		std::shared_ptr<ITexture> m_VACShield_16;
 		std::shared_ptr<ITexture> m_GameBanIcon_16;
 		std::shared_ptr<ITexture> m_SourceBansIcon_16;
+		std::shared_ptr<ITexture> m_LunarisIcon;
+		std::shared_ptr<ITexture> m_LunarisWordmark;
 
 		std::shared_ptr<ITexture> TryLoadTexture(std::filesystem::path file) const;
 	};
@@ -47,7 +51,9 @@ BaseTextures::BaseTextures(ITextureManager& textureManager) :
 	m_Heart_16(TryLoadTexture("images/heart_16.png")),
 	m_VACShield_16(TryLoadTexture("images/vac_icon_16.png")),
 	m_GameBanIcon_16(TryLoadTexture("images/game_ban_icon_16.png")),
-	m_SourceBansIcon_16(TryLoadTexture("images/sourcebans_16.png"))
+	m_SourceBansIcon_16(TryLoadTexture("images/sourcebans_16.png")),
+	m_LunarisIcon(TryLoadTexture("images/lunarisv_icon_72.png")),
+	m_LunarisWordmark(TryLoadTexture("images/lunarisv_wordmark_56.png"))
 {
 }
 

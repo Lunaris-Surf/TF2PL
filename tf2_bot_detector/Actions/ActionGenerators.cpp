@@ -2,6 +2,7 @@
 #include "Actions.h"
 #include "IActionManager.h"
 #include "Log.h"
+#include "Config/Settings.h"
 
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
@@ -85,6 +86,11 @@ bool IPeriodicActionGenerator::Execute(IActionManager& manager)
 	}
 
 	return true;
+}
+
+duration_t LobbyDebugActionGenerator::GetInterval() const
+{
+	return (m_Settings && m_Settings->m_UseG15PlayerData) ? 5s : 1s;
 }
 
 bool LobbyDebugActionGenerator::ExecuteImpl(IActionManager& manager)

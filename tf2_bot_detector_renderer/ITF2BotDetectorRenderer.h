@@ -1,6 +1,44 @@
 #pragma once
+#include <cstdint>
 #include <functional>
 #include <string>
+#include <vector>
+
+/// <summary>
+/// which graphics API draws the imgui window.
+/// </summary>
+enum class TF2BDRenderBackend
+{
+	D3D11,  // default on windows
+	OpenGL, // default elsewhere, and fallback if D3D11 fails
+};
+
+/// <summary>
+/// a GPU that can be picked to render on (D3D11 only).
+/// </summary>
+struct TF2BDGpuInfo
+{
+	std::string m_ID;          // stable id "vvvv:dddd" (vendor:device, hex), used in settings
+	std::string m_Name;        // "NVIDIA GeForce RTX 3070"
+	uint64_t m_DedicatedVRAM = 0;
+	bool m_IsDiscrete = false;
+};
+
+/// <summary>
+/// options picked before the renderer is created (read from settings).
+/// </summary>
+struct TF2BDRendererOptions
+{
+	TF2BDRenderBackend m_Backend =
+#ifdef _WIN32
+		TF2BDRenderBackend::D3D11;
+#else
+		TF2BDRenderBackend::OpenGL;
+#endif
+
+	// empty = automatic (prefer a discrete GPU)
+	std::string m_PreferredGpuID;
+};
 
 /// <summary>
 /// Goal: have an imgui renderer base that is compatible with 2 configurations.
@@ -89,6 +127,33 @@ public:
 	virtual std::string RendererInfo() const = 0;
 	virtual bool IsGameOverlayEnabled() const { return false; }
 	virtual bool IsGameOverlayInteractive() const { return false; }
+
+	/// <summary>
+	/// backend actually in use (may differ from what was requested if it fell back).
+	/// </summary>
+	virtual TF2BDRenderBackend GetBackend() const = 0;
+
+	/// <summary>
+	/// show/hide the renderer's frame-time window.
+	/// </summary>
+	virtual void SetRendererSettingsOpen(bool open) {}
+
+	/// <summary>
+	/// GPUs available to pick from. empty when the backend can't choose (OpenGL).
+	/// </summary>
+	virtual std::vector<TF2BDGpuInfo> GetAvailableGpus() const { return {}; }
+
+	/// <summary>
+	/// the GPU we're actually rendering on (m_ID may be empty on OpenGL).
+	/// </summary>
+	virtual TF2BDGpuInfo GetActiveGpu() const { return {}; }
+
+	/// <summary>
+	/// create a texture usable with ImGui::Image from tightly packed RGBA8 pixels.
+	/// returns an ImTextureID-compatible handle, or nullptr on failure.
+	/// </summary>
+	virtual void* CreateTextureRGBA(const void* rgba, uint32_t width, uint32_t height) = 0;
+	virtual void DestroyTexture(void* texture) = 0;
 
 
 	// do we even need these features?
