@@ -23,6 +23,14 @@ namespace
 		"vorobey-hackerpolice",
 		"vorobey_hackerpolice",
 		"vorobeyhackerpolice",
+		"sterling",
+		"shadefall",
+		"shadefall-hunters",
+		"shadefall_hunters",
+		"shadefallhunters",
+		"shitlist",
+		"shit-list",
+		"shit_list",
 	};
 
 	std::mutex s_ReportMutex;
@@ -178,7 +186,7 @@ void UntrustedLists::ScreenPlayerLists()
 			}
 			else
 			{
-				LogWarning("Player list {} contains entries from an untrusted list (vorobey-hackerpolice); its cheater marks may be unreliable", path);
+				LogWarning("Player list {} contains entries from an untrusted list; its cheater marks may be unreliable", path);
 				AddUnique(found.m_Contaminated, path);
 			}
 		}

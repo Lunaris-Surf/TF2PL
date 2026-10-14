@@ -113,7 +113,7 @@ static mh::task<bool> TryAutoUpdate(std::filesystem::path filename, const nlohma
 	// Never let an auto-update pull an untrusted list back in (or turn another list into one).
 	if (UntrustedLists::IsUntrustedListJson(newJson) || UntrustedLists::ContainsUntrustedMarker(info.m_UpdateURL))
 	{
-		LogWarning("Refusing to auto-update {} from {}: the new data is from an untrusted player list (vorobey-hackerpolice)",
+		LogWarning("Refusing to auto-update {} from {}: the new data is from an untrusted player list",
 			filename, info.m_UpdateURL);
 		co_return false;
 	}

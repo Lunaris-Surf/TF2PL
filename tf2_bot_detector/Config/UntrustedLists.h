@@ -12,7 +12,7 @@ namespace tf2_bot_detector
 	/// <summary>
 	/// Player lists that are known to publish incorrect / fabricated cheater entries.
 	///
-	/// vorobey's "hackerpolice" list (playerlist.vorobey-hackerpolice.json) was found adding fake
+	/// Untrusted data was found adding fake
 	/// cheater listings. Any copy of it is deleted before player lists load, auto-updates that would
 	/// bring it back are refused, and other lists carrying its marker are flagged to the user.
 	/// </summary>

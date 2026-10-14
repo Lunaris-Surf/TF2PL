@@ -56,7 +56,7 @@ TF2PL is **not intended to replace TF2 Bot Detector**. It is a personal, expande
 ## Compatibility and safety notice
 
 > [!WARNING]
-> **Vorobey's HackerPolice is not supported by TF2PL.** The project considers the list malicious because it accepts manipulated replays and false evidence and publishes fake cheater listings. TF2PL removes this list automatically and flags lists that carry its entries.
+> **Vorobey's HackerPolice, Sterling, ShadeFall, and Shitlist are not supported by TF2PL.** The project considers these lists untrusted because they accept manipulated replays and false evidence and publish fake cheater listings. TF2PL removes these lists automatically and flags lists that carry their entries.
 
 ## Preview
 

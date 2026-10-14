@@ -1333,15 +1333,15 @@ void MainWindow::OnDrawUntrustedListWarning()
 
 	if (!report.m_Deleted.empty())
 	{
-		ImGui::TextColored(Ink, "TF2PL removed vorobey's hackerpolice player list.");
-		ImGui::TextColored(Muted, "It was found adding incorrect and fake cheater listings, so it is no longer trusted and was deleted:");
+		ImGui::TextColored(Ink, "TF2PL removed untrusted player lists (Vorobey's HackerPolice, Sterling, ShadeFall, Shitlist).");
+		ImGui::TextColored(Muted, "These lists were found adding incorrect and fake cheater listings, so they are no longer trusted and were deleted:");
 		FileList(report.m_Deleted);
 		ImGui::Spacing();
 	}
 
 	if (!report.m_Contaminated.empty())
 	{
-		ImGui::TextColored(Orange, "These lists contain entries from vorobey's hackerpolice list and are unreliable:");
+		ImGui::TextColored(Orange, "These lists contain entries from untrusted lists and are unreliable:");
 		FileList(report.m_Contaminated);
 		ImGui::TextColored(Muted, "Players marked by these lists may not be cheaters. Double-check before acting on them, or remove the lists.");
 		ImGui::Spacing();
@@ -1349,7 +1349,7 @@ void MainWindow::OnDrawUntrustedListWarning()
 
 	if (!report.m_PossiblyContaminatedExports.empty())
 	{
-		ImGui::TextColored(Orange, "These exports were combined from all your lists while it was installed and may include its entries:");
+		ImGui::TextColored(Orange, "These exports were combined from all your lists while an untrusted list was installed and may include its entries:");
 		FileList(report.m_PossiblyContaminatedExports);
 		ImGui::TextColored(Muted, "Consider deleting them and running File > Total Export again.");
 		ImGui::Spacing();
