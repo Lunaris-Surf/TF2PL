@@ -322,6 +322,8 @@ namespace tf2_bot_detector
 				std::array<float, 4> m_ScoreboardGameBannedBG = { 0.9f, 0.6f, 0.3f, 1 };
 				std::array<float, 4> m_ScoreboardSourceBannedBG = { 0.5f, 0.5f, 0.5f, 1 };
 				std::array<float, 4> m_ScoreboardPedophiliaBG = { 1, 0.7f, 0.2f, 1 };
+				std::array<float, 4> m_ScoreboardUntrustedListUserBG = { 0.65f, 0.45f, 0.9f, 1 };
+				std::array<float, 4> m_ScoreboardZoophiliaBG = { 0.6f, 0.85f, 0.2f, 1 };
 				// LunarisV palette: green "you", orange connecting, teal friendly, red enemy
 				std::array<float, 4> m_ScoreboardYouFG = { 0.553f, 1.0f, 0.416f, 1 };
 				std::array<float, 4> m_ScoreboardConnectingFG = { 1.0f, 0.812f, 0.478f, 0.6f };

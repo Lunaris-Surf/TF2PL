@@ -331,6 +331,8 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 			{ PlayerAttribute::GameBanned, "Game Banned", &colors.m_ScoreboardGameBannedBG },
 			{ PlayerAttribute::SourceBanned, "Source Banned", &colors.m_ScoreboardSourceBannedBG },
 			{ PlayerAttribute::Pedophilia, "Pedophilia", &colors.m_ScoreboardPedophiliaBG },
+			{ PlayerAttribute::UntrustedListUser, "Untrusted List User", &colors.m_ScoreboardUntrustedListUserBG },
+			{ PlayerAttribute::Zoophilia, "Zoophile/Zoo Jokes", &colors.m_ScoreboardZoophiliaBG },
 		};
 		int pillID = 0;
 		for (const auto& pill : pills)

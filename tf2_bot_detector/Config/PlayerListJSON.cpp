@@ -37,6 +37,8 @@ namespace tf2_bot_detector
 		case PlayerAttribute::GameBanned: return "Game Banned";
 		case PlayerAttribute::SourceBanned: return "SourceBanned";
 		case PlayerAttribute::Pedophilia: return "Pedofilia/Pedo Jokes";
+		case PlayerAttribute::UntrustedListUser: return "Untrusted List Users";
+		case PlayerAttribute::Zoophilia: return "Zoophiles/ZooJokes";
 		default: return "unknown";
 		}
 
@@ -58,6 +60,8 @@ namespace tf2_bot_detector
 		case PlayerAttribute::GameBanned: j = "game_banned"; break;
 		case PlayerAttribute::SourceBanned: j = "sourcebanned"; break;
 		case PlayerAttribute::Pedophilia: j = "pedophilia"; break;
+		case PlayerAttribute::UntrustedListUser: j = "ulistuser"; break;
+		case PlayerAttribute::Zoophilia: j = "zoophile-zoojokes"; break;
 		default:
 			throw std::runtime_error("Unknown PlayerAttribute value "s << +std::underlying_type_t<PlayerAttribute>(d));
 		}
@@ -122,6 +126,8 @@ namespace tf2_bot_detector
 		else if (str == "game_banned"sv) d = PlayerAttribute::GameBanned;
 		else if (str == "sourcebanned"sv) d = PlayerAttribute::SourceBanned;
 		else if (str == "pedophilia"sv) d = PlayerAttribute::Pedophilia;
+		else if (str == "ulistuser"sv) d = PlayerAttribute::UntrustedListUser;
+		else if (str == "zoophile-zoojokes"sv) d = PlayerAttribute::Zoophilia;
 		else
 			throw std::runtime_error("Unknown player attribute type "s << std::quoted(str));
 	}

@@ -225,9 +225,9 @@ TEST_CASE("LunarisV shared chat and SourceBan rules", "[PlayerRuleTests]")
 
 TEST_CASE("LunarisV custom tag roundtrip and set operations", "[PlayerRuleTests]")
 {
-	const nlohmann::json input = {"racist", "vac_banned", "game_banned", "sourcebanned", "pedophilia", "custom:watchlist"};
+	const nlohmann::json input = {"racist", "vac_banned", "game_banned", "sourcebanned", "pedophilia", "ulistuser", "zoophile-zoojokes", "custom:watchlist"};
 	const auto tags = input.get<PlayerAttributesList>();
-	REQUIRE(tags.count() == 6);
+	REQUIRE(tags.count() == 8);
 	const auto restored = nlohmann::json(tags).get<PlayerAttributesList>();
 	REQUIRE(restored == tags);
 	PlayerAttributesList custom;

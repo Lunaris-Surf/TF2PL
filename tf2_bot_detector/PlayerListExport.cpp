@@ -76,6 +76,8 @@ namespace tf2_bot_detector
 				PushAttribute(PlayerAttribute::GameBanned, "game_banned");
 				PushAttribute(PlayerAttribute::SourceBanned, "sourcebanned");
 				PushAttribute(PlayerAttribute::Pedophilia, "pedophilia");
+				PushAttribute(PlayerAttribute::UntrustedListUser, "ulistuser");
+				PushAttribute(PlayerAttribute::Zoophilia, "zoophile-zoojokes");
 
 				for (const auto& tag : attrs.GetCustomTags())
 					attrJson.push_back(tag);
@@ -124,6 +126,8 @@ j = nlohmann::json
 			Add(PlayerAttribute::GameBanned, "Game Banned");
 			Add(PlayerAttribute::SourceBanned, "Source Banned");
 			Add(PlayerAttribute::Pedophilia, "Pedophilia");
+			Add(PlayerAttribute::UntrustedListUser, "Untrusted List User");
+			Add(PlayerAttribute::Zoophilia, "Zoophile/Zoo Jokes");
 			for (const auto& tag : attrs.GetCustomTags())
 				names.push_back(tag);
 			return names;

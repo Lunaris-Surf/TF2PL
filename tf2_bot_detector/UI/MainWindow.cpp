@@ -291,6 +291,8 @@ void MainWindow::DrawThemeColorSettings()
 			{ "Game Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardGameBannedBG },
 			{ "Source Banned", m_Settings.m_Theme.m_Colors.m_ScoreboardSourceBannedBG },
 			{ "Pedophilia", m_Settings.m_Theme.m_Colors.m_ScoreboardPedophiliaBG },
+			{ "Untrusted List User", m_Settings.m_Theme.m_Colors.m_ScoreboardUntrustedListUserBG },
+			{ "Zoophile/Zoo Jokes", m_Settings.m_Theme.m_Colors.m_ScoreboardZoophiliaBG },
 		});
 
 	if (m_Application->GetMainState())

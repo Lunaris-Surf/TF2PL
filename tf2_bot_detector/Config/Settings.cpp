@@ -43,6 +43,8 @@ namespace tf2_bot_detector
 			{ "scoreboard_marked_game_banned.bg", d.m_ScoreboardGameBannedBG },
 			{ "scoreboard_marked_source_banned.bg", d.m_ScoreboardSourceBannedBG },
 			{ "scoreboard_marked_pedophilia.bg", d.m_ScoreboardPedophiliaBG },
+			{ "scoreboard_marked_ulistuser.bg", d.m_ScoreboardUntrustedListUserBG },
+			{ "scoreboard_marked_zoophile_zoojokes.bg", d.m_ScoreboardZoophiliaBG },
 			{ "scoreboard_you.fg", d.m_ScoreboardYouFG },
 			{ "scoreboard_connecting.fg", d.m_ScoreboardConnectingFG },
 			{ "scoreboard_team_friendly.bg", d.m_ScoreboardFriendlyTeamBG },
@@ -89,6 +91,8 @@ namespace tf2_bot_detector
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardGameBannedBG, { "scoreboard_marked_game_banned.bg", "scoreboard_game_banned" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardSourceBannedBG, { "scoreboard_marked_source_banned.bg", "scoreboard_source_banned" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardPedophiliaBG, { "scoreboard_marked_pedophilia.bg", "scoreboard_pedophilia" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardUntrustedListUserBG, { "scoreboard_marked_ulistuser.bg", "scoreboard_ulistuser" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardZoophiliaBG, { "scoreboard_marked_zoophile_zoojokes.bg", "scoreboard_zoophile_zoojokes" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardYouFG, { "scoreboard_you.fg", "scoreboard_you" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardConnectingFG, { "scoreboard_connecting.fg", "scoreboard_connecting" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardFriendlyTeamBG, { "scoreboard_team_friendly.bg", "friendly_team" });

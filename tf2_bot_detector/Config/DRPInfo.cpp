@@ -51,9 +51,20 @@ void DRPInfo::DRPFile::Deserialize(const nlohmann::json& json)
 {
 	BaseClass::Deserialize(json);
 
-	auto& maps = json.at("maps");
+	// A missing/invalid "maps" entry (e.g. a freshly generated default file) must not be fatal.
+	const auto mapsIt = json.find("maps");
+	if (mapsIt == json.end() || !mapsIt->is_object())
+	{
+		LogWarning(MH_SOURCE_LOCATION_CURRENT(), "discord_rich_presence.json has no \"maps\" object, using no map overrides");
+		return;
+	}
+
+	const auto& maps = *mapsIt;
 	for (auto it = maps.begin(); it != maps.end(); ++it)
 	{
+		if (!it->is_object())
+			continue;
+
 		Map map;
 		map.m_MapNames.push_back(it.key());
 
@@ -76,6 +87,10 @@ void DRPInfo::DRPFile::Serialize(nlohmann::json& json) const
 	if (!m_Schema || m_Schema->m_Version != DRP_SCHEMA_VERSION)
 		json["$schema"] = ConfigSchemaInfo("discord_rich_presence", DRP_SCHEMA_VERSION);
 
+	// Always write "maps" (required by the schema and by Deserialize), even when empty.
+	if (!json.contains("maps") || !json["maps"].is_object())
+		json["maps"] = nlohmann::json::object();
+
 	for (const auto& map : m_Maps)
 	{
 		auto& entry = json["maps"][map.m_MapNames.at(0)] = nlohmann::json::object();
@@ -94,7 +109,7 @@ void DRPInfo::DRPFile::ValidateSchema(const ConfigSchemaInfo& schema) const
 	BaseClass::ValidateSchema(schema);
 
 	if (schema.m_Type != "discord_rich_presence")
-		throw std::runtime_error(fmt::format("Schema {} is not a sponsors list", fmt::streamed(std::quoted(schema.m_Type))));
+		throw std::runtime_error(fmt::format("Schema {} is not a discord rich presence file", fmt::streamed(std::quoted(schema.m_Type))));
 
 	if (schema.m_Version != DRP_SCHEMA_VERSION)
 	{

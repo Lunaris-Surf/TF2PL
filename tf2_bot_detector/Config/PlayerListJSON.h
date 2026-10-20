@@ -39,6 +39,8 @@ namespace tf2_bot_detector
 		GameBanned,
 		SourceBanned,
 		Pedophilia,
+		UntrustedListUser,
+		Zoophilia,
 
 		COUNT,
 	};
@@ -275,6 +277,8 @@ MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::PlayerAttribute)
 	MH_ENUM_REFLECT_VALUE(GameBanned)
 	MH_ENUM_REFLECT_VALUE(SourceBanned)
 	MH_ENUM_REFLECT_VALUE(Pedophilia)
+	MH_ENUM_REFLECT_VALUE(UntrustedListUser)
+	MH_ENUM_REFLECT_VALUE(Zoophilia)
 MH_ENUM_REFLECT_END()
 
 template<typename CharT>
