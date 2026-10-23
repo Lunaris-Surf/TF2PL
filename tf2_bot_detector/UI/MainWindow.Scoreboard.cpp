@@ -554,6 +554,11 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 
 		DrawPlayerContextMarkMenu(player.GetSteamID(), player.GetNameSafe(), data.m_pendingReason);
 
+		if (ImGui::MenuItem("Marked friends..."))
+			OpenMarkedFriends(steamID, player.GetNameSafe());
+		if (ImGui::MenuItem("Open in Player Lists..."))
+			OpenPlayerListWindow(steamID, player.GetNameSafe());
+
 #ifdef _DEBUG
 		ImGui::Separator();
 

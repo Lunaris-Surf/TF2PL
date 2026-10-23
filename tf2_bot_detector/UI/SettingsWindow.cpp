@@ -630,6 +630,35 @@ void SettingsWindow::OnDrawUISettings()
 {
 	if (ImGui::TreeNode("UI"))
 	{
+		// Interface: native ImGui window (default) or the optional browser UI
+		{
+			int mode = m_Settings.IsWebUIMode() ? 1 : 0;
+			ImGui::SetNextItemWidth(220);
+			if (ImGui::Combo("Interface", &mode, "Native window (default)\0Web browser\0"))
+			{
+				m_Settings.m_UIMode = mode == 1 ? TF2BDUIMode::Web : TF2BDUIMode::Native;
+				m_Settings.SaveFile();
+			}
+			ImGui::SetHoverTooltip("Web browser serves TF2PL's scoreboard, marks and chat on http://127.0.0.1 and shows only a small status window here.\nThe in-game overlay is only available with the native window.");
+
+			if (m_Settings.IsWebUIMode())
+			{
+				ImGui::Indent();
+				int port = m_Settings.m_WebUIPort;
+				ImGui::SetNextItemWidth(120);
+				if (ImGui::InputInt("Web UI port", &port, 0, 0, ImGuiInputTextFlags_EnterReturnsTrue) && port >= 1024 && port <= 65535)
+				{
+					m_Settings.m_WebUIPort = uint16_t(port);
+					m_Settings.SaveFile();
+				}
+				if (ImGui::Checkbox("Open the browser when TF2PL starts", &m_Settings.m_WebUIOpenBrowser))
+					m_Settings.SaveFile();
+				ImGui::TextDisabled("Listens on 127.0.0.1 only. The in-game overlay is disabled while this is on.");
+				ImGui::Unindent();
+			}
+			ImGui::Separator();
+		}
+
 		float& fontGlobalScale = ImGui::GetIO().FontGlobalScale;
 		if (ImGui::Button("Reset"))
 		{

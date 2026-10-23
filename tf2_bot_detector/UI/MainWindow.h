@@ -35,6 +35,8 @@ namespace tf2_bot_detector
 	class ITextureManager;
 	class IUpdateManager;
 	class PlayerListExporter;
+	class PlayerListWindow;
+	class MarkedFriendsWindow;
 	class SettingsWindow;
 
 	class MainWindow final
@@ -54,6 +56,11 @@ namespace tf2_bot_detector
 		/// </summary>
 		void DrawThemeColorSettings();
 
+		/// Opens Player Lists (optionally focused on one player) / the marked-friends view for a player.
+		void OpenPlayerListWindow();
+		void OpenPlayerListWindow(const SteamID& id, const std::string& name);
+		void OpenMarkedFriends(const SteamID& id, const std::string& name);
+
 	private:
 		// LunarisV chrome
 		void OnDrawHeaderBar();
@@ -62,6 +69,7 @@ namespace tf2_bot_detector
 
 		void OnDrawMenuBar();
 		void OnDraw();
+		void OnDrawWebModeStatus(); // replaces the main panes while Interface = Web
 		void OnEndFrame();
 		void OnDrawScoreboard();
 		void OnDrawTeamStats();
@@ -129,6 +137,8 @@ namespace tf2_bot_detector
 
 		Settings& m_Settings;
 		std::unique_ptr<SettingsWindow> m_SettingsWindow;
+		std::unique_ptr<PlayerListWindow> m_PlayerListWindow;
+		std::unique_ptr<MarkedFriendsWindow> m_MarkedFriendsWindow;
 
 		// warning when an untrusted player list was removed / other lists carry its entries
 		void OnDrawUntrustedListWarning();

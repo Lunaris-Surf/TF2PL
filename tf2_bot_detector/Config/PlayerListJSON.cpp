@@ -448,6 +448,28 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	}
 }
 
+std::string PlayerListJSON::GetWritableListName() const
+{
+	if (auto list = m_CFGGroup.GetDefaultMutableList())
+		return list->GetName();
+
+	return {};
+}
+
+ModifyPlayerResult PlayerListJSON::RemoveFromWritableList(const SteamID& id)
+{
+	return ModifyPlayer(id, [](PlayerListData& data)
+		{
+			if (data.m_SavedAttributes.empty() && data.m_Proof.empty())
+				return ModifyPlayerAction::NoChanges;
+
+			// entries with no saved attributes are skipped when the list is written out
+			data.m_SavedAttributes = {};
+			data.m_Proof.clear();
+			return ModifyPlayerAction::Modified;
+		});
+}
+
 ModifyPlayerAction PlayerListJSON::OnPlayerDataChanged(PlayerListData& data)
 {
 	ModifyPlayerAction retVal = ModifyPlayerAction::NoChanges;

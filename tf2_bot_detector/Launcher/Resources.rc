@@ -1,7 +1,7 @@
 #include <winver.h>
 #include <ntdef.h>
 
-IDI_ICON1 ICON "../Art/TF2BotDetector.ico"
+IDI_ICON1 ICON "../Art/TF2PL.ico"
 
 VS_VERSION_INFO VERSIONINFO
 BEGIN

@@ -20,6 +20,8 @@
 #include "GlobalDispatcher.h"
 #include "Networking/HTTPClient.h"
 #include "SettingsWindow.h"
+#include "PlayerListWindow.h"
+#include "WebServer/WebUI.h"
 #include "Application.h"
 #include "PlayerListExport.h"
 
@@ -58,7 +60,24 @@ MainWindow::MainWindow(TF2BDApplication* application) :
 	m_Settings(application->m_Settings),
 	m_SettingsWindow(std::make_unique<SettingsWindow>(m_Settings, *this))
 {
+	m_PlayerListWindow = std::make_unique<PlayerListWindow>(*m_Application);
+	m_MarkedFriendsWindow = std::make_unique<MarkedFriendsWindow>(*m_Application, *m_PlayerListWindow);
 	PrintDebugInfo();
+}
+
+void MainWindow::OpenPlayerListWindow()
+{
+	m_PlayerListWindow->Open();
+}
+
+void MainWindow::OpenPlayerListWindow(const SteamID& id, const std::string& name)
+{
+	m_PlayerListWindow->OpenForPlayer(id, name);
+}
+
+void MainWindow::OpenMarkedFriends(const SteamID& id, const std::string& name)
+{
+	m_MarkedFriendsWindow->Open(id, name);
 }
 
 MainWindow::~MainWindow()
@@ -871,6 +890,82 @@ void MainWindow::OnDrawAllPanesDisabled()
 	}
 }
 
+void MainWindow::OnDrawWebModeStatus()
+{
+	using namespace LunarisPalette;
+
+	WebUIController* webUI = m_Application->GetWebUI();
+
+	const float width = std::min(560.0f, ImGui::GetContentRegionAvail().x - 40.0f);
+	ImGui::SetCursorPos({ std::max(20.0f, (ImGui::GetWindowWidth() - width) * 0.5f), 70.0f });
+	ImGui::BeginChild("##webmode", { width, 0 }, ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY);
+
+	LunarisUI::MicroLabel("Web UI");
+	ImGui::TextWrapped("TF2PL is running in your browser. This window just keeps it running - closing it quits TF2PL.");
+	ImGui::Spacing();
+
+	const std::string url = webUI ? webUI->GetURL() : fmt::format("http://127.0.0.1:{}/", m_Settings.m_WebUIPort);
+	if (LunarisUI::Fonts().m_Mono)
+		ImGui::PushFont(LunarisUI::Fonts().m_Mono);
+	ImGui::TextColored(Teal, "%s", url.c_str());
+	if (LunarisUI::Fonts().m_Mono)
+		ImGui::PopFont();
+
+	const bool running = webUI && webUI->IsRunning();
+	ImGui::BeginDisabled(!running);
+	if (LunarisUI::SkewButton("Open in browser##WebMode", LunarisUI::ButtonStyle::Primary))
+		webUI->OpenInBrowser();
+	ImGui::SameLine(0, 10);
+	if (LunarisUI::SkewButton("Copy link##WebMode"))
+		ImGui::SetClipboardText(url.c_str());
+	ImGui::EndDisabled();
+	ImGui::SameLine(0, 10);
+	if (LunarisUI::SkewButton("Use native UI##WebMode", LunarisUI::ButtonStyle::Ghost))
+	{
+		m_Settings.m_UIMode = TF2BDUIMode::Native;
+		m_Settings.SaveFile();
+	}
+
+	ImGui::Spacing();
+	if (!webUI)
+		ImGui::TextColored(Muted, "Starting...");
+	else if (running)
+		ImGui::TextColored(Green, "Serving on 127.0.0.1 only");
+	else
+	{
+		const std::string error = webUI->GetError();
+		ImGui::PushTextWrapPos(0);
+		ImGui::TextColored(Red, "%s", error.empty() ? "Not running, retrying..." : error.c_str());
+		ImGui::PopTextWrapPos();
+		ImGui::TextColored(Muted, "Retrying every few seconds. Pick another port below, or switch back to the native UI.");
+	}
+
+	ImGui::Spacing();
+	int port = m_Settings.m_WebUIPort;
+	ImGui::SetNextItemWidth(120);
+	if (ImGui::InputInt("Port##WebMode", &port, 0, 0, ImGuiInputTextFlags_EnterReturnsTrue) && port >= 1024 && port <= 65535)
+	{
+		m_Settings.m_WebUIPort = uint16_t(port);
+		m_Settings.SaveFile();
+	}
+
+	if (m_Application->GetMainState())
+	{
+		const auto& world = m_Application->GetWorld();
+		size_t players = 0;
+		for (const IPlayer& player : world.GetPlayers())
+		{
+			(void)player;
+			players++;
+		}
+		ImGui::TextColored(Muted, "%s%s%s  |  %zu players", world.GetServerHostName().c_str(),
+			world.GetMapName().empty() ? "" : "  |  ", world.GetMapName().c_str(), players);
+	}
+
+	ImGui::TextColored(Dim, "The in-game overlay is only available in the native UI.");
+	ImGui::EndChild();
+}
+
 void MainWindow::OnEndFrame()
 {
 	m_TextureManager->EndFrame();
@@ -1108,6 +1203,9 @@ void MainWindow::OnDrawMenuBar()
 			if (ImGui::MenuItem("Reload Settings"))
 				m_Settings.LoadFile();
 
+			if (ImGui::MenuItem("Player Lists..."))
+				OpenPlayerListWindow();
+
 			if (ImGui::MenuItem("Total Export (All Playerlists)..." ))
 			{
 				m_ExportWindowOpen = true;
@@ -1264,12 +1362,19 @@ void MainWindow::Draw()
 	const bool mainOpen = ImGui::Begin("TF2PL by LunarisV", 0, bd_external_flags);
 	ImGui::PopStyleVar();
 	if (mainOpen)
-		this->OnDraw();
+	{
+		if (m_Settings.IsWebUIMode() && m_Application->GetMainState())
+			this->OnDrawWebModeStatus();
+		else
+			this->OnDraw();
+	}
 	ImGui::End(); // must always pair with Begin
 
 	this->OnDrawSettings();
 	this->OnDrawGpuPrompt();
 	this->OnDrawUntrustedListWarning();
+	m_PlayerListWindow->Draw();
+	m_MarkedFriendsWindow->Draw();
 
 	this->OnEndFrame();
 	ImGui::PopFont();

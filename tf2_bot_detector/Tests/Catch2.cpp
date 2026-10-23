@@ -1,82 +1,29 @@
 #include "Log.h"
 #include "Tests.h"
 
-#define CATCH_CONFIG_RUNNER
-#define CATCH_CONFIG_NOSTDOUT
+// Catch2 v3 (vcpkg) is a compiled library with its own runner; it writes results to stdout,
+// so run tests from the console build: tf2_bot_detector_cli --run-tests [catch2 args...]
+#include <catch2/catch_session.hpp>
 
-#include <catch2/catch.hpp>
-#include <fmt/format.h>
-#include <fmt/std.h>
-#include <fmt/ostream.h>
-#include <fmt/chrono.h>
-#include <fmt/xchar.h>
-#include <fmt/format.h>
+#include <vector>
 
-namespace Catch
+int tf2_bot_detector::RunTests(int argc, const char** argv)
 {
-	enum class LogBufType
-	{
-		Out,
-		Log,
-		Error,
-	};
-	struct LogBuf final : std::stringbuf
-	{
-		LogBuf(LogBufType type) : m_Type(type)
-		{
-		}
-		~LogBuf()
-		{
-			pubsync();
-		}
+	Log("Running tests...");
 
-		int sync() override
-		{
-			auto message = fmt::format("[Catch2] {}", str());
-			switch (m_Type)
-			{
-			case LogBufType::Out:
-			case LogBufType::Log:
-				tf2_bot_detector::Log(std::move(message));
-				break;
+	Catch::Session session;
+	const int result = session.run(argc, argv);
 
-			default:
-				tf2_bot_detector::LogError(MH_SOURCE_LOCATION_CURRENT(),
-					fmt::format("[Catch2] Unknown LogBufType {}", int(m_Type)));
-				[[fallthrough]];
-			case LogBufType::Error:
-				tf2_bot_detector::LogError(std::move(message));
-				break;
-			}
+	if (result == 0)
+		Log("Tests passed");
+	else
+		LogError("Tests failed ({} failing test case(s), see console output)", result);
 
-			str(""); // Clear out the buffer
-			return 0;
-		}
-
-		LogBufType m_Type;
-	};
-
-	std::ostream& cout()
-	{
-		static std::ostream s_Stream(new LogBuf(LogBufType::Out));
-		return s_Stream;
-	}
-
-	std::ostream& clog()
-	{
-		static std::ostream s_Stream(new LogBuf(LogBufType::Log));
-		return s_Stream;
-	}
-
-	std::ostream& cerr()
-	{
-		static std::ostream s_Stream(new LogBuf(LogBufType::Error));
-		return s_Stream;
-	}
+	return result;
 }
 
 int tf2_bot_detector::RunTests()
 {
-	DebugLog(MH_SOURCE_LOCATION_CURRENT());
-	return Catch::Session().run();
+	const char* argv[] = { "tf2_bot_detector" };
+	return RunTests(1, argv);
 }

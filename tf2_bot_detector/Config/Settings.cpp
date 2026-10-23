@@ -575,6 +575,15 @@ void Settings::Deserialize(const nlohmann::json& json)
 			try_get_to_defaulted(*custom_values, m_LaunchWidth, "launch_width", DEFAULTS.m_LaunchWidth);
 			try_get_to_defaulted(*custom_values, m_LaunchHeight, "launch_height", DEFAULTS.m_LaunchHeight);
 			try_get_to_defaulted(*custom_values, m_EnableGameOverlay, "enable_game_overlay", DEFAULTS.m_EnableGameOverlay);
+			{
+				std::string uiMode = DEFAULTS.m_UIMode == TF2BDUIMode::Web ? "web" : "native";
+				try_get_to_defaulted(*custom_values, uiMode, "ui_mode", uiMode);
+				m_UIMode = (uiMode == "web") ? TF2BDUIMode::Web : TF2BDUIMode::Native;
+			}
+			try_get_to_defaulted(*custom_values, m_WebUIPort, "web_ui_port", DEFAULTS.m_WebUIPort);
+			if (m_WebUIPort < 1024)
+				m_WebUIPort = DEFAULTS.m_WebUIPort;
+			try_get_to_defaulted(*custom_values, m_WebUIOpenBrowser, "web_ui_open_browser", DEFAULTS.m_WebUIOpenBrowser);
 			try_get_to_defaulted(*custom_values, m_OverlayCorner, "overlay_corner", DEFAULTS.m_OverlayCorner);
 			try_get_to_defaulted(*custom_values, m_OverlayHotkeyKey, "overlay_hotkey_key", DEFAULTS.m_OverlayHotkeyKey);
 			try_get_to_defaulted(*custom_values, m_OverlayHotkeyModifiers, "overlay_hotkey_modifiers", DEFAULTS.m_OverlayHotkeyModifiers);
@@ -690,6 +699,9 @@ void Settings::Serialize(nlohmann::json& json) const
 						{ "launch_width", m_LaunchWidth },
 						{ "launch_height", m_LaunchHeight },
 						{ "enable_game_overlay", m_EnableGameOverlay },
+						{ "ui_mode", m_UIMode == TF2BDUIMode::Web ? "web" : "native" },
+						{ "web_ui_port", m_WebUIPort },
+						{ "web_ui_open_browser", m_WebUIOpenBrowser },
 						{ "overlay_corner", m_OverlayCorner },
 						{ "overlay_hotkey_key", m_OverlayHotkeyKey },
 						{ "overlay_hotkey_modifiers", m_OverlayHotkeyModifiers },

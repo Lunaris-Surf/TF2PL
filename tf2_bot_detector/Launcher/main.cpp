@@ -1,6 +1,6 @@
 #include "../DLLMain.h"
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(TF2BD_CLI_MAIN)
 #include <Windows.h>
 
 // Ask hybrid-graphics laptops (NVIDIA Optimus / AMD PowerXpress) to run us on the discrete GPU.

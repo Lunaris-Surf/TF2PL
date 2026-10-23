@@ -6,6 +6,7 @@
 
 #include <mh/coroutine/generator.hpp>
 #include <nlohmann/json_fwd.hpp>
+#include <fmt/ranges.h>
 
 #include <bitset>
 #include <chrono>
@@ -220,6 +221,14 @@ namespace tf2_bot_detector
 		std::set<std::string> GetCustomTags() const;
 		PlayerAttributesList GetEditablePlayerAttributes(const SteamID& id) const;
 
+		/// Name (as yielded by GetAllPlayerData/FindPlayerData) of the list that ModifyPlayer writes to,
+		/// normally your local cfg/playerlist.json. Empty if that list has not been created yet.
+		std::string GetWritableListName() const;
+
+		/// Removes every saved mark (and its proof) for this player from the writable list.
+		/// Entries in read-only (subscribed/official) lists are not touched.
+		ModifyPlayerResult RemoveFromWritableList(const SteamID& id);
+
 		size_t GetPlayerCount() const { return m_CFGGroup.size(); }
 		bool ArePlayerListsLoading() const { return m_CFGGroup.AreThirdPartyListsLoading(); }
 
@@ -325,6 +334,14 @@ struct fmt::formatter<tf2_bot_detector::PlayerMarks::Mark, CharT>
 	{
 		return fmt::format_to(ctx.out(), FMT_STRING("{} ({})"), fmt::streamed(std::quoted(mark.m_FileName)), mark.m_Attributes);
 	}
+};
+
+// PlayerMarks has begin()/end(), so fmt 11+ would also match its generic range formatter
+// (ambiguous partial specialization). Opt out so the custom formatter below is the only match.
+template<typename CharT>
+struct fmt::range_format_kind<tf2_bot_detector::PlayerMarks, CharT>
+	: std::integral_constant<fmt::range_format, fmt::range_format::disabled>
+{
 };
 
 template<typename CharT>

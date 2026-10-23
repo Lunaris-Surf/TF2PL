@@ -84,6 +84,16 @@ namespace tf2_bot_detector
 		virtual SteamAPIMode GetSteamAPIMode() const = 0;
 	};
 
+	/// <summary>
+	/// Which front end to show. Native is the ImGui window (default); Web serves a page on 127.0.0.1
+	/// and shows only a small status window natively. The web UI cannot be used as the in-game overlay.
+	/// </summary>
+	enum class TF2BDUIMode
+	{
+		Native,
+		Web,
+	};
+
 	struct GeneralSettings : public ISteamAPISettings
 	{
 		// custom: logging settings
@@ -138,6 +148,11 @@ namespace tf2_bot_detector
 		int m_LaunchWidth = 0;
 		int m_LaunchHeight = 0;
 		bool m_EnableGameOverlay = false;
+
+		TF2BDUIMode m_UIMode = TF2BDUIMode::Native;
+		uint16_t m_WebUIPort = 27069;          // 127.0.0.1 only
+		bool m_WebUIOpenBrowser = true;        // open the page in the default browser when the web UI starts
+		bool IsWebUIMode() const { return m_UIMode == TF2BDUIMode::Web; }
 		int m_OverlayCorner = 1;
 		int m_OverlayHotkeyKey = 0x09; // Tab
 		int m_OverlayHotkeyModifiers = 1; // Ctrl = 1, Alt = 2, Shift = 4

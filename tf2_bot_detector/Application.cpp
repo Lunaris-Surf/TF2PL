@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "WebServer/WebUI.h"
 #include "DB/TempDB.h"
 
 // pasted without looking
@@ -220,6 +221,17 @@ void tf2_bot_detector::TF2BDApplication::Update()
 		GetModLogic().Update();
 
 		m_MainState->OnUpdateDiscord();
+	}
+
+	if (m_Settings.IsWebUIMode() && m_MainState)
+	{
+		if (!m_WebUI)
+			m_WebUI = std::make_unique<WebUIController>(*this);
+		m_WebUI->Update();
+	}
+	else if (m_WebUI)
+	{
+		m_WebUI.reset(); // switched back to native (or back into setup): stop serving
 	}
 
 	GetActionManager().Update();

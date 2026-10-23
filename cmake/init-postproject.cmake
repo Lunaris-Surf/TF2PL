@@ -95,11 +95,12 @@ if (MSVC)
 endif()
 
 if (WIN32)
-	# Restrict ourselves to Windows 8.1 ("windows blue") API where possible
+	# Restrict ourselves to the Windows 10 API where possible
 	add_compile_definitions(
-		NTDDI_VERSION=NTDDI_WINBLUE
-		WINVER=_WIN32_WINNT_WINBLUE
-		_WIN32_WINNT=_WIN32_WINNT_WINBLUE
+		# Windows 10+ (cpp-httplib refuses older targets; 64-bit TF2 needs Windows 10 anyway)
+		NTDDI_VERSION=NTDDI_WIN10
+		WINVER=_WIN32_WINNT_WIN10
+		_WIN32_WINNT=_WIN32_WINNT_WIN10
 	)
 
 	add_compile_options("/FISdkddkver.h")

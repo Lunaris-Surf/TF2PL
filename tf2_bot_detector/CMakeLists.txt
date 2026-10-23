@@ -21,15 +21,12 @@ if (WIN32)
 	# don't feel like using MultiByteToWideChar :) -msse2
 	target_compile_definitions(tf2_bot_detector PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 
-	# because we're still on an old version of fmt, microsoft will scream at you (and it's very loud!)
-	# remove me when we update fmt to 10.1.1.
-	target_compile_definitions(tf2_bot_detector PRIVATE _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
-
 	target_include_directories(tf2_bot_detector_launcher PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-	# It pulls in app/mh headers that now require fmt + the MH_* defines + C++20;
-	# mh::stuff (the vendored-headers INTERFACE target) supplies all three.
-	target_link_libraries(tf2_bot_detector_launcher PRIVATE tf2_bot_detector mh::stuff)
-	set_target_properties(tf2_bot_detector_launcher PROPERTIES OUTPUT_NAME "tf2_bot_detector")
+	# It pulls in app/mh headers that require fmt + the MH_* defines + C++20;
+	# tf2_bot_detector::common supplies all three.
+	target_link_libraries(tf2_bot_detector_launcher PRIVATE tf2_bot_detector tf2_bot_detector::common)
+	# 4.0: the release binary is TF2PL.exe (the dll keeps its tf2_bot_detector name)
+	set_target_properties(tf2_bot_detector_launcher PROPERTIES OUTPUT_NAME "TF2PL")
 	# the exe exports NvOptimusEnablement/AmdPowerXpressRequestHighPerformance, so the linker also makes an
 	# import library for it; keep that from colliding with the dll's tf2_bot_detector.lib.
 	set_target_properties(tf2_bot_detector_launcher PROPERTIES ARCHIVE_OUTPUT_NAME "tf2_bot_detector_launcher")
@@ -47,6 +44,7 @@ else()
 	add_executable(tf2_bot_detector
 		"Launcher/main.cpp"
 	)
+	set_target_properties(tf2_bot_detector PROPERTIES OUTPUT_NAME "TF2PL")
 
 	# https://gcc.gnu.org/onlinedocs/libstdc++/manual/status.html#iso.2017.par2ts
 	# Note 3: The Parallel Algorithms have an external dependency on Intel TBB 2018 or later. 
@@ -232,6 +230,8 @@ target_sources(tf2_bot_detector PRIVATE
 	"UI/MainWindow.Scoreboard.cpp"
 	"UI/SettingsWindow.cpp"
 	"UI/SettingsWindow.h"
+	"UI/PlayerListWindow.cpp"
+	"UI/PlayerListWindow.h"
 	"Util/JSONUtils.h"
 	"Util/PathUtils.cpp"
 	"Util/PathUtils.h"
@@ -384,8 +384,32 @@ if (TF2BD_ENABLE_DISCORD_INTEGRATION)
 	# We really only need this library for one thing in the DRP integration.
 	# Later on it will probably be moved out of this if statement when it is required elsewhere in the code.
 	find_package(cryptopp CONFIG REQUIRED)
-	target_link_libraries(tf2_bot_detector PRIVATE cryptopp-static)
+	# newer vcpkg cryptopp (cryptopp-cmake) exports cryptopp::cryptopp; older ports exported cryptopp-static
+	if (TARGET cryptopp::cryptopp)
+		target_link_libraries(tf2_bot_detector PRIVATE cryptopp::cryptopp)
+	else()
+		target_link_libraries(tf2_bot_detector PRIVATE cryptopp-static)
+	endif()
 endif()
+
+# Optional web UI: WebServer/web/index.html is embedded into the binary at build time.
+set(TF2BD_WEB_INDEX "${CMAKE_CURRENT_SOURCE_DIR}/WebServer/web/index.html")
+set(TF2BD_WEB_ASSETS "${CMAKE_CURRENT_BINARY_DIR}/WebUIAssets.inl")
+add_custom_command(
+	OUTPUT "${TF2BD_WEB_ASSETS}"
+	COMMAND ${CMAKE_COMMAND} "-DINPUT=${TF2BD_WEB_INDEX}" "-DOUTPUT=${TF2BD_WEB_ASSETS}"
+		-P "${CMAKE_CURRENT_SOURCE_DIR}/WebServer/EmbedFile.cmake"
+	DEPENDS "${TF2BD_WEB_INDEX}" "${CMAKE_CURRENT_SOURCE_DIR}/WebServer/EmbedFile.cmake"
+	COMMENT "Embedding web UI page"
+	VERBATIM
+)
+target_sources(tf2_bot_detector PRIVATE
+	"WebServer/WebUI.cpp"
+	"WebServer/WebUI.h"
+	"WebServer/web/index.html"
+	"${TF2BD_WEB_ASSETS}"
+)
+set_source_files_properties("WebServer/web/index.html" PROPERTIES HEADER_FILE_ONLY TRUE)
 
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(libzip CONFIG REQUIRED)
@@ -394,7 +418,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(BZip2 REQUIRED)
 find_package(SQLiteCpp CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(cpprestsdk CONFIG REQUIRED)
+find_package(httplib CONFIG REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	tf2_bot_detector::common
@@ -408,7 +432,7 @@ target_link_libraries(tf2_bot_detector PRIVATE
 	BZip2::BZip2
 	SQLiteCpp
 	ZLIB::ZLIB
-	cpprestsdk::cpprest
+	httplib::httplib
 )
 
 if (TF2BD_ENABLE_TESTS)
@@ -417,8 +441,13 @@ if (TF2BD_ENABLE_TESTS)
 	find_package(Catch2 CONFIG REQUIRED)
 	target_link_libraries(tf2_bot_detector PRIVATE Catch2::Catch2)
 	target_compile_definitions(tf2_bot_detector PRIVATE TF2BD_ENABLE_TESTS)
+	# lets any remaining Catch2 v2-style <catch2/catch.hpp> includes resolve to v3
+	target_include_directories(tf2_bot_detector PRIVATE "Tests/compat")
 	target_sources(tf2_bot_detector PRIVATE
 		"Tests/Catch2.cpp"
+		"Tests/FakeWorldState.cpp"
+		"Tests/FakeWorldState.h"
+		"Tests/FakeWorldStateTests.cpp"
 		"Tests/ConsoleLineTests.cpp"
 		"Tests/FormattingTests.cpp"
 		"Tests/HumanDurationTests.cpp"
@@ -428,14 +457,30 @@ if (TF2BD_ENABLE_TESTS)
 
 	SET(TF2BD_ENABLE_CLI_EXE true)
 
+	# run from the output folder so the app finds its cfg/, fonts/ and (on Windows) its DLLs
 	add_test(NAME TF2BD_Tests COMMAND tf2_bot_detector_cli --run-tests
-		WORKING_DIRECTORY staging
+		WORKING_DIRECTORY "$<TARGET_FILE_DIR:tf2_bot_detector_cli>"
 	)
 endif()
 
 if(TF2BD_ENABLE_CLI_EXE)
 	add_executable(tf2_bot_detector_cli "Launcher/main.cpp")
 	target_include_directories(tf2_bot_detector_cli PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-	target_link_libraries(tf2_bot_detector_cli PRIVATE tf2_bot_detector mh::stuff)
-	target_compile_features(tf2_bot_detector_cli PUBLIC cxx_std_17)
+	target_link_libraries(tf2_bot_detector_cli PRIVATE tf2_bot_detector tf2_bot_detector::common)
+	# console-subsystem main() on every platform, so --run-tests output is visible
+	target_compile_definitions(tf2_bot_detector_cli PRIVATE TF2BD_CLI_MAIN)
+	target_compile_features(tf2_bot_detector_cli PUBLIC cxx_std_20)
+endif()
+
+# Linux packaging: cmake --build <build dir> --target appimage
+# -> dist/TF2PL-x86_64.AppImage plus the portable resource folders next to it
+if (UNIX AND NOT APPLE)
+	add_custom_target(appimage
+		COMMAND bash "${CMAKE_SOURCE_DIR}/packaging/linux/build-appimage.sh" --with-resources "$<TARGET_FILE:tf2_bot_detector>"
+		WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+		COMMENT "Building dist/TF2PL-x86_64.AppImage"
+		USES_TERMINAL
+		VERBATIM
+	)
+	add_dependencies(appimage tf2_bot_detector)
 endif()

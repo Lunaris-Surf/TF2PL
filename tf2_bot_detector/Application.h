@@ -32,6 +32,7 @@ namespace tf2_bot_detector
 	class ITexture;
 	class ITextureManager;
 	class IUpdateManager;
+	class WebUIController;
 
 	namespace DB
 	{
@@ -150,7 +151,13 @@ namespace tf2_bot_detector
 
 		std::optional<PostSetupFlowState> m_MainState;
 
+		// optional browser front end (Settings > UI > Interface = Web); declared after m_MainState so it shuts down first
+		std::unique_ptr<WebUIController> m_WebUI;
+
 	public:
+		/// null unless the web UI is enabled and the app is past the setup flow
+		WebUIController* GetWebUI() { return m_WebUI.get(); }
+
 		void QueueUpdate();
 		bool ShouldUpdate();
 		void Update();

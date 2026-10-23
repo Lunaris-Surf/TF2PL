@@ -7,7 +7,7 @@
 #include <mh/error/not_implemented_error.hpp>
 #include <mh/text/codecvt.hpp>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace std::string_view_literals;
 using namespace tf2_bot_detector;

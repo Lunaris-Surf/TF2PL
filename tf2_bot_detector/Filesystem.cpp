@@ -97,7 +97,7 @@ void Filesystem::Init()
 #ifdef _WIN32
 			if ((m_WorkingDir / "tf2_bot_detector.dll").empty())
 #else
-			if ((m_WorkingDir / "tf2_bot_detector").empty())
+			if ((m_WorkingDir / "TF2PL").empty())
 #endif
 			{
 				DebugLog("We can't find tf2_bot_detector.dll in m_WorkingDir!", m_ExeDir);

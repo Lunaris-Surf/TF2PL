@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TF2PL Web</title>
+<style>
+:root {
+  --void:#021015; --deep:#04191f; --panel:rgba(4,28,34,.85); --panel2:rgba(8,44,52,.9); --well:rgba(1,10,13,.85);
+  --ink:#e4fffb; --muted:#8fc5c0; --dim:#4f8984; --teal:#3fe6d8; --orange:#ff9a1f; --red:#ff4f6d; --blue:#5aa9ff; --green:#8dff6a;
+  --line:rgba(111,247,234,.22);
+}
+* { box-sizing:border-box; }
+html, body { margin:0; height:100%; overflow:hidden; background:radial-gradient(ellipse at top, #062a31 0%, var(--void) 70%); color:var(--ink);
+  font:14px/1.35 "Segoe UI", system-ui, sans-serif; }
+body { display:flex; flex-direction:column; height:100vh; }
+button, input, select { font:inherit; color:inherit; }
+header { flex:none; display:flex; align-items:center; gap:14px; padding:10px 16px; border-bottom:1px solid var(--line); background:var(--deep); }
+header .brand { font-weight:700; letter-spacing:.18em; color:var(--teal); }
+header .server { color:var(--muted); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.badge { padding:2px 8px; border:1px solid var(--line); border-radius:3px; font-size:12px; color:var(--muted); }
+.badge.ok { color:var(--green); border-color:rgba(141,255,106,.4); }
+.badge.bad { color:var(--red); border-color:rgba(255,79,109,.5); }
+.btn { background:var(--panel2); border:1px solid var(--line); border-radius:3px; padding:5px 12px; cursor:pointer; }
+.btn:hover { border-color:var(--teal); }
+.btn.primary { border-color:var(--orange); color:var(--orange); }
+.btn:disabled { opacity:.4; cursor:default; }
+main { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 340px; grid-template-rows:minmax(0,1fr) minmax(120px,28%); gap:10px; padding:10px; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:4px; display:flex; flex-direction:column; min-height:0; }
+.panel h2 { margin:0; padding:7px 12px; font-size:12px; letter-spacing:.2em; text-transform:uppercase; border-bottom:1px solid var(--line); color:var(--muted); }
+.panel h2.red { color:var(--red); } .panel h2.blue { color:var(--blue); }
+.scroll { overflow:auto; flex:1; min-height:0; }
+table { width:100%; border-collapse:collapse; }
+th { position:sticky; top:0; background:var(--panel2); font-size:11px; color:var(--dim); text-align:left; padding:4px 8px; font-weight:600; }
+td { padding:4px 8px; border-bottom:1px solid rgba(111,247,234,.07); white-space:nowrap; }
+td.num { text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); }
+tr.player { cursor:pointer; }
+tr.player:hover td { background:rgba(63,230,216,.06); }
+tr.player.selected td { background:rgba(255,154,31,.12); }
+tr.player.connecting td { opacity:.55; }
+.name { max-width:240px; overflow:hidden; text-overflow:ellipsis; display:inline-block; vertical-align:bottom; }
+.you { color:var(--green); font-size:11px; margin-left:4px; }
+.friend { color:var(--teal); font-size:11px; margin-left:4px; }
+.pill { display:inline-block; font-size:11px; padding:0 6px; margin:1px 3px 1px 0; border-radius:2px; color:#011; font-weight:600; }
+.pill.tag { background:var(--muted); }
+#details { grid-row:1 / span 2; grid-column:3; }
+#details .body { padding:10px 12px; overflow:auto; }
+#details .empty { color:var(--muted); }
+.mono { font-family:Consolas, "Share Tech Mono", monospace; color:var(--muted); font-size:13px; }
+.label { font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--orange); margin:12px 0 5px; }
+.marks-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; }
+.marks-grid label { display:flex; gap:6px; align-items:center; cursor:pointer; }
+input[type=text] { width:100%; background:var(--well); border:1px solid var(--line); border-radius:3px; padding:5px 8px; }
+.row { display:flex; gap:6px; margin-top:6px; }
+.listmarks { margin:4px 0; }
+.listname { color:var(--muted); font-size:12px; }
+.ownlist { color:var(--teal); }
+#chat { grid-column:1 / span 2; }
+.chatline { padding:2px 10px; white-space:pre-wrap; word-break:break-word; }
+.chatline .who { font-weight:600; }
+.chatline .who.same { color:var(--teal); } .chatline .who.opposite { color:var(--red); } .chatline .who.neither { color:var(--muted); }
+.chatline .pre { color:var(--dim); font-size:12px; margin-right:4px; }
+a { color:var(--teal); }
+.note { color:var(--dim); font-size:12px; margin-top:12px; }
+#others { color:var(--muted); font-size:12px; padding:6px 12px; border-top:1px solid var(--line); }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">TF2PL WEB</span>
+  <span class="server" id="server">Connecting to TF2PL...</span>
+  <span class="badge" id="vote" hidden>VOTE IN PROGRESS</span>
+  <span class="badge" id="status">...</span>
+  <button class="btn" id="native" title="Switch TF2PL back to its normal window">Use native UI</button>
+</header>
+<main>
+  <section class="panel"><h2 class="red">RED</h2><div class="scroll"><table id="team-red"></table></div></section>
+  <section class="panel"><h2 class="blue">BLU</h2><div class="scroll"><table id="team-blue"></table></div><div id="others" hidden></div></section>
+  <section class="panel" id="details"><h2>Player</h2><div class="body">
+    <div class="empty" id="d-empty">Click a player to see their marks and actions.</div>
+    <div id="d-content" hidden>
+      <div id="d-name" style="font-size:16px;font-weight:600"></div>
+      <div class="mono" id="d-ids"></div>
+      <div class="row"><a id="d-profile" target="_blank" rel="noopener noreferrer">Steam profile</a></div>
+      <div id="d-friends" class="listname" style="margin-top:6px"></div>
+      <div class="label">Marks by list</div>
+      <div id="d-lists"></div>
+      <div class="label">Your list</div>
+      <div id="d-self" class="listname" hidden>This is you - you can't mark yourself.</div>
+      <div id="d-editor">
+        <input type="text" id="d-reason" maxlength="500" placeholder="Reason / proof (saved with the next change)">
+        <div class="marks-grid" id="d-marks" style="margin-top:8px"></div>
+        <div id="d-tags" class="marks-grid" style="margin-top:6px"></div>
+        <div class="row"><input type="text" id="d-newtag" maxlength="64" placeholder="new tag, e.g. watchlist"><button class="btn" id="d-addtag">Add tag</button></div>
+      </div>
+      <div class="label">Votekick</div>
+      <div class="row" id="d-kick">
+        <button class="btn" data-reason="cheating">Cheating</button><button class="btn" data-reason="idle">Idle</button>
+        <button class="btn" data-reason="scamming">Scamming</button><button class="btn" data-reason="other">Other</button>
+      </div>
+      <div class="note">Changes go to your local player list. Marks from subscribed lists stay until that list changes.</div>
+    </div>
+  </div></section>
+  <section class="panel" id="chat"><h2>Chat</h2><div class="scroll" id="chatlog"></div></section>
+</main>
+<script>
+"use strict";
+const TOKEN = "__TF2PL_TOKEN__";
+let state = null, selected = null, lastOk = 0, chatKey = "";
+const $ = (id) => document.getElementById(id);
+function el(tag, props, ...children) {
+  const e = document.createElement(tag);
+  if (props) for (const k in props) { if (k === "class") e.className = props[k]; else if (k === "text") e.textContent = props[k]; else e.setAttribute(k, props[k]); }
+  for (const c of children) if (c != null) e.append(c);
+  return e;
+}
+function attrInfo(id) {
+  if (state) for (const a of state.attributes) if (a.id === id) return a;
+  return { id, name: id.startsWith("custom:") ? id.slice(7) : id, color: null };
+}
+function pill(id) {
+  const a = attrInfo(id);
+  const p = el("span", { class: a.color ? "pill" : "pill tag", text: a.name });
+  if (a.color) p.style.background = a.color;
+  return p;
+}
+function combinedMarks(p) {
+  const seen = new Set();
+  for (const m of p.marks) for (const a of m.attrs) seen.add(a);
+  return [...seen];
+}
+function fmtTime(s) { s = Math.max(0, s|0); const m = (s / 60) | 0; return m >= 60 ? ((m / 60) | 0) + "h" + String(m % 60).padStart(2, "0") : m + ":" + String(s % 60).padStart(2, "0"); }
+async function post(action) {
+  try {
+    const r = await fetch("/api/action", { method: "POST", headers: { "Content-Type": "application/json", "X-TF2PL-Token": TOKEN }, body: JSON.stringify(action) });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    setTimeout(poll, 150);
+  } catch (e) { $("status").textContent = "action failed"; $("status").className = "badge bad"; }
+}
+function renderTeam(tableId, players) {
+  const t = $(tableId);
+  t.replaceChildren(el("tr", null, el("th", { text: "Name" }), el("th", { text: "Marks" }), el("th", { text: "K" }), el("th", { text: "D" }), el("th", { text: "Ping" }), el("th", { text: "Time" })));
+  for (const p of players) {
+    const nameCell = el("td", null, el("span", { class: "name", text: p.name || p.steamid3, title: p.name || "" }));
+    if (p.isLocal) nameCell.append(el("span", { class: "you", text: "YOU" }));
+    if (p.friend) nameCell.append(el("span", { class: "friend", text: "FRIEND" }));
+    const marks = el("td");
+    for (const a of combinedMarks(p)) marks.append(pill(a));
+    const tr = el("tr", { class: "player" + (p.steamid === selected ? " selected" : "") + (p.state !== "active" ? " connecting" : "") },
+      nameCell, marks, el("td", { class: "num", text: p.kills }), el("td", { class: "num", text: p.deaths }),
+      el("td", { class: "num", text: p.ping }), el("td", { class: "num", text: fmtTime(p.connected) }));
+    tr.addEventListener("click", () => { selected = p.steamid; render(); });
+    t.append(tr);
+  }
+}
+function renderDetails() {
+  const p = state && selected ? state.players.find((x) => x.steamid === selected) : null;
+  $("d-empty").hidden = !!p; $("d-content").hidden = !p;
+  if (!p) return;
+  $("d-name").textContent = p.name || "<unknown name>";
+  $("d-ids").textContent = p.steamid3 + "   " + p.steamid + (p.userid != null ? "   #" + p.userid : "");
+  $("d-profile").href = "https://steamcommunity.com/profiles/" + encodeURIComponent(p.steamid);
+  $("d-friends").textContent = p.markedFriends ? p.markedFriends.marked + " of " + p.markedFriends.total + " friends are marked" : "Friends list not loaded or private";
+  const lists = $("d-lists"); lists.replaceChildren();
+  if (!p.marks.length) lists.append(el("div", { class: "listname", text: "Not marked in any loaded list." }));
+  for (const m of p.marks) {
+    const row = el("div", { class: "listmarks" }, el("div", { class: "listname", text: m.list }));
+    for (const a of m.attrs) row.append(pill(a));
+    lists.append(row);
+  }
+  $("d-self").hidden = !p.isLocal; $("d-editor").hidden = p.isLocal;
+  const editable = new Set(p.editable || []);
+  const grid = $("d-marks"); grid.replaceChildren();
+  for (const a of state.attributes) {
+    const cb = el("input", { type: "checkbox" }); cb.checked = editable.has(a.id);
+    cb.addEventListener("change", () => { post({ type: "mark", steamid: p.steamid, attr: a.id, set: cb.checked, reason: $("d-reason").value }); $("d-reason").value = ""; });
+    const sw = el("span", { class: "pill", text: " " }); sw.style.background = a.color;
+    grid.append(el("label", null, cb, sw, document.createTextNode(a.name)));
+  }
+  const tags = $("d-tags"); tags.replaceChildren();
+  const allTags = new Set([...(state.customTags || []), ...[...editable].filter((x) => x.startsWith("custom:"))]);
+  for (const tag of allTags) {
+    const cb = el("input", { type: "checkbox" }); cb.checked = editable.has(tag);
+    cb.addEventListener("change", () => { post({ type: "tag", steamid: p.steamid, tag, set: cb.checked, reason: $("d-reason").value }); $("d-reason").value = ""; });
+    tags.append(el("label", null, cb, document.createTextNode(tag.slice(7))));
+  }
+  for (const b of $("d-kick").querySelectorAll("button")) b.disabled = !p.canVotekick || state.voteInProgress;
+}
+function renderChat() {
+  const key = state.chat.length ? state.chat.length + ":" + state.chat[0].message + state.chat[0].name : "0";
+  if (key === chatKey) return;
+  chatKey = key;
+  const log = $("chatlog");
+  const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+  log.replaceChildren();
+  for (const c of [...state.chat].reverse()) {
+    const line = el("div", { class: "chatline" });
+    if (c.dead) line.append(el("span", { class: "pre", text: "*DEAD*" }));
+    if (c.team) line.append(el("span", { class: "pre", text: "(TEAM)" }));
+    line.append(el("span", { class: "who " + c.teamShare, text: c.name }), document.createTextNode(": " + c.message));
+    log.append(line);
+  }
+  if (atBottom) log.scrollTop = log.scrollHeight;
+}
+function render() {
+  if (!state) return;
+  $("server").textContent = (state.server.name || "Not connected to a server") + (state.server.map ? "  |  " + state.server.map : "") + "  |  TF2PL " + state.appVersion;
+  $("vote").hidden = !state.voteInProgress;
+  const byTeam = (t) => state.players.filter((p) => p.team === t).sort((a, b) => b.kills - a.kills || a.name.localeCompare(b.name));
+  renderTeam("team-red", byTeam("red"));
+  renderTeam("team-blue", byTeam("blue"));
+  const others = state.players.filter((p) => p.team !== "red" && p.team !== "blue");
+  $("others").hidden = !others.length;
+  $("others").textContent = others.length ? "Spectating / connecting: " + others.map((p) => p.name || p.steamid3).join(", ") : "";
+  renderDetails();
+  renderChat();
+}
+async function poll() {
+  try {
+    const r = await fetch("/api/state", { headers: { "X-TF2PL-Token": TOKEN }, cache: "no-store" });
+    if (r.status === 401) { $("status").textContent = "reload this page"; $("status").className = "badge bad"; return; }
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const s = await r.json();
+    if (s && s.players) { state = s; lastOk = Date.now(); render(); }
+    $("status").textContent = "live"; $("status").className = "badge ok";
+  } catch (e) {
+    if (Date.now() - lastOk > 4000) { $("status").textContent = "TF2PL not responding"; $("status").className = "badge bad"; }
+  }
+}
+$("native").addEventListener("click", () => { post({ type: "ui_mode", mode: "native" }); $("status").textContent = "switched to native UI"; });
+$("d-addtag").addEventListener("click", () => {
+  const v = $("d-newtag").value.trim().toLowerCase();
+  if (!selected || !/^[a-z][a-z0-9_-]{0,63}$/.test(v)) { $("d-newtag").focus(); return; }
+  post({ type: "tag", steamid: selected, tag: "custom:" + v, set: true, reason: $("d-reason").value });
+  $("d-newtag").value = ""; $("d-reason").value = "";
+});
+for (const b of $("d-kick").querySelectorAll("button"))
+  b.addEventListener("click", () => { if (selected && confirm("Start a votekick (" + b.dataset.reason + ")?")) post({ type: "votekick", steamid: selected, reason: b.dataset.reason }); });
+poll();
+setInterval(poll, 1000);
+</script>
+</body>
+</html>

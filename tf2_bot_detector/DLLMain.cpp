@@ -11,6 +11,7 @@
 #include "UI/MainWindow.h"
 #include "UI/SettingsWindow.h"
 #include <chrono>
+#include <vector>
 
 #ifdef WIN32
 #include "Platform/Windows/WindowsHelpers.h"
@@ -88,17 +89,23 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 			if (!strcmp(argv[i], "-forward") && (i + 1) < argc) {
 				forwarded_arg = argv[i + 1];
 			}
+			// works in any configuration that was built with TF2BD_ENABLE_TESTS (not just Debug);
+			// everything after --run-tests is handed to Catch2, e.g. --run-tests "[FakeWorldState]" -s
+			if (!strcmp(argv[i], "--run-tests"))
+			{
+#ifdef TF2BD_ENABLE_TESTS
+				std::vector<const char*> testArgs{ argv[0] };
+				for (int j = i + 1; j < argc; j++)
+					testArgs.push_back(argv[j]);
+				return tf2_bot_detector::RunTests(static_cast<int>(testArgs.size()), testArgs.data());
+#else
+				LogError("--run-tests was on the command line, but tests were not compiled in (configure with -DTF2BD_ENABLE_TESTS=ON)");
+				return 1;
+#endif
+			}
 #ifdef _DEBUG
 			if (!strcmp(argv[i], "--static-seed") && (i + 1) < argc)
 				tf2_bot_detector::g_StaticRandomSeed = atoi(argv[i + 1]);
-			else if (!strcmp(argv[i], "--run-tests"))
-			{
-#ifdef TF2BD_ENABLE_TESTS
-				return tf2_bot_detector::RunTests();
-#else
-				LogError("--run-tests was on the command line, but tests were not compiled in");
-#endif
-			}
 #endif
 		}
 
@@ -150,7 +157,8 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 
 		DebugLog("Entering event loop...");
 		while (!renderer.ShouldQuit()) {
-			renderer.SetGameOverlayEnabled(app->GetSettings().m_EnableGameOverlay);
+			// the in-game overlay is part of the native UI; the web UI can't draw over TF2
+			renderer.SetGameOverlayEnabled(app->GetSettings().m_EnableGameOverlay && !app->GetSettings().IsWebUIMode());
 			renderer.SetGameOverlayHotkey(app->GetSettings().m_OverlayHotkeyKey,
 				app->GetSettings().m_OverlayHotkeyModifiers);
 			// app is in focus or app queued update (/sleep disabled)

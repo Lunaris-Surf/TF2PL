@@ -1,5 +1,4 @@
-#define CPPHTTPLIB_OPENSSL_SUPPORT 1
-#define CPPHTTPLIB_ZLIB_SUPPORT 1
+// cpp-httplib's CPPHTTPLIB_*_SUPPORT macros come from the httplib::httplib CMake target.
 
 #include <mh/algorithm/multi_compare.hpp>
 #include <mh/concurrency/thread_pool.hpp>
@@ -11,11 +10,12 @@
 #include "HTTPHelpers.h"
 
 #pragma warning(push, 1)
-#include <cpprest/http_client.h>
-#ifdef _WIN32
-#include <pplawait.h>
-#endif
+#include <httplib.h>
 #pragma warning(pop)
+
+#include <array>
+#include <filesystem>
+#include <stdexcept>
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -23,6 +23,59 @@ using namespace tf2_bot_detector;
 
 namespace
 {
+	// Socket/TLS/timeout failure (no HTTP status received). Retried a few times, like cpprest's http_exception was.
+	struct http_transport_error final : std::runtime_error
+	{
+		using std::runtime_error::runtime_error;
+	};
+
+	// httplib::Result is move-only, but mh::task hands results back by copy, so the worker returns this instead.
+	struct HTTPGetResult
+	{
+		bool m_Transferred = false;     // false: socket/TLS/timeout failure, see m_Error
+		httplib::Error m_Error = httplib::Error::Success;
+		int m_Status = 0;
+		std::string m_Body;
+	};
+
+	// cpp-httplib is blocking; requests run here and the coroutine resumes when they finish.
+	mh::thread_pool& GetHTTPThreadPool()
+	{
+		static mh::thread_pool s_Pool(4);
+		return s_Pool;
+	}
+
+	void ConfigureClient(httplib::Client& client)
+	{
+		client.set_connection_timeout(std::chrono::seconds(15));
+		client.set_read_timeout(std::chrono::seconds(30));
+		client.set_write_timeout(std::chrono::seconds(15));
+		client.set_follow_location(true); // cpprest (WinHTTP) followed redirects
+		client.set_decompress(true);
+
+#ifdef __linux__
+		// vcpkg's static OpenSSL looks for CA certificates under its own install prefix, not the
+		// distro's, so point it at the system bundle. (Windows uses the system cert store automatically.)
+		static constexpr std::array CA_BUNDLES =
+		{
+			"/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Arch/Gentoo
+			"/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL
+			"/etc/ssl/ca-bundle.pem",                             // openSUSE
+			"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7+
+			"/etc/ssl/cert.pem",                                  // Alpine and others
+		};
+		for (const char* bundle : CA_BUNDLES)
+		{
+			std::error_code ec;
+			if (std::filesystem::exists(bundle, ec))
+			{
+				client.set_ca_cert_path(bundle);
+				break;
+			}
+		}
+#endif
+	}
+
 	class HTTPClientImpl final : public IHTTPClient
 	{
 	public:
@@ -33,8 +86,8 @@ namespace
 
 	private:
 		mutable std::mutex m_InnerClientMutex;
-		mutable std::map<std::string, std::shared_ptr<web::http::client::http_client>> m_InnerClients;
-		std::shared_ptr<web::http::client::http_client> GetInnerClient(const URL& url) const;
+		mutable std::map<std::string, std::shared_ptr<httplib::Client>> m_InnerClients;
+		std::shared_ptr<httplib::Client> GetInnerClient(const URL& url) const;
 
 		mutable std::atomic_uint32_t m_TotalRequestCount = 0;
 		mutable std::atomic_uint32_t m_FailedRequestCount = 0;
@@ -54,7 +107,7 @@ std::string HTTPClientImpl::GetString(const URL& url) const
 	return std::move(task.get());
 }
 
-std::shared_ptr<web::http::client::http_client> HTTPClientImpl::GetInnerClient(const URL& url) const
+std::shared_ptr<httplib::Client> HTTPClientImpl::GetInnerClient(const URL& url) const
 {
 	std::lock_guard lock(m_InnerClientMutex);
 
@@ -65,7 +118,8 @@ std::shared_ptr<web::http::client::http_client> HTTPClientImpl::GetInnerClient(c
 	}
 	else
 	{
-		auto newClient = std::make_shared<web::http::client::http_client>(utility::conversions::to_string_t(schemeHostPort));
+		auto newClient = std::make_shared<httplib::Client>(schemeHostPort);
+		ConfigureClient(*newClient);
 		return m_InnerClients.emplace(schemeHostPort, newClient).first->second;
 	}
 }
@@ -165,21 +219,31 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 
 				const auto startTime = tfbd_clock_t::now();
 
-#ifdef __linux__
-				// TODO: investiagte how bad this is, we don't have pplawait.h
-				auto response = client->request(web::http::methods::GET, utility::conversions::to_string_t(url.m_Path)).get();
-#else
-				auto response = co_await client->request(web::http::methods::GET, utility::conversions::to_string_t(url.m_Path));
-#endif
+				const std::string path = url.m_Path.empty() ? "/"s : url.m_Path;
+				HTTPGetResult result = co_await GetHTTPThreadPool().add_task([client, path]()
+					{
+						HTTPGetResult r;
+						httplib::Result res = client->Get(path);
+						r.m_Error = res.error();
+						if (res)
+						{
+							r.m_Transferred = true;
+							r.m_Status = res->status;
+							r.m_Body = std::move(res->body);
+						}
+						return r;
+					});
 
-				if (response.status_code() >= 400 && response.status_code() < 600)
-					throw http_error((HTTPResponseCode)response.status_code(), fmt::format("Failed to HTTP GET {}", url));
+				if (!result.m_Transferred)
+				{
+					throw http_transport_error(fmt::format("Failed to HTTP GET {}: {}",
+						url, httplib::to_string(result.m_Error)));
+				}
 
-#ifdef __linux__
-				std::string stringResponse = response.extract_utf8string(true).get();
-#else
-				std::string stringResponse = co_await response.extract_utf8string(true);
-#endif
+				if (result.m_Status >= 400 && result.m_Status < 600)
+					throw http_error((HTTPResponseCode)result.m_Status, fmt::format("Failed to HTTP GET {}", url));
+
+				std::string stringResponse = std::move(result.m_Body); // already UTF-8
 
 				const auto duration = tfbd_clock_t::now() - startTime;
 				DebugLog("[{}ms] HTTP GET #{}: {}", std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(), requestIndex, url);
@@ -219,7 +283,7 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 				throw; // give up
 			}
 		}
-		catch (const web::http::http_exception&)
+		catch (const http_transport_error&)
 		{
 			if (retryCount > 3)
 			{
