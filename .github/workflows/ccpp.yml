@@ -140,13 +140,6 @@ jobs:
         echo "Copying build artifacts to staging..."
         cp -v ${{ needs.config.outputs.tf2bd_build_dir }}/*.exe ${{ needs.config.outputs.tf2bd_build_dir }}/*.dll ${{ needs.config.outputs.tf2bd_workspace }}/staging/
 
-        echo "Performing smartscreen workaround..."
-        echo "Hash of current exe: "
-        sha1sum "${{ needs.config.outputs.tf2bd_workspace }}/staging/tf2_bot_detector.exe"
-        cp -v "${{ needs.config.outputs.tf2bd_workspace }}/smartscreen/${{ matrix.tf2bd_arch }}/tf2_bot_detector.exe" "${{ needs.config.outputs.tf2bd_workspace }}/staging/tf2_bot_detector.exe"
-        echo "Hash of cached exe: "
-        sha1sum "${{ needs.config.outputs.tf2bd_workspace }}/staging/tf2_bot_detector.exe"
-
     - name: "Artifacts: Upload staging/"
       if: steps.determine_artifact_behavior.outputs.upload && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v4
