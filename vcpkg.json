@@ -8,6 +8,12 @@
       "features": [ "wayland", "x11", "vulkan" ],
       "platform": "linux"
     },
+    {
+      "$comment": "SDL2 only needs plain D-Bus. Its default systemd feature would pull in libsystemd, libcap, libmount and libxcrypt (autotools/libltdl builds) for nothing.",
+      "name": "dbus",
+      "default-features": false,
+      "platform": "linux"
+    },
     "cryptopp",
     {
       "name": "libzippp",
