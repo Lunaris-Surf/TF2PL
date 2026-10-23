@@ -51,12 +51,14 @@ TF2PL is **not intended to replace TF2 Bot Detector**. It is a personal, expande
 - **DirectX 11 with GPU selection:** renders on your dedicated GPU by default; pick a GPU on first run or in Settings > Graphics. OpenGL remains available as a fallback.
 - **G15 player data:** player names, SteamIDs, teams, ping and health come from TF2's `g15_dumpplayer` in a single reply, with `status` used only when someone joins. This works on community servers and prints far less to the console.
 - **Low overhead:** TF2PL idles when it isn't focused and paces frames instead of competing with TF2 for the GPU.
-- **Untrusted list protection:** unsupported or malicious player lists are removed automatically, and lists carrying their entries are flagged.
+- **Untrusted and blacklisted list protection:** unsupported player lists are removed automatically and lists carrying their entries are flagged; malicious (blacklisted) lists are removed and lists carrying their entries are disabled.
 
 ## Compatibility and safety notice
 
 > [!WARNING]
-> **Vorobey's HackerPolice, Sterling, ShadeFall, and Shitlist are not supported by TF2PL.** The project considers these lists untrusted because they accept manipulated replays and false evidence and publish fake cheater listings. TF2PL removes these lists automatically and flags lists that carry their entries.
+> **Vorobey's HackerPolice and ShadeFall are blacklisted by TF2PL.** Both list maintainers were found to be malicious: Vorobey's HackerPolice intentionally accepts fake and manipulated evidence, and ShadeFall is run by an active cheater who uses manipulated data and marks players with fake evidence produced by its "anticheat". TF2PL deletes these lists, disables any list that carries their entries, and always warns about them.
+>
+> **Sterling and Shitlist are not supported by TF2PL.** The project considers these lists untrusted because they accept manipulated replays and false evidence and publish fake cheater listings. TF2PL removes these lists automatically and flags lists that carry their entries.
 
 ## Preview
 

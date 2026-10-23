@@ -18,16 +18,23 @@ using namespace tf2_bot_detector;
 namespace
 {
 	// lowercase; matched case-insensitively
-	constexpr std::string_view UNTRUSTED_MARKERS[] =
+
+	// Malicious maintainers: Vorobey knowingly accepts fake/manipulated evidence; ShadeFall is run by an
+	// active cheater whose "anticheat" produces fabricated evidence used to mark players.
+	constexpr std::string_view BLACKLISTED_MARKERS[] =
 	{
 		"vorobey-hackerpolice",
 		"vorobey_hackerpolice",
 		"vorobeyhackerpolice",
-		"sterling",
 		"shadefall",
 		"shadefall-hunters",
 		"shadefall_hunters",
 		"shadefallhunters",
+	};
+
+	constexpr std::string_view UNTRUSTED_MARKERS[] =
+	{
+		"sterling",
 		"shitlist",
 		"shit-list",
 		"shit_list",
@@ -44,6 +51,11 @@ namespace
 	bool ContainsNoCase(std::string_view haystack, std::string_view needle)
 	{
 		return std::search(haystack.begin(), haystack.end(), needle.begin(), needle.end(), EqualsNoCase) != haystack.end();
+	}
+
+	bool EqualsNoCaseStr(std::string_view a, std::string_view b)
+	{
+		return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), EqualsNoCase);
 	}
 
 	bool StartsWithNoCase(std::string_view s, std::string_view prefix)
@@ -96,29 +108,75 @@ namespace
 		LogError("Failed to delete or disable untrusted player list {}: {} / {}", path, ec.message(), renameEc.message());
 		return false;
 	}
+
+	/// <summary>
+	/// rename a list carrying blacklisted entries so it no longer matches playerlist*.json. Kept on disk (not deleted)
+	/// because it may also hold legitimate entries the user wants to recover.
+	/// </summary>
+	bool DisableContaminatedFile(const std::filesystem::path& path)
+	{
+		auto disabled = path;
+		disabled += ".blacklisted-disabled";
+		for (int i = 2; std::filesystem::exists(disabled); i++)
+		{
+			disabled = path;
+			disabled += ".blacklisted-disabled." + std::to_string(i);
+		}
+
+		std::error_code ec;
+		std::filesystem::rename(path, disabled, ec);
+		if (!ec)
+		{
+			LogWarning("Disabled player list {} (contains entries from a blacklisted list); renamed it to {}", path, disabled);
+			return true;
+		}
+
+		LogError("Failed to disable player list {} carrying blacklisted entries: {}", path, ec.message());
+		return false;
+	}
+
+	bool ContainsAnyMarker(std::string_view text, const auto& markers)
+	{
+		for (const auto& marker : markers)
+		{
+			if (ContainsNoCase(text, marker))
+				return true;
+		}
+		return false;
+	}
+
+	bool FileInfoContains(const nlohmann::json& json, const auto& markers)
+	{
+		if (!json.is_object())
+			return false;
+
+		auto fileInfo = json.find("file_info");
+		if (fileInfo == json.end())
+			return false;
+
+		// title, description, update_url, authors... any of them naming the list is enough
+		return ContainsAnyMarker(fileInfo->dump(), markers);
+	}
 }
 
 bool UntrustedLists::ContainsUntrustedMarker(std::string_view text)
 {
-	for (const auto& marker : UNTRUSTED_MARKERS)
-	{
-		if (ContainsNoCase(text, marker))
-			return true;
-	}
-	return false;
+	return ContainsAnyMarker(text, UNTRUSTED_MARKERS) || ContainsAnyMarker(text, BLACKLISTED_MARKERS);
+}
+
+bool UntrustedLists::ContainsBlacklistedMarker(std::string_view text)
+{
+	return ContainsAnyMarker(text, BLACKLISTED_MARKERS);
 }
 
 bool UntrustedLists::IsUntrustedListJson(const nlohmann::json& json)
 {
-	if (!json.is_object())
-		return false;
+	return FileInfoContains(json, UNTRUSTED_MARKERS) || FileInfoContains(json, BLACKLISTED_MARKERS);
+}
 
-	auto fileInfo = json.find("file_info");
-	if (fileInfo == json.end())
-		return false;
-
-	// title, description, update_url, authors... any of them naming the list is enough
-	return ContainsUntrustedMarker(fileInfo->dump());
+bool UntrustedLists::IsBlacklistedListJson(const nlohmann::json& json)
+{
+	return FileInfoContains(json, BLACKLISTED_MARKERS);
 }
 
 void UntrustedLists::ScreenPlayerLists()
@@ -143,6 +201,12 @@ void UntrustedLists::ScreenPlayerLists()
 				continue;
 
 			// distributed as playerlist.vorobey-hackerpolice.json
+			if (ContainsBlacklistedMarker(filename))
+			{
+				if (RemoveUntrustedFile(path))
+					AddUnique(found.m_BlacklistedDeleted, path);
+				continue;
+			}
 			if (ContainsUntrustedMarker(filename))
 			{
 				if (RemoveUntrustedFile(path))
@@ -170,13 +234,40 @@ void UntrustedLists::ScreenPlayerLists()
 			// The marker is in there somewhere. If the file itself *is* the list (renamed copy), delete it;
 			// otherwise it's a list carrying entries from it, which the user should know is unreliable.
 			bool isUntrustedList = false;
+			bool isBlacklistedList = false;
 			try
 			{
-				isUntrustedList = IsUntrustedListJson(nlohmann::json::parse(contents));
+				const auto json = nlohmann::json::parse(contents);
+				isBlacklistedList = IsBlacklistedListJson(json);
+				isUntrustedList = IsUntrustedListJson(json);
 			}
 			catch (...)
 			{
 				// unparseable; leave it to the normal loader to complain, but still flag it
+			}
+
+			if (ContainsBlacklistedMarker(contents))
+			{
+				if (isBlacklistedList)
+				{
+					if (RemoveUntrustedFile(path))
+						AddUnique(found.m_BlacklistedDeleted, path);
+				}
+				else if (EqualsNoCaseStr(filename, "playerlist.json"))
+				{
+					// the user's own marks live here; never switch it off, but always warn
+					LogWarning("Your player list {} contains entries from a blacklisted list; those marks are not trustworthy", path);
+					AddUnique(found.m_BlacklistedKept, path);
+				}
+				else if (DisableContaminatedFile(path))
+				{
+					AddUnique(found.m_BlacklistedDisabled, path);
+				}
+				else
+				{
+					AddUnique(found.m_BlacklistedKept, path);
+				}
+				continue;
 			}
 
 			if (isUntrustedList)
@@ -198,7 +289,7 @@ void UntrustedLists::ScreenPlayerLists()
 
 	// Combined exports don't record where entries came from, so if the untrusted list was installed,
 	// any export made while it was loaded may contain its entries.
-	if (!found.m_Deleted.empty())
+	if (!found.m_Deleted.empty() || !found.m_BlacklistedDeleted.empty())
 	{
 		for (const auto& path : exports)
 		{
@@ -211,6 +302,12 @@ void UntrustedLists::ScreenPlayerLists()
 		return;
 
 	std::lock_guard lock(s_ReportMutex);
+	for (const auto& p : found.m_BlacklistedDeleted)
+		AddUnique(s_Report.m_BlacklistedDeleted, p);
+	for (const auto& p : found.m_BlacklistedDisabled)
+		AddUnique(s_Report.m_BlacklistedDisabled, p);
+	for (const auto& p : found.m_BlacklistedKept)
+		AddUnique(s_Report.m_BlacklistedKept, p);
 	for (const auto& p : found.m_Deleted)
 		AddUnique(s_Report.m_Deleted, p);
 	for (const auto& p : found.m_Contaminated)

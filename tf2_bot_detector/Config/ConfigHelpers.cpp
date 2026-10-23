@@ -118,6 +118,14 @@ static mh::task<bool> TryAutoUpdate(std::filesystem::path filename, const nlohma
 		co_return false;
 	}
 
+	// Blacklisted lists are malicious: refuse any update that would carry their entries into another list.
+	if (UntrustedLists::ContainsBlacklistedMarker(newJson.dump()))
+	{
+		LogWarning("Refusing to auto-update {} from {}: the new data contains entries from a blacklisted player list",
+			filename, info.m_UpdateURL);
+		co_return false;
+	}
+
 	try
 	{
 		LoadAndValidateSchema(config, newJson);

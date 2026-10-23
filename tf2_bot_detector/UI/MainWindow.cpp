@@ -1300,6 +1300,10 @@ void MainWindow::OnDrawUntrustedListWarning()
 				if (std::find(into.begin(), into.end(), p) == into.end())
 					into.push_back(p);
 		};
+		// blacklisted findings are never filtered by acknowledgements
+		Merge(m_UntrustedListReport.m_BlacklistedDeleted, report.m_BlacklistedDeleted);
+		Merge(m_UntrustedListReport.m_BlacklistedDisabled, report.m_BlacklistedDisabled);
+		Merge(m_UntrustedListReport.m_BlacklistedKept, report.m_BlacklistedKept);
 		Merge(m_UntrustedListReport.m_Deleted, report.m_Deleted);
 		Merge(m_UntrustedListReport.m_Contaminated, report.m_Contaminated);
 		Merge(m_UntrustedListReport.m_PossiblyContaminatedExports, report.m_PossiblyContaminatedExports);
@@ -1333,9 +1337,33 @@ void MainWindow::OnDrawUntrustedListWarning()
 	LunarisUI::MicroLabel("Security notice", Red);
 	ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 700);
 
+	if (report.HasBlacklisted())
+	{
+		ImGui::TextColored(Red, "Blacklisted player lists: Vorobey's HackerPolice and ShadeFall.");
+		ImGui::TextColored(Muted, "Their maintainers were found to be malicious: Vorobey's list knowingly accepts fake and manipulated evidence, "
+			"and ShadeFall is run by an active cheater whose \"anticheat\" produces fabricated evidence used to mark players.");
+
+		if (!report.m_BlacklistedDeleted.empty())
+		{
+			ImGui::TextColored(Ink, "These blacklisted lists were deleted:");
+			FileList(report.m_BlacklistedDeleted);
+		}
+		if (!report.m_BlacklistedDisabled.empty())
+		{
+			ImGui::TextColored(Ink, "These lists carried blacklisted entries and were disabled (renamed to *.blacklisted-disabled, not deleted):");
+			FileList(report.m_BlacklistedDisabled);
+		}
+		if (!report.m_BlacklistedKept.empty())
+		{
+			ImGui::TextColored(Orange, "These lists contain blacklisted entries but were left enabled. Remove those entries, or the marks they add can't be trusted:");
+			FileList(report.m_BlacklistedKept);
+		}
+		ImGui::Spacing();
+	}
+
 	if (!report.m_Deleted.empty())
 	{
-		ImGui::TextColored(Ink, "TF2PL removed untrusted player lists (Vorobey's HackerPolice, Sterling, ShadeFall, Shitlist).");
+		ImGui::TextColored(Ink, "TF2PL removed untrusted player lists (Sterling, Shitlist).");
 		ImGui::TextColored(Muted, "These lists were found adding incorrect and fake cheater listings, so they are no longer trusted and were deleted:");
 		FileList(report.m_Deleted);
 		ImGui::Spacing();
@@ -1383,7 +1411,7 @@ void MainWindow::OnDrawUntrustedListWarning()
 			m_Settings.SaveFile();
 			close = true;
 		}
-		ImGui::SetHoverTooltip("You'll still be warned again if a list from vorobey's hackerpolice is installed.");
+		ImGui::SetHoverTooltip("Only applies to untrusted lists. Blacklisted lists (Vorobey's HackerPolice, ShadeFall) are always warned about.");
 	}
 
 	if (close)
