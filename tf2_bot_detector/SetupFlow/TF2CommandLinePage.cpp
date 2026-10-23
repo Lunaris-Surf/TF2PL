@@ -8,10 +8,10 @@
 #include "Application.h"
 #include "Actions/RCONActionManager.h"
 
-#include <mh/future.hpp>
-#include <mh/text/charconv_helper.hpp>
-#include <mh/text/string_insertion.hpp>
-#include <mh/text/case_insensitive_string.hpp>
+#include <tf2pl/future.hpp>
+#include <tf2pl/text/charconv_helper.hpp>
+#include <tf2pl/text/string_insertion.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
 #include <srcon/srcon.h>
 #include <vdf_parser.hpp>
 
@@ -128,7 +128,7 @@ auto TF2CommandLinePage::TF2CommandLine::Parse(const std::string_view& cmdLine) 
 			}
 			else if (!cli.m_RCONPort.has_value() && args[i] == "+hostport")
 			{
-				if (uint16_t parsedPort; mh::from_chars(args[i + 1], parsedPort))
+				if (uint16_t parsedPort; tf2pl::from_chars(args[i + 1], parsedPort))
 				{
 					cli.m_RCONPort = parsedPort;
 					i++;
@@ -188,14 +188,14 @@ static std::string FindUserLaunchOptions(const Settings& settings)
 			const auto end = child ? child->childs.end() : localConfigRoot.childs.end();
 			for (auto it = begin; it != end; ++it)
 			{
-				if (mh::case_insensitive_compare(it->first, name))
+				if (tf2pl::case_insensitive_compare(it->first, name))
 				{
 					child = it->second;
 					return true;
 				}
 			}
 
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unable to find \"{}\" key in {}", name, configPath);
+			LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Unable to find \"{}\" key in {}", name, configPath);
 			return false;
 		};
 
@@ -354,7 +354,7 @@ bool TF2CommandLinePage::RCONClientData::Update()
 {
 	if (!m_Success)
 	{
-		if (mh::is_future_ready(m_Future))
+		if (tf2pl::is_future_ready(m_Future))
 		{
 			try
 			{
@@ -364,7 +364,7 @@ bool TF2CommandLinePage::RCONClientData::Update()
 			}
 			catch (const srcon::srcon_error& e)
 			{
-				DebugLog(MH_SOURCE_LOCATION_CURRENT(), e.what());
+				DebugLog(TF2PL_SOURCE_LOCATION_CURRENT(), e.what());
 
 				using srcon::srcon_errc;
 				switch (e.get_errc())
@@ -390,7 +390,7 @@ bool TF2CommandLinePage::RCONClientData::Update()
 			}
 			catch (const std::exception& e)
 			{
-				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), e.what());
+				DebugLogWarning(TF2PL_SOURCE_LOCATION_CURRENT(), e.what());
 				m_MessageColor = { 1, 0, 0, 1 };
 				m_Message = fmt::format("RCON connection unsuccessful: {}", e.what());
 				m_Future = {};

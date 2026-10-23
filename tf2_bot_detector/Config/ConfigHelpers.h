@@ -1,9 +1,9 @@
 #pragma once
 #include "Log.h"
 
-#include <mh/coroutine/task.hpp>
-#include <mh/coroutine/thread.hpp>
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/coroutine/task.hpp>
+#include <tf2pl/coroutine/thread.hpp>
+#include <tf2pl/reflection/enum.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
@@ -95,7 +95,7 @@ namespace tf2_bot_detector
 	public:
 		virtual ~ConfigFileBase() = default;
 
-		mh::task<std::error_condition> LoadFileAsync(const std::filesystem::path& filename,
+		tf2pl::task<std::error_condition> LoadFileAsync(const std::filesystem::path& filename,
 			std::shared_ptr<const IHTTPClient> client = nullptr, bool saveAfterLoad = true);
 		std::error_condition SaveFile(const std::filesystem::path& filename) const;
 
@@ -111,7 +111,7 @@ namespace tf2_bot_detector
 		virtual void PostLoad(bool deserialized) {}
 
 	private:
-		mh::task<std::error_condition> LoadFileInternalAsync(std::filesystem::path filename, std::shared_ptr<const IHTTPClient> client);
+		tf2pl::task<std::error_condition> LoadFileInternalAsync(std::filesystem::path filename, std::shared_ptr<const IHTTPClient> client);
 	};
 
 	class SharedConfigFileBase : public ConfigFileBase
@@ -131,12 +131,12 @@ namespace tf2_bot_detector
 
 	namespace detail
 	{
-		mh::task<std::error_condition> LoadConfigFileAsync(ConfigFileBase& file, std::filesystem::path filename,
+		tf2pl::task<std::error_condition> LoadConfigFileAsync(ConfigFileBase& file, std::filesystem::path filename,
 			bool allowAutoUpdate, const Settings& settings, bool saveAfterLoad = true);
 	}
 
 	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
-	mh::task<T> LoadConfigFileAsync(std::filesystem::path filename, bool allowAutoUpdate, const Settings& settings,
+	tf2pl::task<T> LoadConfigFileAsync(std::filesystem::path filename, bool allowAutoUpdate, const Settings& settings,
 		bool saveAfterLoad = true)
 	{
 		T file;
@@ -168,7 +168,7 @@ namespace tf2_bot_detector
 			if (!paths.m_Official.empty())
 				m_OfficialList = LoadConfigFileAsync<T>(paths.m_Official, !IsOfficial(), *m_Settings);
 			else
-				m_OfficialList = mh::make_ready_task<T>();
+				m_OfficialList = tf2pl::make_ready_task<T>();
 
 			// Make the installed copies available first.  Network update checks can be
 			// slow (or time out entirely), and must not prevent every third-party
@@ -265,17 +265,17 @@ namespace tf2_bot_detector
 		}
 
 		const Settings* m_Settings = nullptr;
-		mh::task<T> m_OfficialList;
+		tf2pl::task<T> m_OfficialList;
 		std::optional<T> m_UserList;
-		mh::task<collection_type> m_ThirdPartyLists;
-		mh::task<collection_type> m_UpdatedThirdPartyLists;
+		tf2pl::task<collection_type> m_ThirdPartyLists;
+		tf2pl::task<collection_type> m_UpdatedThirdPartyLists;
 
 	private:
-		mh::task<collection_type> LoadThirdPartyListsAsync(ConfigFilePaths paths, bool allowAutoUpdate)
+		tf2pl::task<collection_type> LoadThirdPartyListsAsync(ConfigFilePaths paths, bool allowAutoUpdate)
 		{
 			// Parsing large community lists is CPU-heavy.  Keep it off the render/UI
 			// thread even when no network request is involved.
-			co_await mh::co_create_background_thread();
+			co_await tf2pl::co_create_background_thread();
 			collection_type collection;
 
 			for (const auto& file : paths.m_Others)
@@ -287,14 +287,14 @@ namespace tf2_bot_detector
 				}
 				catch (...)
 				{
-					LogException(MH_SOURCE_LOCATION_CURRENT(), "Exception when loading {}", file);
+					LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Exception when loading {}", file);
 				}
 			}
 
 			co_return collection;
 		}
 
-		mh::task<collection_type> UpdateThirdPartyListsAsync(ConfigFilePaths paths)
+		tf2pl::task<collection_type> UpdateThirdPartyListsAsync(ConfigFilePaths paths)
 		{
 			// Do not begin remote checks until the fast local pass is complete.
 			co_await m_ThirdPartyLists;
@@ -303,18 +303,18 @@ namespace tf2_bot_detector
 	};
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::ConfigErrorType)
-	MH_ENUM_REFLECT_VALUE(Success)
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::ConfigErrorType)
+	TF2PL_ENUM_REFLECT_VALUE(Success)
 
-	MH_ENUM_REFLECT_VALUE(ReadFileFailed)
-	MH_ENUM_REFLECT_VALUE(JSONParseFailed)
-	MH_ENUM_REFLECT_VALUE(SchemaValidationFailed)
-	MH_ENUM_REFLECT_VALUE(DeserializeFailed)
-	MH_ENUM_REFLECT_VALUE(SerializeFailed)
-	MH_ENUM_REFLECT_VALUE(SerializedSchemaValidationFailed)
-	MH_ENUM_REFLECT_VALUE(WriteFileFailed)
-	MH_ENUM_REFLECT_VALUE(PostLoadFailed)
-MH_ENUM_REFLECT_END()
+	TF2PL_ENUM_REFLECT_VALUE(ReadFileFailed)
+	TF2PL_ENUM_REFLECT_VALUE(JSONParseFailed)
+	TF2PL_ENUM_REFLECT_VALUE(SchemaValidationFailed)
+	TF2PL_ENUM_REFLECT_VALUE(DeserializeFailed)
+	TF2PL_ENUM_REFLECT_VALUE(SerializeFailed)
+	TF2PL_ENUM_REFLECT_VALUE(SerializedSchemaValidationFailed)
+	TF2PL_ENUM_REFLECT_VALUE(WriteFileFailed)
+	TF2PL_ENUM_REFLECT_VALUE(PostLoadFailed)
+TF2PL_ENUM_REFLECT_END()
 
 namespace std
 {

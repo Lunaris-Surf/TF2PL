@@ -4,8 +4,8 @@
 #include "SteamID.h"
 #include "GameData/TFConstants.h"
 
-#include <mh/coroutine/task.hpp>
-#include <mh/coroutine/generator.hpp>
+#include <tf2pl/coroutine/task.hpp>
+#include <tf2pl/coroutine/generator.hpp>
 
 #include <optional>
 
@@ -30,13 +30,13 @@
 #include "ConsoleLog/ConsoleLineListener.h"
 #include "ConsoleLog/ConsoleLogParser.h"
 #include "BatchedAction.h"
-#include <mh/algorithm/algorithm.hpp>
-#include <mh/concurrency/dispatcher.hpp>
-#include <mh/concurrency/main_thread.hpp>
-#include <mh/concurrency/thread_pool.hpp>
-#include <mh/concurrency/thread_sentinel.hpp>
-#include <mh/future.hpp>
-#include <mh/coroutine/future.hpp>
+#include <tf2pl/algorithm/algorithm.hpp>
+#include <tf2pl/concurrency/dispatcher.hpp>
+#include <tf2pl/concurrency/main_thread.hpp>
+#include <tf2pl/concurrency/thread_pool.hpp>
+#include <tf2pl/concurrency/thread_sentinel.hpp>
+#include <tf2pl/future.hpp>
+#include <tf2pl/coroutine/future.hpp>
 
 #undef GetCurrentTime
 
@@ -96,7 +96,7 @@ namespace tf2_bot_detector
 		virtual void RemoveConsoleLineListener(IConsoleLineListener* listener) = 0;
 
 		virtual void AddConsoleOutputChunk(const std::string_view& chunk) = 0;
-		virtual mh::task<> AddConsoleOutputLine(std::string line) = 0;
+		virtual tf2pl::task<> AddConsoleOutputLine(std::string line) = 0;
 
 		/// <summary>
 		/// Apply a parsed g15_dumpplayer snapshot to the player list.
@@ -119,10 +119,10 @@ namespace tf2_bot_detector
 		virtual const IPlayer* LocalPlayer() const = 0;
 
 		virtual size_t GetApproxLobbyMemberCount() const = 0;
-		virtual mh::generator<const IPlayer&> GetLobbyMembers() const = 0;
-		mh::generator<IPlayer&> GetLobbyMembers();
-		virtual mh::generator<const IPlayer&> GetPlayers() const = 0;
-		mh::generator<IPlayer&> GetPlayers();
+		virtual tf2pl::generator<const IPlayer&> GetLobbyMembers() const = 0;
+		tf2pl::generator<IPlayer&> GetLobbyMembers();
+		virtual tf2pl::generator<const IPlayer&> GetPlayers() const = 0;
+		tf2pl::generator<IPlayer&> GetPlayers();
 
 		// Have we joined a team and picked a class?
 		virtual bool IsLocalPlayerInitialized() const = 0;
@@ -134,12 +134,12 @@ namespace tf2_bot_detector
 		virtual const IAccountAges& GetAccountAges() const = 0;
 	};
 
-	inline mh::generator<IPlayer&> IWorldState::GetLobbyMembers()
+	inline tf2pl::generator<IPlayer&> IWorldState::GetLobbyMembers()
 	{
 		for (const IPlayer& p : std::as_const(*this).GetLobbyMembers())
 			co_yield const_cast<IPlayer&>(p);
 	}
-	inline mh::generator<IPlayer&> IWorldState::GetPlayers()
+	inline tf2pl::generator<IPlayer&> IWorldState::GetPlayers()
 	{
 		for (const IPlayer& p : std::as_const(*this).GetPlayers())
 			co_yield const_cast<IPlayer&>(p);
@@ -167,7 +167,7 @@ namespace tf2_bot_detector
 		void RemoveConsoleLineListener(IConsoleLineListener* listener) override;
 
 		void AddConsoleOutputChunk(const std::string_view& chunk) override;
-		mh::task<> AddConsoleOutputLine(std::string line) override;
+		tf2pl::task<> AddConsoleOutputLine(std::string line) override;
 		bool ApplyG15Dump(const std::vector<G15PlayerData>& players) override;
 
 		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const override;
@@ -184,8 +184,8 @@ namespace tf2_bot_detector
 		const IPlayer* FindPlayer(const SteamID& id) const override;
 		const IPlayer* LocalPlayer() const override;
 
-		mh::generator<const IPlayer&> GetLobbyMembers() const;
-		mh::generator<const IPlayer&> GetPlayers() const;
+		tf2pl::generator<const IPlayer&> GetLobbyMembers() const;
+		tf2pl::generator<const IPlayer&> GetPlayers() const;
 		std::vector<const IPlayer*> GetRecentPlayers(size_t recentPlayerCount = 32) const;
 		std::vector<IPlayer*> GetRecentPlayers(size_t recentPlayerCount = 32);
 
@@ -222,7 +222,7 @@ namespace tf2_bot_detector
 		void OnConfigExecLineParsed(const ConfigExecLine& execLine);
 
 		void UpdateFriends();
-		mh::task<std::unordered_set<SteamID>> m_FriendsFuture;
+		tf2pl::task<std::unordered_set<SteamID>> m_FriendsFuture;
 		std::unordered_set<SteamID> m_Friends;
 		time_point_t m_LastFriendsUpdate{};
 
@@ -275,8 +275,8 @@ namespace tf2_bot_detector
 		std::unordered_set<IConsoleLineListener*> m_ConsoleLineListeners;
 		std::unordered_set<IWorldEventListener*> m_EventListeners;
 
-		mh::thread_pool m_ConsoleLineParsingPool{ 1 };
-		std::vector<mh::shared_future<std::shared_ptr<IConsoleLine>>> m_ConsoleLineParsingTasks;
+		tf2pl::thread_pool m_ConsoleLineParsingPool{ 1 };
+		std::vector<tf2pl::shared_future<std::shared_ptr<IConsoleLine>>> m_ConsoleLineParsingTasks;
 
 		struct ConsoleLineListenerBroadcaster final : IConsoleLineListener
 		{

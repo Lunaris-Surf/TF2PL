@@ -7,16 +7,17 @@
 #include "Util/RegexUtils.h"
 #include "Log.h"
 #include "WorldState.h"
+#include "StreamerMode.h"
 
-#include <mh/algorithm/multi_compare.hpp>
-#include <mh/text/charconv_helper.hpp>
-#include <mh/text/fmtstr.hpp>
+#include <tf2pl/algorithm/multi_compare.hpp>
+#include <tf2pl/text/charconv_helper.hpp>
+#include <tf2pl/text/fmtstr.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <Util/ScopeGuards.h>
 
 #include <regex>
@@ -46,7 +47,7 @@ std::string ChatConsoleLine::m_PendingMarkReason = "";
 
 std::shared_ptr<IConsoleLine> ChatConsoleLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
-	LogError(MH_SOURCE_LOCATION_CURRENT(), "This should never happen!");
+	LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "This should never happen!");
 	return nullptr;
 }
 
@@ -75,10 +76,15 @@ std::shared_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_vie
 #endif
 
 template<typename TTextFunc, typename TSameLineFunc>
-static void ProcessChatMessage(const ChatConsoleLine& msgLine, const Settings::Theme& theme,
+static void ProcessChatMessage(const ChatConsoleLine& msgLine, const Settings& settings,
 	TTextFunc&& textFunc, TSameLineFunc&& sameLineFunc)
 {
-	auto& colorSettings = theme.m_Colors;
+	auto& colorSettings = settings.m_Theme.m_Colors;
+
+	// streamer mode shows your custom name on your own messages
+	const std::string playerName = (msgLine.IsSelf() && StreamerMode::IsEnabled(settings))
+		? StreamerMode::GetName(settings)
+		: StreamerMode::DisplayName(settings, msgLine.getSteamID(), msgLine.GetPlayerName());
 	std::array<float, 4> colors{ 0.8f, 0.8f, 1.0f, 1.0f };
 
 	if (msgLine.IsSelf())
@@ -102,7 +108,7 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, const Settings::T
 			sameLineFunc();
 		}
 
-		textFunc(ImVec4(colors[0], colors[1], colors[2], colors[3] * alphaScale), msgLine.GetPlayerName());
+		textFunc(ImVec4(colors[0], colors[1], colors[2], colors[3] * alphaScale), playerName);
 		sameLineFunc();
 
 		textFunc(ImVec4(1, 1, 1, alphaScale), ": ");
@@ -141,7 +147,7 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, const Settings::T
 			{
 				sameLineFunc();
 				textFunc(ImVec4(1, 0.5f, 0.5f, 1.0f),
-					mh::fmtstr<64>("(\\n x {})", (newlineEnd - nonNewlineEnd)).c_str());
+					tf2pl::fmtstr<64>("(\\n x {})", (newlineEnd - nonNewlineEnd)).c_str());
 			}
 
 			i = newlineEnd;
@@ -157,11 +163,11 @@ void ChatConsoleLine::Print(const PrintArgs& args) const
 	ImGui::BeginGroup();
 	ProcessChatMessage(
 		*this,
-		args.m_Settings.m_Theme,
+		args.m_Settings,
 		[](const ImVec4& color, const std::string_view& msg) {
 			// TODO: selectable text?
 			//ImGuiDesktop::TextColor scope(color);
-			//auto message = mh::fmtstr<3073>(msg);
+			//auto message = tf2pl::fmtstr<3073>(msg);
 			//std::string str = message.str();
 			//ImGui::InputText("", &str, ImGuiInputTextFlags_ReadOnly);
 
@@ -180,7 +186,7 @@ void ChatConsoleLine::Print(const PrintArgs& args) const
 			std::string fullText;
 			ImGui::Selectable("test");
 
-			ProcessChatMessage(*this, args.m_Settings.m_Theme,
+			ProcessChatMessage(*this, args.m_Settings,
 				[&](const ImVec4&, const std::string_view& msg)
 				{
 					if (!fullText.empty())
@@ -223,11 +229,12 @@ TEST_CASE("ProcessChatMessage - Newlines", "[TF2PL]")
 	{
 		ChatConsoleLine line(tfbd_clock_t::now(), "<playername>", std::move(message), false, false, false, TeamShareResult::SameTeams, SteamID{});
 
-		Settings::Theme dummyTheme;
+		Settings dummySettings;
+		dummySettings.m_StreamerMode.m_Enabled = false;
 
 		std::string output;
 
-		ProcessChatMessage(line, dummyTheme,
+		ProcessChatMessage(line, dummySettings,
 			[&](const ImVec4& color, const std::string_view& msg)
 			{
 				output << msg << '\n';

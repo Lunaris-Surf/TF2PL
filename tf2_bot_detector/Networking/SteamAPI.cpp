@@ -7,16 +7,16 @@
 #include "Log.h"
 #include "Filesystem.h"
 
-#include <mh/concurrency/thread_pool.hpp>
-#include <mh/coroutine/future.hpp>
-#include <mh/text/fmtstr.hpp>
+#include <tf2pl/concurrency/thread_pool.hpp>
+#include <tf2pl/coroutine/future.hpp>
+#include <tf2pl/text/fmtstr.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/string_insertion.hpp>
-#include <mh/future.hpp>
+#include <tf2pl/text/string_insertion.hpp>
+#include <tf2pl/future.hpp>
 #include <nlohmann/json.hpp>
 #include <stb_image.h>
 
@@ -47,10 +47,10 @@ namespace
 			DeleteOldFiles(m_CacheDir, 24h * 7);
 		}
 
-		mh::task<Bitmap> GetAvatarBitmap(const HTTPClient* client,
+		tf2pl::task<Bitmap> GetAvatarBitmap(const HTTPClient* client,
 			const std::string url, const std::string hash) const
 		{
-			const std::filesystem::path cachedPath = m_CacheDir / mh::fmtstr<128>("{}.jpg", hash).view();
+			const std::filesystem::path cachedPath = m_CacheDir / tf2pl::fmtstr<128>("{}.jpg", hash).view();
 
 			// See if we're already stored in the cache
 			{
@@ -62,7 +62,7 @@ namespace
 				}
 				catch (const std::exception& e)
 				{
-					LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to load cached avatar from {}, re-fetching...", cachedPath);
+					LogException(TF2PL_SOURCE_LOCATION_CURRENT(), e, "Failed to load cached avatar from {}, re-fetching...", cachedPath);
 				}
 			}
 
@@ -119,7 +119,7 @@ std::string PlayerSummary::GetAvatarURL(AvatarQuality quality) const
 		break;
 
 	default:
-		LogWarning(MH_SOURCE_LOCATION_CURRENT(),
+		LogWarning(TF2PL_SOURCE_LOCATION_CURRENT(),
 			"Unknown AvatarQuality "s << +std::underlying_type_t<AvatarQuality>(quality));
 		[[fallthrough]];
 	case AvatarQuality::Small:
@@ -131,7 +131,7 @@ std::string PlayerSummary::GetAvatarURL(AvatarQuality quality) const
 		m_AvatarHash, qualityStr);
 }
 
-mh::task<Bitmap> PlayerSummary::GetAvatarBitmap(std::shared_ptr<const HTTPClient> client, AvatarQuality quality) const
+tf2pl::task<Bitmap> PlayerSummary::GetAvatarBitmap(std::shared_ptr<const HTTPClient> client, AvatarQuality quality) const
 {
 	return GetAvatarCacheManager().GetAvatarBitmap(client.get(), GetAvatarURL(quality), m_AvatarHash);
 }
@@ -194,7 +194,7 @@ catch (...)
 	throw;
 }
 
-std::string tf2_bot_detector::SteamAPI::GenerateSteamIDsQueryParam(const std::vector<SteamID>& steamIDs, size_t max, const ::mh::source_location& location)
+std::string tf2_bot_detector::SteamAPI::GenerateSteamIDsQueryParam(const std::vector<SteamID>& steamIDs, size_t max, const ::tf2pl::source_location& location)
 {
 	if (steamIDs.size() > max)
 		LogError(location, "Attempted to fetch {} steamIDs at once (max {}). Clamping to {}.", steamIDs.size(), max, max);
@@ -211,7 +211,7 @@ std::string tf2_bot_detector::SteamAPI::GenerateSteamIDsQueryParam(const std::ve
 	return steamIDsString;
 }
 
-mh::task<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSummariesAsync(
+tf2pl::task<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSummariesAsync(
 	const ISteamAPISettings& apiSettings, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
 {
 	if (steamIDs.empty())
@@ -261,12 +261,12 @@ void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerBans& 
 		d.m_EconomyBan = PlayerEconomyBan::Probation;
 	else
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown EconomyBan value "s << std::quoted(economyBan));
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Unknown EconomyBan value "s << std::quoted(economyBan));
 		d.m_EconomyBan = PlayerEconomyBan::Unknown;
 	}
 }
 
-mh::task<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync(
+tf2pl::task<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync(
 	const ISteamAPISettings& apiSettings, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
 {
 	if (steamIDs.empty())
@@ -306,7 +306,7 @@ mh::task<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync
 	}
 }
 
-mh::task<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
+tf2pl::task<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 	const ISteamAPISettings& apiSettings, const SteamID& steamID, const HTTPClient& client)
 {
 	if (!steamID.IsValid())
@@ -417,12 +417,12 @@ std::error_condition tf2_bot_detector::SteamAPI::make_error_condition(tf2_bot_de
 	return std::error_condition(int(e), tf2_bot_detector::SteamAPI::ErrorCategory());
 }
 
-mh::task<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(const ISteamAPISettings& apiSettings,
+tf2pl::task<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(const ISteamAPISettings& apiSettings,
 	const SteamID& steamID, const HTTPClient& client)
 {
 	if (!steamID.IsValid())
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Invalid SteamID {}", steamID.ID64);
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Invalid SteamID {}", steamID.ID64);
 		co_return {};
 	}
 
@@ -446,7 +446,7 @@ mh::task<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(
 
 tf2_bot_detector::SteamAPI::SteamAPIError::SteamAPIError(
 	std::error_condition code, const std::string_view& detail, const std::source_location& location) :
-	mh::error_condition_exception(code, fmt::format(FMT_STRING("{}: {}"), location, detail)),
+	tf2pl::error_condition_exception(code, fmt::format(FMT_STRING("{}: {}"), location, detail)),
 	m_SourceLocation(location)
 {
 	if (code != ErrorCode::InfoPrivate && code != ErrorCode::GameNotOwned)
@@ -467,7 +467,7 @@ bool SteamAPI::PlayerBans::HasAnyBans() const
 	return false;
 }
 
-mh::task<PlayerInventoryInfo> SteamAPI::GetTF2InventoryInfoAsync(const ISteamAPISettings& apiSettings,
+tf2pl::task<PlayerInventoryInfo> SteamAPI::GetTF2InventoryInfoAsync(const ISteamAPISettings& apiSettings,
 	const SteamID& steamID, const IHTTPClient& client)
 {
 	if (!steamID.IsValid())

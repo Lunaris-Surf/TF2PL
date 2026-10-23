@@ -4,7 +4,7 @@
 #include "ModeratorLogic.h"
 #include "SteamID.h"
 
-#include <mh/coroutine/generator.hpp>
+#include <tf2pl/coroutine/generator.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <bitset>

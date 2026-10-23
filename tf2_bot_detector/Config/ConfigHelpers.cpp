@@ -10,9 +10,9 @@
 #include "Settings.h"
 #include "UntrustedLists.h"
 
-#include <mh/text/formatters/error_code.hpp>
-#include <mh/text/case_insensitive_string.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/formatters/error_code.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
 #include <fmt/format.h>
@@ -58,7 +58,7 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 	}
 	catch (const std::filesystem::filesystem_error& e)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(), e,
 			"Failed to gather names matching {}.*.json in cfg", basename);
 	}
 
@@ -81,7 +81,7 @@ static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, cons
 	return schema;
 }
 
-static mh::task<bool> TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& existingJson,
+static tf2pl::task<bool> TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& existingJson,
 	SharedConfigFileBase& config, const HTTPClient& client)
 {
 	auto fileInfoJson = existingJson.find("file_info");
@@ -105,7 +105,7 @@ static mh::task<bool> TryAutoUpdate(std::filesystem::path filename, const nlohma
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(),
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {}: failed to parse new json from {}", filename, info.m_UpdateURL);
 		co_return false;
 	}
@@ -132,7 +132,7 @@ static mh::task<bool> TryAutoUpdate(std::filesystem::path filename, const nlohma
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(),
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {} from {}: new json failed schema validation", filename, info.m_UpdateURL);
 		co_return false;
 	}
@@ -145,7 +145,7 @@ static mh::task<bool> TryAutoUpdate(std::filesystem::path filename, const nlohma
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(),
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {} from {}: failed to parse file info from new json", filename, info.m_UpdateURL);
 		co_return false;
 	}
@@ -159,19 +159,19 @@ static mh::task<bool> TryAutoUpdate(std::filesystem::path filename, const nlohma
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(),
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {}: failed to deserialize response from {}", filename, info.m_UpdateURL);
 		co_return false;
 	}
 
 	if (config.SaveFile(filename))
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Successfully downloaded and deserialized new version of {} from {}, but couldn't write it back to disk.",
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Successfully downloaded and deserialized new version of {} from {}, but couldn't write it back to disk.",
 			filename, info.m_UpdateURL);
 	}
 	else
 	{
-		DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Wrote auto-updated config file from {} to {}", info.m_UpdateURL, filename);
+		DebugLog(TF2PL_SOURCE_LOCATION_CURRENT(), "Wrote auto-updated config file from {} to {}", info.m_UpdateURL, filename);
 	}
 
 	co_return true;
@@ -217,7 +217,7 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigFileInfo& d)
 	try_get_to_defaulted(j, d.m_UpdateURL, "update_url");
 }
 
-mh::task<std::error_condition> tf2_bot_detector::detail::LoadConfigFileAsync(ConfigFileBase& file, std::filesystem::path filename,
+tf2pl::task<std::error_condition> tf2_bot_detector::detail::LoadConfigFileAsync(ConfigFileBase& file, std::filesystem::path filename,
 	bool allowAutoUpdate, const Settings& settings, bool saveAfterLoad)
 {
 	std::shared_ptr<const HTTPClient> client;
@@ -247,21 +247,21 @@ static void SaveConfigFileBackup(const std::filesystem::path& filename) noexcept
 
 		if (!std::filesystem::exists(backupPath))
 		{
-			Log(MH_SOURCE_LOCATION_CURRENT(), "Attempting to make backup of {} to {}...", filename, backupPath);
+			Log(TF2PL_SOURCE_LOCATION_CURRENT(), "Attempting to make backup of {} to {}...", filename, backupPath);
 			std::filesystem::copy_file(filename, backupPath);
 			break;
 		}
 	}
 
-	LogWarning(MH_SOURCE_LOCATION_CURRENT(), "A backup of {0} was saved to {1} before {0} was overwritten.", filename, backupPath);
+	LogWarning(TF2PL_SOURCE_LOCATION_CURRENT(), "A backup of {0} was saved to {1} before {0} was overwritten.", filename, backupPath);
 }
 catch (...)
 {
-	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), "Loading config file {} failed, and TF2PL was unable to make a backup before overwriting it.",
+	LogFatalException(TF2PL_SOURCE_LOCATION_CURRENT(), "Loading config file {} failed, and TF2PL was unable to make a backup before overwriting it.",
 		filename);
 }
 
-mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesystem::path& filename,
+tf2pl::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesystem::path& filename,
 	std::shared_ptr<const HTTPClient> client, bool saveAfterLoad)
 {
 	const auto loadResult = co_await LoadFileInternalAsync(filename, client);
@@ -289,18 +289,18 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesyst
 	{
 		if (loadResult)
 		{
-			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Failed to load {} and TF2PL could not create a replacement config.\n\nLoad error: {}\nSave error: {}", filename, loadResult, saveResult);
+			LogFatalError(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to load {} and TF2PL could not create a replacement config.\n\nLoad error: {}\nSave error: {}", filename, loadResult, saveResult);
 		}
 		else
 		{
-			LogWarning(MH_SOURCE_LOCATION_CURRENT(), "Failed to resave {}", filename);
+			LogWarning(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to resave {}", filename);
 		}
 	}
 
 	co_return loadResult;
 }
 
-mh::task<std::error_condition> ConfigFileBase::LoadFileInternalAsync(std::filesystem::path filename, std::shared_ptr<const HTTPClient> client)
+tf2pl::task<std::error_condition> ConfigFileBase::LoadFileInternalAsync(std::filesystem::path filename, std::shared_ptr<const HTTPClient> client)
 {
 	try
 	{
@@ -329,7 +329,7 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileInternalAsync(std::filesy
 		}
 		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to load {}", filename);
+			LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to load {}", filename);
 			co_return ConfigErrorType::ReadFileFailed;
 		}
 
@@ -339,7 +339,7 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileInternalAsync(std::filesy
 		}
 		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to parse JSON from {}", filename);
+			LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to parse JSON from {}", filename);
 			co_return ConfigErrorType::JSONParseFailed;
 		}
 	}
@@ -350,7 +350,7 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileInternalAsync(std::filesy
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(),
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(),
 			"Failed to load {}, existing json failed schema validation", filename);
 		co_return ConfigErrorType::SchemaValidationFailed;
 	}
@@ -367,7 +367,7 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileInternalAsync(std::filesy
 		}
 		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(),
+			LogException(TF2PL_SOURCE_LOCATION_CURRENT(),
 				"Skipping auto-update for {}, failed to parse file_info", filename);
 		}
 	}
@@ -391,7 +391,7 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileInternalAsync(std::filesy
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(),
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(),
 			"Failed to load {}, existing file failed to deserialize, and auto-update did not occur", filename);
 		co_return ConfigErrorType::DeserializeFailed;
 	}
@@ -412,7 +412,7 @@ std::error_condition tf2_bot_detector::ConfigFileBase::SaveFile(const std::files
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(),
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(),
 			"Failed to serialize {}, schema failed to validate", filename);
 		return ConfigErrorType::SchemaValidationFailed;
 	}
@@ -423,7 +423,7 @@ std::error_condition tf2_bot_detector::ConfigFileBase::SaveFile(const std::files
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to serialize {}", filename);
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to serialize {}", filename);
 		return ConfigErrorType::SerializeFailed;
 	}
 
@@ -433,7 +433,7 @@ std::error_condition tf2_bot_detector::ConfigFileBase::SaveFile(const std::files
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to validate schema for serialized content {}", filename);
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to validate schema for serialized content {}", filename);
 		return ConfigErrorType::SerializedSchemaValidationFailed;
 	}
 
@@ -443,7 +443,7 @@ std::error_condition tf2_bot_detector::ConfigFileBase::SaveFile(const std::files
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to write {}", filename);
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to write {}", filename);
 		return ConfigErrorType::WriteFileFailed;
 	}
 

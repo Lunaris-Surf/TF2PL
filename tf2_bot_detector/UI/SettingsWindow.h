@@ -18,6 +18,7 @@ namespace tf2_bot_detector
 		void OnDraw();
 
 	private:
+		void OnDrawStreamerModeSettings();
 		void OnDrawASOSettings();
 		void OnDrawCompatibilitySettings();
 		void OnDrawLoggingSettings();

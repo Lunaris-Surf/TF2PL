@@ -11,8 +11,8 @@
 #include "Version.h"
 
 #include <imgui.h>
-#include <mh/algorithm/algorithm.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/algorithm/algorithm.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #include <string_view>
 
@@ -43,15 +43,56 @@ SetupFlow::SetupFlow()
 	m_Pages.push_back(std::make_unique<ChatWrappersVerifyPage>());
 	// order unimportant, see SetupFlowPage enum
 
-	mh::sort(m_Pages, [](const std::unique_ptr<ISetupFlowPage>& lhs, const std::unique_ptr<ISetupFlowPage>& rhs)
+	tf2pl::sort(m_Pages, [](const std::unique_ptr<ISetupFlowPage>& lhs, const std::unique_ptr<ISetupFlowPage>& rhs)
 		{
 			assert(lhs->GetPage() != rhs->GetPage());
 			return lhs->GetPage() < rhs->GetPage();
 		});
 }
 
+bool SetupFlow::IsPreviewBypassablePage(SetupFlowPage page)
+{
+	return page == SetupFlowPage::CheckSteamOpen ||
+		page == SetupFlowPage::TF2CommandLine ||
+		page == SetupFlowPage::ChatWrappersVerify;
+}
+
+bool SetupFlow::CanPreviewBypass(const Settings& settings) const
+{
+	for (const auto& page : m_Pages)
+	{
+		if (page->ValidateSettings(settings) == ISetupFlowPage::ValidateSettingsResult::TriggerOpen &&
+			!IsPreviewBypassablePage(page->GetPage()))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void SetupFlow::SetPreviewBypass(bool bypass)
+{
+	if (m_PreviewBypass == bypass)
+		return;
+
+	m_PreviewBypass = bypass;
+	if (bypass)
+	{
+		// stop drawing whatever page was up; OnUpdate decides again on the next update
+		m_ShouldDraw = false;
+		m_ActivePage = INVALID_PAGE;
+	}
+}
+
 bool SetupFlow::OnUpdate(const Settings& settings)
 {
+	if (m_PreviewBypass && CanPreviewBypass(settings))
+	{
+		m_ShouldDraw = false;
+		m_ActivePage = INVALID_PAGE;
+		return false;
+	}
+
 	if (ShouldDraw())
 		return true;
 

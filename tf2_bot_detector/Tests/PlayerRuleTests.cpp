@@ -4,8 +4,8 @@
 #include "Networking/SteamHistoryAPI.h"
 #include <nlohmann/json.hpp>
 
-#include <mh/error/not_implemented_error.hpp>
-#include <mh/text/codecvt.hpp>
+#include <tf2pl/error/not_implemented_error.hpp>
+#include <tf2pl/text/codecvt.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -17,93 +17,93 @@ namespace
 	struct MockPlayer : IPlayer
 	{
 		std::string m_Name;
-		const mh::expected<SteamHistoryAPI::PlayerSourceBanState>& GetPlayerSourceBanState() const override { throw mh::not_implemented_error(); }
-		const mh::expected<SteamHistoryAPI::PlayerSourceBans>& GetPlayerSourceBans() const override { throw mh::not_implemented_error(); }
-		const mh::expected<SteamAPI::PlayerFriends>& GetFriendsInfo() const override { throw mh::not_implemented_error(); }
+		const tf2pl::expected<SteamHistoryAPI::PlayerSourceBanState>& GetPlayerSourceBanState() const override { throw tf2pl::not_implemented_error(); }
+		const tf2pl::expected<SteamHistoryAPI::PlayerSourceBans>& GetPlayerSourceBans() const override { throw tf2pl::not_implemented_error(); }
+		const tf2pl::expected<SteamAPI::PlayerFriends>& GetFriendsInfo() const override { throw tf2pl::not_implemented_error(); }
 
-		const IWorldState& GetWorld() const override { throw mh::not_implemented_error(); }
+		const IWorldState& GetWorld() const override { throw tf2pl::not_implemented_error(); }
 
 		// Inherited via IPlayer
 		const LobbyMember* GetLobbyMember() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		std::string GetNameUnsafe() const override { return m_Name; }
 		SteamID GetSteamID() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
-		const mh::expected<SteamAPI::PlayerSummary, std::error_condition>& GetPlayerSummary() const override
+		const tf2pl::expected<SteamAPI::PlayerSummary, std::error_condition>& GetPlayerSummary() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
-		const mh::expected<SteamAPI::PlayerBans, std::error_condition>& GetPlayerBans() const override
+		const tf2pl::expected<SteamAPI::PlayerBans, std::error_condition>& GetPlayerBans() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
-		mh::expected<duration_t, std::error_condition> GetTF2Playtime() const override
+		tf2pl::expected<duration_t, std::error_condition> GetTF2Playtime() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		bool IsFriend() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		std::optional<UserID_t> GetUserID() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		PlayerStatusState GetConnectionState() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		time_point_t GetConnectionTime() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		duration_t GetConnectedTime() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		TFTeam GetTeam() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		const PlayerScores& GetScores() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		uint16_t GetPing() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		time_point_t GetLastStatusUpdateTime() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		duration_t GetActiveTime() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		std::any& GetOrCreateDataStorage(const std::type_index& type) override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		const std::any* FindDataStorage(const std::type_index& type) const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 		std::optional<time_point_t> GetEstimatedAccountCreationTime() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
-		const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override
+		const tf2pl::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
-		const mh::expected<SteamAPI::PlayerInventoryInfo>& GetInventoryInfo() const override
+		const tf2pl::expected<SteamAPI::PlayerInventoryInfo>& GetInventoryInfo() const override
 		{
-			throw mh::not_implemented_error();
+			throw tf2pl::not_implemented_error();
 		}
 	};
 }
@@ -143,7 +143,7 @@ TEST_CASE("Player Rules - chatmsg contains", "[PlayerRuleTests]")
 	MockPlayer player;
 	player.m_Name = "Special Gamer";
 
-	const auto chatMsg = mh::change_encoding<char>(u8"Mean words!!!!!!!!!!!!!!! 😡");
+	const auto chatMsg = tf2pl::change_encoding<char>(u8"Mean words!!!!!!!!!!!!!!! 😡");
 
 	ModerationRule rule;
 
@@ -171,7 +171,7 @@ TEST_CASE("Player Rules - chatmsg word", "[PlayerRuleTests]")
 	MockPlayer player;
 	player.m_Name = "Special Gamer";
 
-	const auto chatMsg = mh::change_encoding<char>(u8"you are stinky");
+	const auto chatMsg = tf2pl::change_encoding<char>(u8"you are stinky");
 
 	ModerationRule rule;
 

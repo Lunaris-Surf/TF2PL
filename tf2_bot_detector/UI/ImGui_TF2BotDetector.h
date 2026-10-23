@@ -5,9 +5,9 @@
 #include <Util/ImguiHelpers.h>
 #include <Util/ScopeGuards.h>
 #include <imgui.h>
-#include <mh/raii/scope_exit.hpp>
-#include <mh/text/fmtstr.hpp>
-#include <mh/types/disable_copy_move.hpp>
+#include <tf2pl/raii/scope_exit.hpp>
+#include <tf2pl/text/fmtstr.hpp>
+#include <tf2pl/types/disable_copy_move.hpp>
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <filesystem>
@@ -22,7 +22,7 @@ namespace ImGui
 		decltype(fmt::format(fmt::runtime(fmtStr), args...), void())
 	{
 		if constexpr (sizeof...(TArgs) > 0)
-			return TextFmt(mh::fmtstr<3073>(fmtStr, args...));
+			return TextFmt(tf2pl::fmtstr<3073>(fmtStr, args...));
 		else
 			return TextUnformatted(fmtStr.data(), fmtStr.data() + fmtStr.size());
 	}
@@ -67,7 +67,7 @@ namespace ImGui
 
 	namespace detail
 	{
-		using PopupScope = decltype(mh::scope_exit(ImGui::EndPopup));
+		using PopupScope = decltype(tf2pl::scope_exit(ImGui::EndPopup));
 	}
 
 	inline detail::PopupScope BeginPopupContextItemScope(const char* str_id = nullptr, ImGuiMouseButton mouse_button = 1)

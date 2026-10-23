@@ -4,9 +4,9 @@
 #include "Log.h"
 
 #include <vdf_parser.hpp>
-#include <mh/coroutine/generator.hpp>
-#include <mh/text/fmtstr.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/coroutine/generator.hpp>
+#include <tf2pl/text/fmtstr.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
 #include <array>
@@ -265,8 +265,8 @@ static void GetChatMsgFormats(const std::string_view& debugInfo, const std::stri
 
 			if (attrib.second.empty())
 			{
-				LogWarning(MH_SOURCE_LOCATION_CURRENT(), "{}: Empty value read for {} ({})",
-					fmt::streamed(std::quoted(debugInfo)), fmt::streamed(std::quoted(attrib.first)), mh::enum_fmt(cat));
+				LogWarning(TF2PL_SOURCE_LOCATION_CURRENT(), "{}: Empty value read for {} ({})",
+					fmt::streamed(std::quoted(debugInfo)), fmt::streamed(std::quoted(attrib.first)), tf2pl::enum_fmt(cat));
 			}
 
 			(isEnglish ? strings.m_English : strings.m_Localized)[(int)cat] = attrib.second;
@@ -279,7 +279,7 @@ static void ApplyChatWrappers(const std::string_view& debugInfo, ChatCategory ca
 {
 	if (translation.empty())
 	{
-		LogWarning(MH_SOURCE_LOCATION_CURRENT(), "{}: Translation empty for {}", debugInfo, mh::enum_fmt(cat));
+		LogWarning(TF2PL_SOURCE_LOCATION_CURRENT(), "{}: Translation empty for {}", debugInfo, tf2pl::enum_fmt(cat));
 		return;
 	}
 
@@ -304,7 +304,7 @@ static void ApplyChatWrappers(const std::string_view& debugInfo, ChatCategory ca
 	translation = std::move(replaced);
 }
 
-static mh::generator<std::filesystem::path> GetLocalizationFiles(
+static tf2pl::generator<std::filesystem::path> GetLocalizationFiles(
 	const std::filesystem::path& tfDir, const std::string_view& language, bool baseFirst = true)
 {
 	if (baseFirst)
@@ -394,7 +394,7 @@ static constexpr std::string_view GetChatCategoryKey(ChatCategory cat, bool isEn
 
 	case ChatCategory::COUNT:	  break;
 	}
-	LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown key for {} with isEnglish = {}", mh::enum_fmt(cat), isEnglish);
+	LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Unknown key for {} with isEnglish = {}", tf2pl::enum_fmt(cat), isEnglish);
 	return "TF_Chat_UNKNOWN"sv;
 }
 
@@ -408,11 +408,11 @@ static void PrintChatWrappers(const ChatWrappers& wrappers)
 
 	static const auto PrintWrapper = [](std::string& str, const ChatWrappers::wrapper_t& wrapper)
 	{
-		mh::strwrapperstream os(str);
+		tf2pl::strwrapperstream os(str);
 		os << std::quoted(wrapper.m_Narrow) << " (";
 
 		for (auto c : wrapper.m_Wide)
-			os << mh::pfstr<64>("\\x%04X", +c);
+			os << tf2pl::pfstr<64>("\\x%04X", +c);
 
 		os << ')';
 	};
@@ -437,7 +437,7 @@ static void PrintChatWrappers(const ChatWrappers& wrappers)
 
 		logMsg << '\n';
 		Indent(logMsg, 1);
-		logMsg << mh::enum_fmt(cat) << ':';
+		logMsg << tf2pl::enum_fmt(cat) << ':';
 
 		logMsg << "\n\t\tFull: ";
 		PrintWrapperPair(logMsg, 2, wrappers.m_Types[i].m_Full);
@@ -553,14 +553,14 @@ ChatFmtStrLengths::Type::Type(const std::string_view& str)
 	const auto s1 = str.find("%s1");
 	if (s1 == str.npos)
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to find '%s1' in "s << std::quoted(str));
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to find '%s1' in "s << std::quoted(str));
 		return;
 	}
 
 	const auto s2 = str.find("%s2");
 	if (s2 == str.npos)
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to find '%s2' in "s << std::quoted(str));
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to find '%s2' in "s << std::quoted(str));
 		return;
 	}
 
@@ -603,9 +603,9 @@ size_t ChatFmtStrLengths::Type::GetMaxWrapperLength() const
 }
 
 ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir,
-	mh::status_reader<ChatWrappersProgress>* progressReader)
+	tf2pl::status_reader<ChatWrappersProgress>* progressReader)
 {
-	mh::status_source<ChatWrappersProgress> progressSource;
+	tf2pl::status_source<ChatWrappersProgress> progressSource;
 	if (progressReader)
 		*progressReader = progressSource;
 
@@ -708,7 +708,7 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 			IncrementProgress();
 
 			std::string outFile;
-			mh::strwrapperstream stream(outFile);
+			tf2pl::strwrapperstream stream(outFile);
 			tyti::vdf::write(stream, file);
 			IncrementProgress();
 

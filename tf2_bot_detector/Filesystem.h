@@ -1,7 +1,7 @@
 #pragma once
 
-#include <mh/coroutine/generator.hpp>
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/coroutine/generator.hpp>
+#include <tf2pl/reflection/enum.hpp>
 
 #include <cstddef>
 #include <filesystem>
@@ -30,7 +30,7 @@ namespace tf2_bot_detector
 
 		virtual void Init() = 0;
 
-		virtual mh::generator<std::filesystem::path> GetSearchPaths() const = 0;
+		virtual tf2pl::generator<std::filesystem::path> GetSearchPaths() const = 0;
 
 		virtual std::filesystem::path ResolvePath(const std::filesystem::path& path, PathUsage usage) const = 0;
 
@@ -41,7 +41,7 @@ namespace tf2_bot_detector
 		virtual std::string ReadFile(std::filesystem::path path) const = 0;
 		virtual void WriteFile(std::filesystem::path path, const void* begin, const void* end, PathUsage usage) const = 0;
 
-		virtual mh::generator<std::filesystem::directory_entry> IterateDir(std::filesystem::path path, bool recursive,
+		virtual tf2pl::generator<std::filesystem::directory_entry> IterateDir(std::filesystem::path path, bool recursive,
 			std::filesystem::directory_options options = std::filesystem::directory_options::none) const = 0;
 
 		void WriteFile(const std::filesystem::path& path, const std::string_view& data, PathUsage usage) const
@@ -68,8 +68,8 @@ namespace tf2_bot_detector
 	};
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::PathUsage)
-	MH_ENUM_REFLECT_VALUE(Read)
-	MH_ENUM_REFLECT_VALUE(WriteRoaming)
-	MH_ENUM_REFLECT_VALUE(WriteLocal)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::PathUsage)
+	TF2PL_ENUM_REFLECT_VALUE(Read)
+	TF2PL_ENUM_REFLECT_VALUE(WriteRoaming)
+	TF2PL_ENUM_REFLECT_VALUE(WriteLocal)
+TF2PL_ENUM_REFLECT_END()

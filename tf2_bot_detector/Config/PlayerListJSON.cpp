@@ -5,8 +5,8 @@
 #include "Log.h"
 #include "Settings.h"
 
-#include <mh/text/case_insensitive_string.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
@@ -287,7 +287,7 @@ void PlayerListJSON::SaveFiles() const
 }
 
 auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
-	mh::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
+	tf2pl::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 {
 	if (m_CFGGroup.m_UserList.has_value())
 	{
@@ -315,7 +315,7 @@ auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
 }
 
 auto PlayerListJSON::GetAllPlayerData() const ->
-	mh::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
+	tf2pl::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 {
 	if (m_CFGGroup.m_UserList.has_value())
 	{
@@ -338,7 +338,7 @@ auto PlayerListJSON::GetAllPlayerData() const ->
 }
 
 auto PlayerListJSON::FindPlayerAttributes(const SteamID& id, AttributePersistence persistence) const ->
-	mh::generator<std::pair<const ConfigFileName&, PlayerAttributesList>>
+	tf2pl::generator<std::pair<const ConfigFileName&, PlayerAttributesList>>
 {
 	for (auto& [fileName, found] : FindPlayerData(id))
 	{
@@ -347,7 +347,7 @@ auto PlayerListJSON::FindPlayerAttributes(const SteamID& id, AttributePersistenc
 		switch (persistence)
 		{
 		default:
-			LogError("Unknown persistence {}", mh::enum_fmt(persistence));
+			LogError("Unknown persistence {}", tf2pl::enum_fmt(persistence));
 			[[fallthrough]];
 		case AttributePersistence::Any:
 			attr = found.GetAttributes();

@@ -6,8 +6,8 @@
 #include "ReleaseChannel.h"
 #include "UpdateManager.h"
 
-#include <mh/algorithm/multi_compare.hpp>
-#include <mh/raii/scope_exit.hpp>
+#include <tf2pl/algorithm/multi_compare.hpp>
+#include <tf2pl/raii/scope_exit.hpp>
 
 using namespace tf2_bot_detector;
 
@@ -28,7 +28,7 @@ namespace
 		SetupFlowPage GetPage() const override { return SetupFlowPage::UpdateCheck; }
 
 	private:
-		mh::status_reader<UpdateStatus> m_StatusReader;
+		tf2pl::status_reader<UpdateStatus> m_StatusReader;
 		bool m_HasChangedReleaseChannel = false;
 		bool m_UpdateButtonPressed = false;
 		bool m_DrawnOnce = false;
@@ -81,7 +81,7 @@ namespace
 		if (!m_StatusReader.has_value())
 		{
 			assert(false);
-			LogWarning(MH_SOURCE_LOCATION_CURRENT(), "status reader empty!");
+			LogWarning(TF2PL_SOURCE_LOCATION_CURRENT(), "status reader empty!");
 			return OnDrawResult::EndDrawing;
 		}
 
@@ -99,9 +99,9 @@ namespace
 
 		if (auto rc = ds.m_Settings->m_ReleaseChannel; Combo("##SetupFlow_UpdateCheckingMode", rc) && rc.has_value())
 		{
-			DebugLog(MH_SOURCE_LOCATION_CURRENT(),
+			DebugLog(TF2PL_SOURCE_LOCATION_CURRENT(),
 				"Update check mode changed to {}, queueing update check and saving settings...",
-				mh::enum_fmt(rc.value()));
+				tf2pl::enum_fmt(rc.value()));
 
 			ds.m_Settings->m_ReleaseChannel = rc;
 			ds.m_Settings->SaveFile();
@@ -126,7 +126,7 @@ namespace
 		{
 			if (!m_HasChangedReleaseChannel)
 			{
-				DebugLog(MH_SOURCE_LOCATION_CURRENT(),
+				DebugLog(TF2PL_SOURCE_LOCATION_CURRENT(),
 					"Update check disabled, and release channel unchanged. Continuing...");
 				return OnDrawResult::EndDrawing;
 			}
@@ -135,7 +135,7 @@ namespace
 		}
 
 		case UpdateStatus::InternetAccessDisabled:
-			DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Internet access disabled. Continuing...");
+			DebugLog(TF2PL_SOURCE_LOCATION_CURRENT(), "Internet access disabled. Continuing...");
 			return OnDrawResult::EndDrawing;
 
 		default:
@@ -189,7 +189,7 @@ namespace
 		if (updateStatus.m_Status == UpdateStatus::UpdateAvailable)
 		{
 			ImGui::TextFmt({ 0, 1, 1, 1 }, "Update available: v{} [{:v}] (current version v{})",
-				update->m_BuildInfo.m_Version, mh::enum_fmt(update->m_BuildInfo.m_ReleaseChannel), VERSION);
+				update->m_BuildInfo.m_Version, tf2pl::enum_fmt(update->m_BuildInfo.m_ReleaseChannel), VERSION);
 
 			if (update->m_BuildInfo.m_ReleaseChannel >= ReleaseChannel::Preview)
 			{
@@ -224,7 +224,7 @@ namespace
 		case UpdateStatus::UpToDate:
 		{
 			ImGui::TextFmt({ 0, 1, 0, 1 }, "Up to date (v{} {:v})", VERSION,
-				mh::enum_fmt(ds.m_Settings->m_ReleaseChannel.value_or(ReleaseChannel::Public)));
+				tf2pl::enum_fmt(ds.m_Settings->m_ReleaseChannel.value_or(ReleaseChannel::Public)));
 
 			if (!m_HasChangedReleaseChannel)
 				return OnDrawResult::EndDrawing;
@@ -295,7 +295,7 @@ namespace
 
 	bool UpdateCheckPage::CanCommit() const
 	{
-		return mh::none_eq(m_StatusReader.get().m_Status
+		return tf2pl::none_eq(m_StatusReader.get().m_Status
 			, UpdateStatus::CheckQueued
 			, UpdateStatus::Checking
 			, UpdateStatus::UpdateToolRequired

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mh/coroutine/task.hpp>
+#include <tf2pl/coroutine/task.hpp>
 
 #include <memory>
 #include <string>
@@ -18,7 +18,7 @@ namespace tf2_bot_detector
 		static std::shared_ptr<IHTTPClient> Create();
 
 		virtual std::string GetString(const URL& url) const = 0;
-		virtual mh::task<std::string> GetStringAsync(URL url) const = 0;
+		virtual tf2pl::task<std::string> GetStringAsync(URL url) const = 0;
 
 		struct RequestCounts
 		{

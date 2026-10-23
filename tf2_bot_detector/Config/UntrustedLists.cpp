@@ -221,7 +221,7 @@ void UntrustedLists::ScreenPlayerLists()
 			}
 			catch (const std::exception& e)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to read {} while checking for untrusted lists", path);
+				LogException(TF2PL_SOURCE_LOCATION_CURRENT(), e, "Failed to read {} while checking for untrusted lists", path);
 				continue;
 			}
 
@@ -284,7 +284,7 @@ void UntrustedLists::ScreenPlayerLists()
 	}
 	catch (const std::exception& e)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to scan cfg for untrusted player lists");
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(), e, "Failed to scan cfg for untrusted player lists");
 	}
 
 	// Combined exports don't record where entries came from, so if the untrusted list was installed,

@@ -2,7 +2,7 @@
 
 #include "SteamID.h"
 
-#include <mh/coroutine/task.hpp>
+#include <tf2pl/coroutine/task.hpp>
 
 #include <memory>
 
@@ -19,5 +19,5 @@ namespace tf2_bot_detector::LogsTFAPI
 		uint32_t m_LogsCount;
 	};
 
-	mh::task<PlayerLogsInfo> GetPlayerLogsInfoAsync(std::shared_ptr<const IHTTPClient> client, SteamID id);
+	tf2pl::task<PlayerLogsInfo> GetPlayerLogsInfoAsync(std::shared_ptr<const IHTTPClient> client, SteamID id);
 }

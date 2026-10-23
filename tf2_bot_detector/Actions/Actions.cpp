@@ -1,7 +1,7 @@
 #include "Actions.h"
 
-#include <mh/text/string_insertion.hpp>
-#include <mh/text/stringops.hpp>
+#include <tf2pl/text/string_insertion.hpp>
+#include <tf2pl/text/stringops.hpp>
 #include <nlohmann/json.hpp>
 
 #include <iomanip>

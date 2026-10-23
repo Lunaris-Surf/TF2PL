@@ -1,6 +1,6 @@
 #include "Bitmap.h"
 
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #define STBI_FAILURE_USERMSG 1
 #ifdef _DEBUG

@@ -18,7 +18,7 @@
 #include "PlayerStatus.h"
 #include "GameData/TFConstants.h"
 #include "Application.h"
-#include <mh/error/expected.hpp>
+#include <tf2pl/error/expected.hpp>
 
 #include <optional>
 #include <vector>
@@ -70,6 +70,8 @@ namespace tf2_bot_detector
 		void OnDrawMenuBar();
 		void OnDraw();
 		void OnDrawWebModeStatus(); // replaces the main panes while Interface = Web
+		void OnDrawPreviewBanner();  // "you're looking at a sample lobby" strip + exit button
+		void OnDrawPreviewOffer();   // "explore TF2PL without TF2" on the launch/setup panel
 		void OnEndFrame();
 		void OnDrawScoreboard();
 		void OnDrawTeamStats();
@@ -109,7 +111,6 @@ namespace tf2_bot_detector
 		void OpenAboutPopup() { m_AboutPopupOpen = true; }
 
 		void PrintDebugInfo();
-		void GenerateDebugReport();
 
 		bool IsSleepingEnabled() const;
 
@@ -131,7 +132,13 @@ namespace tf2_bot_detector
 
 		TF2BDApplication* m_Application;
 
-		mh::expected<std::shared_ptr<ITexture>, std::error_condition> TryGetAvatarTexture(IPlayer& player);
+		tf2pl::expected<std::shared_ptr<ITexture>, std::error_condition> TryGetAvatarTexture(IPlayer& player);
+
+		// streamer mode's custom avatar (Settings > Streamer mode), reloaded when the path changes
+		tf2pl::expected<std::shared_ptr<ITexture>, std::error_condition> GetStreamerAvatarTexture();
+		std::string m_StreamerAvatarPath;
+		std::shared_ptr<ITexture> m_StreamerAvatar;
+		bool m_StreamerAvatarFailed = false;
 		std::shared_ptr<ITextureManager> m_TextureManager;
 		std::unique_ptr<IBaseTextures> m_BaseTextures;
 
@@ -141,9 +148,8 @@ namespace tf2_bot_detector
 		std::unique_ptr<MarkedFriendsWindow> m_MarkedFriendsWindow;
 
 		// warning when an untrusted player list was removed / other lists carry its entries
+		// (the pending report lives in TF2BDApplication so the web UI can show and dismiss it too)
 		void OnDrawUntrustedListWarning();
-		UntrustedLists::Report m_UntrustedListReport;
-		bool m_UntrustedListPopupPending = false;
 
 		// first-run "which GPU?" prompt
 		void OnDrawGpuPrompt();

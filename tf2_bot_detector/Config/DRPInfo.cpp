@@ -7,9 +7,9 @@
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/fmtstr.hpp>
-#include <mh/text/stringops.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/fmtstr.hpp>
+#include <tf2pl/text/stringops.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
 using namespace tf2_bot_detector;
@@ -40,7 +40,7 @@ auto DRPInfo::FindMap(const std::string_view& name) const -> const Map*
 		}
 		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT());
+			LogException(TF2PL_SOURCE_LOCATION_CURRENT());
 		}
 	}
 
@@ -55,7 +55,7 @@ void DRPInfo::DRPFile::Deserialize(const nlohmann::json& json)
 	const auto mapsIt = json.find("maps");
 	if (mapsIt == json.end() || !mapsIt->is_object())
 	{
-		LogWarning(MH_SOURCE_LOCATION_CURRENT(), "discord_rich_presence.json has no \"maps\" object, using no map overrides");
+		LogWarning(TF2PL_SOURCE_LOCATION_CURRENT(), "discord_rich_presence.json has no \"maps\" object, using no map overrides");
 		return;
 	}
 
@@ -134,14 +134,14 @@ std::string DRPInfo::Map::GetFriendlyName() const
 #if 0
 	std::string friendlyName;
 	size_t i = size_t(-1);
-	for (const auto& segment : mh::split_string(m_MapNames.at(0), "_"))
+	for (const auto& segment : tf2pl::split_string(m_MapNames.at(0), "_"))
 	{
 		i++;
 
 		if (i == 0)
 			continue;
 
-		const std::string segMod = mh::tolower(segment);
+		const std::string segMod = tf2pl::tolower(segment);
 		friendlyName << ' ' << char(std::toupper(segMod[0])) << std::string_view(segMod).substr(1);
 	}
 
@@ -153,7 +153,7 @@ std::string DRPInfo::Map::GetFriendlyName() const
 
 bool DRPInfo::Map::Matches(const std::string_view& mapName) const
 {
-	mh::fmtstr<512> buf("{}{}", m_MapNames.at(0).c_str(), R"regex(?(?:_(?!.*_)(?:(?:rc)|(?:final)|(?:[abv]))\d*[a-zA-Z]?)?)regex");
+	tf2pl::fmtstr<512> buf("{}{}", m_MapNames.at(0).c_str(), R"regex(?(?:_(?!.*_)(?:(?:rc)|(?:final)|(?:[abv]))\d*[a-zA-Z]?)?)regex");
 	const std::regex s_MainRegex(buf.c_str(), std::regex::icase);
 
 	if (std::regex_match(mapName.begin(), mapName.end(), s_MainRegex))
@@ -169,7 +169,7 @@ bool DRPInfo::Map::Matches(const std::string_view& mapName) const
 		}
 		catch (const std::exception& e)
 		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), fmt::format("{}: {}", typeid(e).name(), e.what()));
+			LogError(TF2PL_SOURCE_LOCATION_CURRENT(), fmt::format("{}: {}", typeid(e).name(), e.what()));
 		}
 	}
 

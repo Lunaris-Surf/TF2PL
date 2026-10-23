@@ -2,7 +2,7 @@
 
 #include "Clock.h"
 
-#include <mh/coroutine/generator.hpp>
+#include <tf2pl/coroutine/generator.hpp>
 
 #include <filesystem>
 #include <string_view>
@@ -33,7 +33,7 @@ namespace tf2_bot_detector
 	DirectoryValidatorResult ValidateTFDir(std::filesystem::path path);
 	DirectoryValidatorResult ValidateSteamDir(std::filesystem::path path);
 
-	mh::generator<std::filesystem::path> GetSteamLibraryFolders(const std::filesystem::path& steamDir);
+	tf2pl::generator<std::filesystem::path> GetSteamLibraryFolders(const std::filesystem::path& steamDir);
 	std::filesystem::path FindTFDir(const std::filesystem::path& steamDir);
 
 	void DeleteOldFiles(const std::filesystem::path& path, duration_t maxAge);

@@ -2,7 +2,7 @@
 
 #include "ConfigHelpers.h"
 
-#include <mh/coroutine/task.hpp>
+#include <tf2pl/coroutine/task.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <regex>
@@ -47,6 +47,6 @@ namespace tf2_bot_detector
 			std::vector<Map> m_Maps;
 		};
 
-		mh::task<DRPFile> m_DRPInfo;
+		tf2pl::task<DRPFile> m_DRPInfo;
 	};
 }

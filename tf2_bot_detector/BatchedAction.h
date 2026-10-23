@@ -22,7 +22,7 @@ namespace tf2_bot_detector
 		using state_type = TState;
 		using queue_collection_type = std::unordered_set<TItem>;
 		using response_type = TResponse;
-		using response_future_type = mh::task<response_type>;
+		using response_future_type = tf2pl::task<response_type>;
 
 		BatchedAction() = default;
 		BatchedAction(const TState& state) : m_State(state) {}
@@ -77,12 +77,12 @@ namespace tf2_bot_detector
 					}
 					catch (const std::exception& e)
 					{
-						LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to process batched action");
+						LogException(TF2PL_SOURCE_LOCATION_CURRENT(), e, "Failed to process batched action");
 					}
 				}
 				catch (const std::exception& e)
 				{
-					LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to get batched action future");
+					LogException(TF2PL_SOURCE_LOCATION_CURRENT(), e, "Failed to get batched action future");
 				}
 
 				m_ResponseFuture = {};

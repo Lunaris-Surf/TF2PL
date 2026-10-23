@@ -4,8 +4,8 @@
 #include "Clock.h"
 #include "SteamID.h"
 
-#include <mh/coroutine/task.hpp>
-#include <mh/error/error_code_exception.hpp>
+#include <tf2pl/coroutine/task.hpp>
+#include <tf2pl/error/error_code_exception.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <optional>
@@ -40,11 +40,11 @@ namespace tf2_bot_detector::SteamAPI
 		SteamAPIDisabled,
 	};
 
-	struct SteamAPIError : mh::error_condition_exception, std::nested_exception
+	struct SteamAPIError : tf2pl::error_condition_exception, std::nested_exception
 	{
-		SteamAPIError(std::error_condition code, const std::string_view& detail = {}, MH_SOURCE_LOCATION_AUTO(location));
+		SteamAPIError(std::error_condition code, const std::string_view& detail = {}, TF2PL_SOURCE_LOCATION_AUTO(location));
 
-		mh::source_location m_SourceLocation;
+		tf2pl::source_location m_SourceLocation;
 	};
 
 	std::error_condition make_error_condition(tf2_bot_detector::SteamAPI::ErrorCode e);
@@ -99,14 +99,14 @@ namespace tf2_bot_detector::SteamAPI
 		std::optional<duration_t> GetAccountAge() const;
 
 		std::string GetAvatarURL(AvatarQuality quality = AvatarQuality::Large) const;
-		mh::task<Bitmap> GetAvatarBitmap(std::shared_ptr<const IHTTPClient> client,
+		tf2pl::task<Bitmap> GetAvatarBitmap(std::shared_ptr<const IHTTPClient> client,
 			AvatarQuality quality = AvatarQuality::Large) const;
 
 		std::string_view GetVanityURL() const;
 	};
 	void from_json(const nlohmann::json& j, PlayerSummary& d);
 
-	mh::task<std::vector<PlayerSummary>> GetPlayerSummariesAsync(const ISteamAPISettings& apiSettings,
+	tf2pl::task<std::vector<PlayerSummary>> GetPlayerSummariesAsync(const ISteamAPISettings& apiSettings,
 		const std::vector<SteamID>& steamIDs, const IHTTPClient& client);
 
 	enum class PlayerEconomyBan
@@ -131,10 +131,10 @@ namespace tf2_bot_detector::SteamAPI
 	};
 	void from_json(const nlohmann::json& j, PlayerBans& d);
 
-	mh::task<std::vector<PlayerBans>> GetPlayerBansAsync(const ISteamAPISettings& apiSettings,
+	tf2pl::task<std::vector<PlayerBans>> GetPlayerBansAsync(const ISteamAPISettings& apiSettings,
 		const std::vector<SteamID>& steamIDs, const IHTTPClient& client);
 
-	mh::task<duration_t> GetTF2PlaytimeAsync(const ISteamAPISettings& apiSettings,
+	tf2pl::task<duration_t> GetTF2PlaytimeAsync(const ISteamAPISettings& apiSettings,
 		const SteamID& steamID, const IHTTPClient& client);
 
 
@@ -148,7 +148,7 @@ namespace tf2_bot_detector::SteamAPI
 		// uint32_t m_MarkedFriendsTotal = 0;
 	};
 
-	mh::task<std::unordered_set<SteamID>> GetFriendList(const ISteamAPISettings& apiSettings,
+	tf2pl::task<std::unordered_set<SteamID>> GetFriendList(const ISteamAPISettings& apiSettings,
 		const SteamID& steamID, const IHTTPClient& client);
 
 	struct PlayerInventoryInfo
@@ -156,7 +156,7 @@ namespace tf2_bot_detector::SteamAPI
 		uint32_t m_Items = 0;
 		uint32_t m_Slots = 0;
 	};
-	mh::task<PlayerInventoryInfo> GetTF2InventoryInfoAsync(const ISteamAPISettings& apiSettings, const SteamID& steamID, const IHTTPClient& client);
+	tf2pl::task<PlayerInventoryInfo> GetTF2InventoryInfoAsync(const ISteamAPISettings& apiSettings, const SteamID& steamID, const IHTTPClient& client);
 
-	std::string GenerateSteamIDsQueryParam(const std::vector<SteamID>& steamIDs, size_t max, MH_SOURCE_LOCATION_AUTO(location));
+	std::string GenerateSteamIDsQueryParam(const std::vector<SteamID>& steamIDs, size_t max, TF2PL_SOURCE_LOCATION_AUTO(location));
 }

@@ -5,7 +5,7 @@
 #include "SteamID.h"
 
 #include <vdf_parser.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 std::filesystem::path tf2_bot_detector::Platform::GetCurrentSteamDir()
 {

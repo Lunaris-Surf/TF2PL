@@ -1,8 +1,8 @@
 #pragma once
 
-#include <mh/concurrency/dispatcher.hpp>
+#include <tf2pl/concurrency/dispatcher.hpp>
 
 namespace tf2_bot_detector
 {
-	mh::dispatcher& GetDispatcher();
+	tf2pl::dispatcher& GetDispatcher();
 }

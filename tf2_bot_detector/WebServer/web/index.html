@@ -6,238 +6,1420 @@
 <title>TF2PL Web</title>
 <style>
 :root {
-  --void:#021015; --deep:#04191f; --panel:rgba(4,28,34,.85); --panel2:rgba(8,44,52,.9); --well:rgba(1,10,13,.85);
-  --ink:#e4fffb; --muted:#8fc5c0; --dim:#4f8984; --teal:#3fe6d8; --orange:#ff9a1f; --red:#ff4f6d; --blue:#5aa9ff; --green:#8dff6a;
-  --line:rgba(111,247,234,.22);
+  --void:#021015; --deep:#04191f; --panel:rgba(4,28,34,.86); --panel2:rgba(8,44,52,.92); --panelhi:rgba(18,82,88,.55);
+  --well:rgba(1,10,13,.88); --ink:#e4fffb; --muted:#8fc5c0; --dim:#4f8984; --teal:#3fe6d8; --tealhi:#b9fff7; --tealdeep:#0f6d73;
+  --orange:#ff9a1f; --orangehi:#ffcf7a; --orangedeep:#c2560c; --magenta:#ff3fd8; --green:#8dff6a; --red:#ff4f6d; --blue:#5aa9ff;
+  --line:rgba(111,247,234,.22); --linehot:rgba(111,247,234,.55);
+  --font:"Bahnschrift","Segoe UI",system-ui,sans-serif; --mono:Consolas,"Cascadia Mono","DejaVu Sans Mono",monospace;
 }
 * { box-sizing:border-box; }
-html, body { margin:0; height:100%; overflow:hidden; background:radial-gradient(ellipse at top, #062a31 0%, var(--void) 70%); color:var(--ink);
-  font:14px/1.35 "Segoe UI", system-ui, sans-serif; }
-body { display:flex; flex-direction:column; height:100vh; }
-button, input, select { font:inherit; color:inherit; }
-header { flex:none; display:flex; align-items:center; gap:14px; padding:10px 16px; border-bottom:1px solid var(--line); background:var(--deep); }
-header .brand { font-weight:700; letter-spacing:.18em; color:var(--teal); }
-header .server { color:var(--muted); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.badge { padding:2px 8px; border:1px solid var(--line); border-radius:3px; font-size:12px; color:var(--muted); }
-.badge.ok { color:var(--green); border-color:rgba(141,255,106,.4); }
-.badge.bad { color:var(--red); border-color:rgba(255,79,109,.5); }
-.btn { background:var(--panel2); border:1px solid var(--line); border-radius:3px; padding:5px 12px; cursor:pointer; }
-.btn:hover { border-color:var(--teal); }
-.btn.primary { border-color:var(--orange); color:var(--orange); }
-.btn:disabled { opacity:.4; cursor:default; }
-main { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 340px; grid-template-rows:minmax(0,1fr) minmax(120px,28%); gap:10px; padding:10px; }
-.panel { background:var(--panel); border:1px solid var(--line); border-radius:4px; display:flex; flex-direction:column; min-height:0; }
-.panel h2 { margin:0; padding:7px 12px; font-size:12px; letter-spacing:.2em; text-transform:uppercase; border-bottom:1px solid var(--line); color:var(--muted); }
-.panel h2.red { color:var(--red); } .panel h2.blue { color:var(--blue); }
-.scroll { overflow:auto; flex:1; min-height:0; }
-table { width:100%; border-collapse:collapse; }
-th { position:sticky; top:0; background:var(--panel2); font-size:11px; color:var(--dim); text-align:left; padding:4px 8px; font-weight:600; }
-td { padding:4px 8px; border-bottom:1px solid rgba(111,247,234,.07); white-space:nowrap; }
-td.num { text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); }
-tr.player { cursor:pointer; }
-tr.player:hover td { background:rgba(63,230,216,.06); }
-tr.player.selected td { background:rgba(255,154,31,.12); }
-tr.player.connecting td { opacity:.55; }
-.name { max-width:240px; overflow:hidden; text-overflow:ellipsis; display:inline-block; vertical-align:bottom; }
-.you { color:var(--green); font-size:11px; margin-left:4px; }
-.friend { color:var(--teal); font-size:11px; margin-left:4px; }
-.pill { display:inline-block; font-size:11px; padding:0 6px; margin:1px 3px 1px 0; border-radius:2px; color:#011; font-weight:600; }
-.pill.tag { background:var(--muted); }
-#details { grid-row:1 / span 2; grid-column:3; }
-#details .body { padding:10px 12px; overflow:auto; }
-#details .empty { color:var(--muted); }
-.mono { font-family:Consolas, "Share Tech Mono", monospace; color:var(--muted); font-size:13px; }
-.label { font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--orange); margin:12px 0 5px; }
-.marks-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; }
-.marks-grid label { display:flex; gap:6px; align-items:center; cursor:pointer; }
-input[type=text] { width:100%; background:var(--well); border:1px solid var(--line); border-radius:3px; padding:5px 8px; }
-.row { display:flex; gap:6px; margin-top:6px; }
-.listmarks { margin:4px 0; }
-.listname { color:var(--muted); font-size:12px; }
-.ownlist { color:var(--teal); }
-#chat { grid-column:1 / span 2; }
-.chatline { padding:2px 10px; white-space:pre-wrap; word-break:break-word; }
-.chatline .who { font-weight:600; }
-.chatline .who.same { color:var(--teal); } .chatline .who.opposite { color:var(--red); } .chatline .who.neither { color:var(--muted); }
-.chatline .pre { color:var(--dim); font-size:12px; margin-right:4px; }
+[hidden] { display:none !important; }
+html, body { margin:0; height:100%; overflow:hidden; }
+body { display:flex; flex-direction:column; height:100vh; color:var(--ink); font:14px/1.38 var(--font);
+  background:
+    linear-gradient(rgba(63,230,216,.035) 1px, transparent 1px) 0 0/28px 28px,
+    linear-gradient(90deg, rgba(63,230,216,.035) 1px, transparent 1px) 0 0/28px 28px,
+    radial-gradient(ellipse at 30% -10%, #0a3a42 0%, var(--void) 62%);
+  background-color:var(--void); }
+button, input, select, textarea { font:inherit; color:inherit; }
 a { color:var(--teal); }
-.note { color:var(--dim); font-size:12px; margin-top:12px; }
-#others { color:var(--muted); font-size:12px; padding:6px 12px; border-top:1px solid var(--line); }
+::selection { background:rgba(255,154,31,.35); }
+
+/* ---------- themed scrollbars ---------- */
+* { scrollbar-color:var(--tealdeep) rgba(1,10,13,.6); scrollbar-width:thin; }
+::-webkit-scrollbar { width:10px; height:10px; }
+::-webkit-scrollbar-track { background:rgba(1,10,13,.6); }
+::-webkit-scrollbar-thumb { background:linear-gradient(var(--tealdeep), #0b545a); border:2px solid rgba(1,10,13,.6); border-radius:6px; }
+::-webkit-scrollbar-thumb:hover { background:var(--teal); }
+::-webkit-scrollbar-corner { background:transparent; }
+
+/* ---------- header ---------- */
+header { flex:none; height:62px; display:flex; align-items:center; gap:18px; padding:0 18px; position:relative;
+  background:linear-gradient(180deg, rgba(4,25,31,.98), rgba(4,25,31,.9)); border-bottom:1px solid var(--line); }
+.brand { display:flex; align-items:center; gap:10px; }
+.brand .mark { width:32px; height:32px; }
+.brand .word { font-weight:700; letter-spacing:.32em; font-size:17px; color:var(--ink); }
+.brand .word b { color:var(--orange); font-weight:700; }
+.screen { border-left:1px solid var(--line); padding-left:14px; line-height:1.1; }
+.screen small { display:block; font-size:10px; letter-spacing:.3em; color:var(--muted); }
+.screen span { font-size:18px; letter-spacing:.12em; font-weight:700; }
+.screen span.preview { color:var(--orange); }
+nav.menus { display:flex; gap:4px; }
+nav.menus button { background:none; border:0; padding:8px 12px; letter-spacing:.2em; font-size:13px; color:var(--muted); cursor:pointer; }
+nav.menus button:hover, nav.menus button.open { color:var(--ink); background:rgba(63,230,216,.08); }
+.grow { flex:1; }
+.status { font-size:11px; letter-spacing:.18em; padding:3px 9px; border:1px solid var(--line); color:var(--muted); text-transform:uppercase; }
+.status.live { color:var(--green); border-color:rgba(141,255,106,.45); }
+.status.poll { color:var(--orangehi); border-color:rgba(255,207,122,.45); }
+.status.off { color:var(--red); border-color:rgba(255,79,109,.55); }
+
+/* ---------- skewed buttons ---------- */
+.btn { position:relative; z-index:0; display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:30px;
+  padding:4px 16px; border:0; background:none; cursor:pointer; color:var(--ink); white-space:nowrap; letter-spacing:.06em; }
+.btn::before { content:""; position:absolute; inset:0; z-index:-1; transform:skewX(-14deg); background:var(--panel2); border:1px solid var(--line); }
+.btn:hover::before { border-color:var(--teal); background:rgba(18,82,88,.7); }
+.btn.primary { color:#1a0b00; font-weight:700; }
+.btn.primary::before { background:linear-gradient(180deg, var(--orangehi), var(--orange)); border-color:var(--orange); }
+.btn.primary:hover::before { background:linear-gradient(180deg, #ffe3ad, var(--orangehi)); }
+.btn.ghost::before { background:transparent; }
+.btn.danger { color:var(--red); }
+.btn.danger::before { border-color:rgba(255,79,109,.55); }
+.btn.small { min-height:24px; padding:2px 11px; font-size:12px; }
+.btn:disabled { opacity:.38; cursor:default; }
+.btn:disabled:hover::before { border-color:var(--line); background:var(--panel2); }
+.btn.primary:disabled:hover::before { background:linear-gradient(180deg, var(--orangehi), var(--orange)); }
+
+/* ---------- banners, strip, chips ---------- */
+.banner { flex:none; display:flex; align-items:center; gap:14px; margin:8px 18px 0 30px; padding:6px 12px; border:1px solid; }
+.banner.preview { background:rgba(255,154,31,.13); border-color:rgba(255,154,31,.6); }
+.banner.update { background:rgba(63,230,216,.08); border-color:var(--linehot); }
+.banner.warn { background:rgba(255,79,109,.1); border-color:rgba(255,79,109,.6); }
+.banner b { letter-spacing:.2em; font-size:12px; }
+.banner.preview b { color:var(--orangehi); }
+.strip { flex:none; display:flex; align-items:center; gap:22px; height:40px; padding:0 18px 0 30px; margin-top:6px;
+  background:linear-gradient(90deg, rgba(255,154,31,.11), transparent 45%, transparent 55%, rgba(255,154,31,.11)); border-bottom:1px solid var(--line); }
+.micro { font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--orange); display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
+.micro::before { content:""; width:3px; height:12px; background:currentColor; }
+.micro.nobar::before { display:none; }
+.where { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); }
+.where .map { color:var(--tealhi); }
+.where .sep { color:var(--dim); margin:0 8px; }
+.where .off { color:var(--orange); }
+.counter { display:flex; align-items:baseline; gap:8px; white-space:nowrap; }
+.counter small { font-size:10px; letter-spacing:.24em; color:var(--muted); text-transform:uppercase; }
+.counter span { font:700 20px var(--mono); color:var(--tealhi); }
+.counter.hot span { color:var(--orange); }
+.parse { width:140px; }
+.chips { flex:none; display:flex; gap:6px; padding:8px 18px 4px 30px; overflow-x:auto; }
+.chip { border:1px solid var(--line); background:rgba(4,28,34,.7); padding:3px 12px; border-radius:2px; cursor:pointer; white-space:nowrap;
+  font-size:12px; letter-spacing:.08em; color:var(--muted); display:inline-flex; align-items:center; gap:7px; }
+.chip::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--dim); }
+.chip.on { color:var(--ink); border-color:rgba(63,230,216,.6); background:rgba(15,109,115,.35); }
+.chip.on::before { background:var(--teal); box-shadow:0 0 6px var(--teal); }
+.chip.warn:not(.on) { color:var(--orangehi); border-color:rgba(255,154,31,.55); }
+.chip.warn:not(.on)::before { background:var(--orange); }
+.chip:hover { border-color:var(--teal); }
+
+/* ---------- panes ---------- */
+main { flex:1; min-height:0; display:grid; grid-template-columns:minmax(300px,34%) minmax(0,1fr); gap:10px; padding:8px 18px 16px 30px; }
+main.nochat { grid-template-columns:minmax(0,1fr); }
+main.noright { grid-template-columns:minmax(0,1fr); }
+.right { display:grid; grid-template-rows:minmax(0,64fr) minmax(90px,36fr); gap:10px; min-height:0; }
+.right.onlyboard { grid-template-rows:minmax(0,1fr); }
+.right.onlylog { grid-template-rows:minmax(0,1fr); }
+.panel { position:relative; background:var(--panel); border:1px solid var(--line); display:flex; flex-direction:column; min-height:0; min-width:0; }
+.panel::before, .panel::after { content:""; position:absolute; width:12px; height:12px; border:2px solid var(--teal); pointer-events:none; opacity:.8; }
+.panel::before { top:-1px; left:-1px; border-right:0; border-bottom:0; }
+.panel::after { bottom:-1px; right:-1px; border-left:0; border-top:0; }
+.panel > h2 { margin:0; padding:7px 12px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--line); font-weight:400; }
+.panel > h2 .micro { color:var(--orange); }
+.panel > h2 .title { font-size:15px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); }
+.panel > h2 .grow { flex:1; }
+.scroll { overflow:auto; flex:1; min-height:0; }
+.empty { color:var(--muted); padding:14px; }
+.dimtext { color:var(--dim); }
+.mutedtext { color:var(--muted); }
+
+/* ---------- scoreboard ---------- */
+.teamstats { padding:6px 10px 2px; display:grid; gap:4px; }
+.bar { position:relative; height:18px; background:rgba(255,79,109,.32); overflow:hidden; }
+.bar > i { position:absolute; inset:0 auto 0 0; background:rgba(63,230,216,.45); }
+.bar > span { position:absolute; inset:0; text-align:center; font-size:12px; line-height:18px; color:var(--ink); text-shadow:0 0 3px #000; }
+.bar.marked { background:rgba(255,63,216,.45); }
+.bar.marked > i { background:rgba(107,106,101,.95); }
+table { width:100%; border-collapse:collapse; }
+th { position:sticky; top:0; z-index:1; background:#08303a; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
+  text-align:left; padding:5px 8px; font-weight:400; cursor:pointer; user-select:none; white-space:nowrap; }
+th.num, td.num { text-align:right; }
+th:hover { color:var(--ink); }
+th.sorted { color:var(--orange); }
+th.sorted::after { content:" \25BE"; }
+th.sorted.asc::after { content:" \25B4"; }
+td { padding:3px 8px; border-bottom:1px solid rgba(111,247,234,.07); white-space:nowrap; }
+td.num { font-variant-numeric:tabular-nums; color:var(--muted); font-family:var(--mono); }
+td.sid { font-family:var(--mono); color:var(--muted); font-size:12px; }
+tr.prow { cursor:pointer; }
+tr.prow:hover td { box-shadow:inset 0 0 0 999px rgba(255,255,255,.05); }
+tr.prow.sel td { box-shadow:inset 0 0 0 999px rgba(255,154,31,.13); }
+tr.prow.connecting td { opacity:.6; }
+.pname { display:inline-block; max-width:260px; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; }
+.pname.you { color:var(--green); }
+.nick { color:var(--red); margin-left:6px; font-size:12px; }
+.pill { display:inline-block; font-size:11px; line-height:16px; padding:0 7px; margin:0 0 0 4px; border-radius:8px; font-weight:700; color:#000; vertical-align:1px; }
+.icons { float:right; display:inline-flex; gap:5px; margin-left:8px; }
+.ico { font:700 10px var(--mono); padding:0 4px; border:1px solid; border-radius:2px; line-height:14px; }
+.ico.vac { color:#fff; border-color:#999; background:#444; }
+.ico.game { color:#ffd39b; border-color:#c8803a; }
+.ico.sb { color:#ffe08a; border-color:#a88a2a; }
+.ico.heart { color:#ff5a6e; border:0; font-size:13px; }
+
+/* ---------- chat / log ---------- */
+.line { padding:1px 10px; white-space:pre-wrap; word-break:break-word; }
+.line .pre { color:#808080; margin-right:5px; }
+.line .who { cursor:pointer; }
+.line .who:hover { text-decoration:underline; }
+.line.kill { color:#7f8080; }
+.line .msg { color:#cccccc; }
+.logline { padding:1px 10px; white-space:pre-wrap; word-break:break-word; font-size:13px; }
+.logline .ts { color:rgba(64,255,64,.35); margin-right:7px; font-family:var(--mono); font-size:12px; }
+
+/* ---------- drawer (player dossier) ---------- */
+#drawer { position:fixed; top:62px; right:0; bottom:0; width:min(460px, 100%); z-index:30; transform:translateX(105%); transition:transform .16s ease-out;
+  background:rgba(3,22,27,.98); border-left:1px solid var(--linehot); display:flex; flex-direction:column; box-shadow:-18px 0 40px rgba(0,0,0,.5); }
+#drawer.open { transform:none; }
+#drawer .head { display:flex; gap:12px; padding:12px; border-bottom:1px solid var(--line); }
+#drawer .avatar { width:96px; height:96px; flex:none; background:var(--well); border:1px solid var(--line); object-fit:cover; }
+#drawer .who { min-width:0; flex:1; }
+#drawer .who .n { font-size:18px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#drawer .ids { font:12px var(--mono); color:var(--muted); word-break:break-all; }
+#drawer .badges { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.badge { font-size:11px; letter-spacing:.12em; padding:1px 7px; border:1px solid var(--line); color:var(--muted); text-transform:uppercase; }
+.badge.ok { color:var(--green); border-color:rgba(141,255,106,.45); }
+.badge.hot { color:var(--orange); border-color:rgba(255,154,31,.55); }
+.badge.bad { color:var(--red); border-color:rgba(255,79,109,.55); }
+#drawer .body { overflow:auto; flex:1; padding:4px 14px 18px; }
+.sec { margin-top:14px; }
+.sec > .micro { margin-bottom:6px; }
+.kv { display:grid; grid-template-columns:128px 1fr; gap:2px 10px; font-size:13px; }
+.kv > div:nth-child(odd) { color:var(--muted); text-align:right; }
+.v-red { color:var(--red); } .v-yellow { color:#ffe35c; } .v-green { color:var(--green); } .v-dim { color:var(--dim); }
+.listmark { border-left:2px solid var(--line); padding:3px 0 5px 9px; margin:5px 0; }
+.listmark.own { border-left-color:var(--teal); }
+.listmark .ln { color:var(--muted); font-size:12px; }
+.listmark .proof { color:#6ff; font-size:12px; white-space:pre-wrap; word-break:break-word; }
+.marks-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 10px; }
+.sw { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:2px; vertical-align:0; }
+.row { display:flex; gap:8px; align-items:center; margin-top:7px; flex-wrap:wrap; }
+.friends td { font-size:12px; }
+
+/* ---------- inputs: text, checkbox, range, color ---------- */
+input[type=text], input[type=password], input[type=number], textarea { width:100%; background:var(--well); border:1px solid var(--line); border-radius:0; padding:5px 8px; outline:none; }
+input[type=text]:focus, input[type=password]:focus, input[type=number]:focus, textarea:focus { border-color:var(--teal); box-shadow:0 0 0 1px rgba(63,230,216,.25); }
+input::placeholder { color:var(--dim); }
+input[type=number] { width:96px; font-family:var(--mono); }
+.chk { display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+.chk input { appearance:none; -webkit-appearance:none; margin:0; flex:none; width:16px; height:16px; border:1px solid var(--linehot); background:var(--well);
+  display:grid; place-content:center; cursor:pointer; transition:background .08s; }
+.chk input::before { content:""; width:9px; height:9px; transform:scale(0); transition:transform .08s; background:var(--orange);
+  clip-path:polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); }
+.chk input:checked { border-color:var(--orange); background:rgba(255,154,31,.15); }
+.chk input:checked::before { transform:scale(1); }
+.chk input:focus-visible { outline:1px solid var(--teal); outline-offset:2px; }
+.chk input:disabled { opacity:.4; cursor:default; }
+.chk:hover input:not(:disabled) { border-color:var(--teal); }
+input[type=range] { -webkit-appearance:none; appearance:none; width:180px; height:18px; background:transparent; cursor:pointer; }
+input[type=range]::-webkit-slider-runnable-track { height:4px; background:linear-gradient(90deg, var(--tealdeep), var(--teal)); }
+input[type=range]::-moz-range-track { height:4px; background:linear-gradient(90deg, var(--tealdeep), var(--teal)); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:16px; margin-top:-6px; background:var(--orange); border:1px solid #2a1200; transform:skewX(-12deg); }
+input[type=range]::-moz-range-thumb { width:12px; height:16px; background:var(--orange); border:1px solid #2a1200; border-radius:0; }
+input[type=color] { -webkit-appearance:none; appearance:none; width:42px; height:24px; padding:2px; border:1px solid var(--linehot); background:var(--well); cursor:pointer; }
+input[type=color]::-webkit-color-swatch-wrapper { padding:0; }
+input[type=color]::-webkit-color-swatch { border:0; }
+input[type=color]::-moz-color-swatch { border:0; }
+
+/* ---------- themed select (custom dropdown) ---------- */
+.tsel { position:relative; display:inline-block; min-width:170px; }
+.tsel > button { width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--well); border:1px solid var(--line);
+  padding:5px 9px; cursor:pointer; text-align:left; }
+.tsel > button::after { content:""; width:7px; height:7px; border-right:2px solid var(--teal); border-bottom:2px solid var(--teal); transform:rotate(45deg) translateY(-2px); flex:none; }
+.tsel > button:hover, .tsel.open > button { border-color:var(--teal); }
+.tsel > button span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tsel:has(button:disabled) { opacity:.45; }
+.dropdown { position:fixed; z-index:90; min-width:170px; max-height:320px; overflow:auto; background:#05222a; border:1px solid var(--linehot);
+  box-shadow:0 12px 30px rgba(0,0,0,.55); padding:3px 0; }
+.dropdown .opt { padding:5px 12px; cursor:pointer; white-space:nowrap; }
+.dropdown .opt:hover, .dropdown .opt.hl { background:rgba(63,230,216,.14); }
+.dropdown .opt.cur { color:var(--orange); }
+
+/* ---------- menus (header menus + context menu) ---------- */
+.menu { position:fixed; z-index:80; min-width:210px; background:#05222a; border:1px solid var(--linehot); box-shadow:0 12px 30px rgba(0,0,0,.55); padding:4px 0; }
+.menu .mi { display:flex; align-items:center; gap:10px; padding:5px 14px 5px 12px; cursor:pointer; white-space:nowrap; position:relative; }
+.menu .mi:hover { background:rgba(63,230,216,.14); }
+.menu .mi.dis { color:var(--dim); cursor:default; background:none; }
+.menu .mi .ck { width:12px; color:var(--orange); }
+.menu .mi.sub::after { content:"\25B8"; margin-left:auto; color:var(--muted); }
+.menu .sep { height:1px; background:var(--line); margin:4px 0; }
+.menu .hdr { padding:3px 14px; font-size:12px; color:var(--muted); max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ---------- modals ---------- */
+.modal-back { position:fixed; inset:0; z-index:50; background:rgba(0,8,10,.62); display:flex; align-items:center; justify-content:center; padding:20px; }
+.modal { position:relative; background:rgba(3,24,29,.99); border:1px solid var(--linehot); width:min(760px, 100%); max-height:100%; display:flex; flex-direction:column;
+  box-shadow:0 24px 70px rgba(0,0,0,.6); }
+.modal.wide { width:min(1120px, 100%); height:min(760px, 100%); }
+.modal.small { width:min(460px, 100%); }
+.modal > h3 { margin:0; padding:11px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--line); font-weight:400; letter-spacing:.14em; text-transform:uppercase; }
+.modal > h3 .grow { flex:1; }
+.modal > h3 .x { background:none; border:0; color:var(--muted); font-size:20px; cursor:pointer; line-height:1; }
+.modal > h3 .x:hover { color:var(--ink); }
+.modal > .mbody { padding:14px 16px; overflow:auto; min-height:0; flex:1; }
+.modal > .mfoot { padding:10px 16px; border-top:1px solid var(--line); display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+.progress { height:16px; background:var(--well); border:1px solid var(--line); position:relative; overflow:hidden; }
+.progress > i { position:absolute; inset:0 auto 0 0; background:linear-gradient(90deg, var(--tealdeep), var(--teal)); }
+.progress > span { position:absolute; inset:0; text-align:center; font-size:11px; line-height:14px; }
+ul.files { margin:4px 0 10px; padding-left:20px; font-family:var(--mono); font-size:12px; }
+
+/* settings */
+.settings { display:grid; grid-template-columns:200px 1fr; height:100%; min-height:0; }
+.settings nav { border-right:1px solid var(--line); overflow:auto; padding:6px 0; }
+.settings nav button { display:block; width:100%; text-align:left; background:none; border:0; padding:7px 14px; cursor:pointer; color:var(--muted); letter-spacing:.04em; }
+.settings nav button:hover { color:var(--ink); background:rgba(63,230,216,.06); }
+.settings nav button.cur { color:var(--ink); background:rgba(255,154,31,.1); box-shadow:inset 3px 0 0 var(--orange); }
+.settings .items { overflow:auto; padding:6px 18px 18px; }
+.setting { padding:10px 0; border-bottom:1px solid rgba(111,247,234,.08); }
+.setting .lbl { display:block; margin-bottom:5px; }
+.setting .help { color:var(--dim); font-size:12px; margin-top:4px; }
+.setting .ctl { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.setting .ctl input[type=text], .setting .ctl input[type=password] { max-width:440px; }
+.setting.err input { border-color:var(--red); }
+.note { color:var(--dim); font-size:12px; margin-top:10px; }
+
+/* lists */
+.toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding-bottom:10px; }
+.toolbar input[type=text] { width:240px; }
+.lists-body { display:flex; flex-direction:column; height:100%; min-height:0; }
+.lists-body .scroll { border:1px solid var(--line); }
+
+/* tooltip + toast */
+#tip { position:fixed; z-index:95; pointer-events:none; background:#05222a; border:1px solid var(--linehot); padding:7px 10px; font-size:12px; max-width:320px; display:none;
+  box-shadow:0 8px 22px rgba(0,0,0,.5); }
+#toasts { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:99; display:flex; flex-direction:column; gap:6px; align-items:center; }
+.toast { background:#05222a; border:1px solid var(--linehot); padding:7px 14px; box-shadow:0 8px 22px rgba(0,0,0,.5); }
+.toast.bad { border-color:var(--red); color:#ffd6de; }
+
+@media (max-width:980px) {
+  main { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(200px,40%) minmax(0,1fr); }
+  .strip { gap:12px; }
+  .counter span { font-size:16px; }
+  .screen, nav.menus button span.long { display:none; }
+}
 </style>
 </head>
 <body>
 <header>
-  <span class="brand">TF2PL WEB</span>
-  <span class="server" id="server">Connecting to TF2PL...</span>
-  <span class="badge" id="vote" hidden>VOTE IN PROGRESS</span>
-  <span class="badge" id="status">...</span>
-  <button class="btn" id="native" title="Switch TF2PL back to its normal window">Use native UI</button>
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 29 9v14l-13 7L3 23V9z" fill="none" stroke="#3fe6d8" stroke-width="2"/><path d="M10 12h12M16 12v11" stroke="#ff9a1f" stroke-width="3"/></svg>
+    <span class="word">TF2<b>PL</b></span>
+  </div>
+  <div class="screen"><small>SCREEN</small><span id="screen">SCOREBOARD</span></div>
+  <nav class="menus">
+    <button data-menu="file">FILE</button>
+    <button data-menu="view">VIEW</button>
+    <button data-menu="help">HELP</button>
+  </nav>
+  <div class="grow"></div>
+  <span class="status" id="status">connecting</span>
+  <button class="btn primary" id="open-settings">Settings</button>
 </header>
-<main>
-  <section class="panel"><h2 class="red">RED</h2><div class="scroll"><table id="team-red"></table></div></section>
-  <section class="panel"><h2 class="blue">BLU</h2><div class="scroll"><table id="team-blue"></table></div><div id="others" hidden></div></section>
-  <section class="panel" id="details"><h2>Player</h2><div class="body">
-    <div class="empty" id="d-empty">Click a player to see their marks and actions.</div>
-    <div id="d-content" hidden>
-      <div id="d-name" style="font-size:16px;font-weight:600"></div>
-      <div class="mono" id="d-ids"></div>
-      <div class="row"><a id="d-profile" target="_blank" rel="noopener noreferrer">Steam profile</a></div>
-      <div id="d-friends" class="listname" style="margin-top:6px"></div>
-      <div class="label">Marks by list</div>
-      <div id="d-lists"></div>
-      <div class="label">Your list</div>
-      <div id="d-self" class="listname" hidden>This is you - you can't mark yourself.</div>
-      <div id="d-editor">
-        <input type="text" id="d-reason" maxlength="500" placeholder="Reason / proof (saved with the next change)">
-        <div class="marks-grid" id="d-marks" style="margin-top:8px"></div>
-        <div id="d-tags" class="marks-grid" style="margin-top:6px"></div>
-        <div class="row"><input type="text" id="d-newtag" maxlength="64" placeholder="new tag, e.g. watchlist"><button class="btn" id="d-addtag">Add tag</button></div>
-      </div>
-      <div class="label">Votekick</div>
-      <div class="row" id="d-kick">
-        <button class="btn" data-reason="cheating">Cheating</button><button class="btn" data-reason="idle">Idle</button>
-        <button class="btn" data-reason="scamming">Scamming</button><button class="btn" data-reason="other">Other</button>
-      </div>
-      <div class="note">Changes go to your local player list. Marks from subscribed lists stay until that list changes.</div>
-    </div>
-  </div></section>
-  <section class="panel" id="chat"><h2>Chat</h2><div class="scroll" id="chatlog"></div></section>
+
+<div class="banner preview" id="b-preview" hidden>
+  <b>PREVIEW MODE</b><span class="grow">Sample lobby - game actions are off and sample marks aren't saved.</span>
+  <button class="btn primary small" data-act="exit-preview">Exit preview</button>
+</div>
+<div class="banner update" id="b-update" hidden></div>
+<div class="banner warn" id="b-moved" hidden></div>
+
+<section class="strip">
+  <span class="micro">Information ///</span>
+  <span class="where grow" id="where"></span>
+  <div class="parse" id="parse" hidden><div class="progress"><i></i><span></span></div></div>
+  <div class="counter"><small>Players</small><span id="c-players">00</span></div>
+  <div class="counter" id="c-marked-wrap"><small>Marked</small><span id="c-marked">00</span></div>
+  <div class="counter" id="c-rules-wrap" title=""><small>Rules</small><span id="c-rules">000</span></div>
+</section>
+<section class="chips" id="chips"></section>
+
+<main id="main">
+  <section class="panel" id="p-chat"><h2><span class="micro">Comms</span><span class="title">Chat</span></h2><div class="scroll" id="chat"></div></section>
+  <div class="right" id="p-right">
+    <section class="panel" id="p-board"><h2><span class="micro">Roster</span><span class="title">Scoreboard</span><span class="grow"></span><span class="badge hot" id="vote" hidden>Vote in progress</span></h2>
+      <div class="teamstats" id="teamstats"></div>
+      <div class="scroll"><table id="board"></table><div class="empty" id="board-empty" hidden>No players yet.</div></div>
+    </section>
+    <section class="panel" id="p-log"><h2><span class="micro">System</span><span class="title">App log</span></h2><div class="scroll" id="log"></div></section>
+  </div>
 </main>
+
+<aside id="drawer" aria-label="Player">
+  <div class="head">
+    <img class="avatar" id="d-avatar" alt="">
+    <div class="who">
+      <div class="n" id="d-name"></div>
+      <div class="ids" id="d-ids"></div>
+      <div class="badges" id="d-badges"></div>
+    </div>
+    <button class="btn ghost small" id="d-close" title="Close (Esc)">Close</button>
+  </div>
+  <div class="body" id="d-body"></div>
+</aside>
+
+<div id="tip"></div>
+<div id="toasts"></div>
+
 <script>
 "use strict";
 const TOKEN = "__TF2PL_TOKEN__";
-let state = null, selected = null, lastOk = 0, chatKey = "";
+
+// ----------------------------------------------------------------------------------------------- state
+const S = { state: null, chat: null, log: null, settings: null, dossier: null, lists: null };
+const ui = {
+  selected: null,          // focused player id ("self" for you in streamer mode)
+  sort: { col: "kills", asc: false },
+  conn: "connecting",      // live | poll | off
+  es: null, pollTimer: null, lastOk: 0,
+  modal: null,             // { kind, el, ... }
+  menu: null, dropdown: null,
+  reason: "",
+  settingsSection: null, settingsSig: "", settingsFilter: "",
+  lists: { search: "", list: "", mark: "", onlyWritable: false, offset: 0 },
+  exportOpen: false, aboutOpen: false, confirm: null,
+  untrustedHidden: false,
+};
+try { const s = JSON.parse(localStorage.getItem("tf2pl.sort") || "null"); if (s && s.col) ui.sort = s; } catch (e) {}
+
 const $ = (id) => document.getElementById(id);
-function el(tag, props, ...children) {
+function h(tag, props, ...kids) {
   const e = document.createElement(tag);
-  if (props) for (const k in props) { if (k === "class") e.className = props[k]; else if (k === "text") e.textContent = props[k]; else e.setAttribute(k, props[k]); }
-  for (const c of children) if (c != null) e.append(c);
+  if (props) for (const k in props) {
+    const v = props[k];
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else if (k === "style" && typeof v === "object") Object.assign(e.style, v);
+    else if (k === "on") for (const ev in v) e.addEventListener(ev, v[ev]);
+    else if (k === "value") e.value = v;
+    else if (k === "checked" || k === "disabled" || k === "hidden") e[k] = !!v;
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c.nodeType ? c : String(c));
   return e;
 }
-function attrInfo(id) {
-  if (state) for (const a of state.attributes) if (a.id === id) return a;
-  return { id, name: id.startsWith("custom:") ? id.slice(7) : id, color: null };
+const pad = (n, w) => String(Math.max(0, n | 0)).padStart(w, "0");
+function fmtTime(s) { s = Math.max(0, s | 0); const m = (s / 60) | 0; return m + ":" + String(s % 60).padStart(2, "0"); }
+function fmtDays(d) {
+  if (d == null) return "";
+  if (d < 1) return "less than a day";
+  const y = Math.floor(d / 365), rest = d % 365, mo = Math.floor(rest / 30);
+  if (y > 0) return y + (y === 1 ? " year" : " years") + (mo ? ", " + mo + (mo === 1 ? " month" : " months") : "");
+  if (mo > 0) return mo + (mo === 1 ? " month" : " months") + ", " + (rest % 30) + " days";
+  return d + (d === 1 ? " day" : " days");
 }
-function pill(id) {
-  const a = attrInfo(id);
-  const p = el("span", { class: a.color ? "pill" : "pill tag", text: a.name });
-  if (a.color) p.style.background = a.color;
-  return p;
+function toast(text, bad) {
+  const t = h("div", { class: "toast" + (bad ? " bad" : ""), text });
+  $("toasts").append(t);
+  setTimeout(() => t.remove(), bad ? 5000 : 2600);
 }
-function combinedMarks(p) {
-  const seen = new Set();
-  for (const m of p.marks) for (const a of m.attrs) seen.add(a);
-  return [...seen];
+async function copy(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // Custom HTTP hostnames don't get localhost's secure-context exception.
+      // Keep Copy working from the user's click without requiring a certificate.
+      const previousFocus = document.activeElement;
+      const field = document.createElement("textarea");
+      field.value = text;
+      field.readOnly = true;
+      field.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+      document.body.appendChild(field);
+      try {
+        field.focus();
+        field.select();
+        if (!document.execCommand("copy")) throw new Error("Copy failed");
+      } finally {
+        field.remove();
+        if (previousFocus && previousFocus.focus) previousFocus.focus({ preventScroll: true });
+      }
+    }
+    toast("Copied " + text);
+  } catch (_) {
+    toast("Couldn't copy to the clipboard", true);
+  }
 }
-function fmtTime(s) { s = Math.max(0, s|0); const m = (s / 60) | 0; return m >= 60 ? ((m / 60) | 0) + "h" + String(m % 60).padStart(2, "0") : m + ":" + String(s % 60).padStart(2, "0"); }
+
+// ----------------------------------------------------------------------------------------------- connection
 async function post(action) {
   try {
     const r = await fetch("/api/action", { method: "POST", headers: { "Content-Type": "application/json", "X-TF2PL-Token": TOKEN }, body: JSON.stringify(action) });
+    if (r.status === 401) { setConn("off", "reload this page"); return; }
     if (!r.ok) throw new Error("HTTP " + r.status);
-    setTimeout(poll, 150);
-  } catch (e) { $("status").textContent = "action failed"; $("status").className = "badge bad"; }
+    if (ui.conn !== "live") setTimeout(pollOnce, 120);
+  } catch (e) { toast("TF2PL didn't take that action (" + e.message + ")", true); }
 }
-function renderTeam(tableId, players) {
-  const t = $(tableId);
-  t.replaceChildren(el("tr", null, el("th", { text: "Name" }), el("th", { text: "Marks" }), el("th", { text: "K" }), el("th", { text: "D" }), el("th", { text: "Ping" }), el("th", { text: "Time" })));
-  for (const p of players) {
-    const nameCell = el("td", null, el("span", { class: "name", text: p.name || p.steamid3, title: p.name || "" }));
-    if (p.isLocal) nameCell.append(el("span", { class: "you", text: "YOU" }));
-    if (p.friend) nameCell.append(el("span", { class: "friend", text: "FRIEND" }));
-    const marks = el("td");
-    for (const a of combinedMarks(p)) marks.append(pill(a));
-    const tr = el("tr", { class: "player" + (p.steamid === selected ? " selected" : "") + (p.state !== "active" ? " connecting" : "") },
-      nameCell, marks, el("td", { class: "num", text: p.kills }), el("td", { class: "num", text: p.deaths }),
-      el("td", { class: "num", text: p.ping }), el("td", { class: "num", text: fmtTime(p.connected) }));
-    tr.addEventListener("click", () => { selected = p.steamid; render(); });
-    t.append(tr);
-  }
+function setConn(kind, text) {
+  ui.conn = kind;
+  const s = $("status");
+  s.className = "status " + (kind === "live" ? "live" : kind === "poll" ? "poll" : kind === "off" ? "off" : "");
+  s.textContent = text || (kind === "live" ? "live" : kind === "poll" ? "polling" : kind === "off" ? "offline" : "connecting");
 }
-function renderDetails() {
-  const p = state && selected ? state.players.find((x) => x.steamid === selected) : null;
-  $("d-empty").hidden = !!p; $("d-content").hidden = !p;
-  if (!p) return;
-  $("d-name").textContent = p.name || "<unknown name>";
-  $("d-ids").textContent = p.steamid3 + "   " + p.steamid + (p.userid != null ? "   #" + p.userid : "");
-  $("d-profile").href = "https://steamcommunity.com/profiles/" + encodeURIComponent(p.steamid);
-  $("d-friends").textContent = p.markedFriends ? p.markedFriends.marked + " of " + p.markedFriends.total + " friends are marked" : "Friends list not loaded or private";
-  const lists = $("d-lists"); lists.replaceChildren();
-  if (!p.marks.length) lists.append(el("div", { class: "listname", text: "Not marked in any loaded list." }));
-  for (const m of p.marks) {
-    const row = el("div", { class: "listmarks" }, el("div", { class: "listname", text: m.list }));
-    for (const a of m.attrs) row.append(pill(a));
-    lists.append(row);
-  }
-  $("d-self").hidden = !p.isLocal; $("d-editor").hidden = p.isLocal;
-  const editable = new Set(p.editable || []);
-  const grid = $("d-marks"); grid.replaceChildren();
-  for (const a of state.attributes) {
-    const cb = el("input", { type: "checkbox" }); cb.checked = editable.has(a.id);
-    cb.addEventListener("change", () => { post({ type: "mark", steamid: p.steamid, attr: a.id, set: cb.checked, reason: $("d-reason").value }); $("d-reason").value = ""; });
-    const sw = el("span", { class: "pill", text: " " }); sw.style.background = a.color;
-    grid.append(el("label", null, cb, sw, document.createTextNode(a.name)));
-  }
-  const tags = $("d-tags"); tags.replaceChildren();
-  const allTags = new Set([...(state.customTags || []), ...[...editable].filter((x) => x.startsWith("custom:"))]);
-  for (const tag of allTags) {
-    const cb = el("input", { type: "checkbox" }); cb.checked = editable.has(tag);
-    cb.addEventListener("change", () => { post({ type: "tag", steamid: p.steamid, tag, set: cb.checked, reason: $("d-reason").value }); $("d-reason").value = ""; });
-    tags.append(el("label", null, cb, document.createTextNode(tag.slice(7))));
-  }
-  for (const b of $("d-kick").querySelectorAll("button")) b.disabled = !p.canVotekick || state.voteInProgress;
+function accept(channel, data) {
+  // a lookup from Player Lists opens whatever dossier comes back
+  if (channel === "dossier" && ui.pendingLookup && data && data.id) { ui.pendingLookup = false; ui.selected = data.id; }
+  S[channel] = data;
+  ui.lastOk = Date.now();
+  if (channel === "state") renderState();
+  else if (channel === "chat") renderChat();
+  else if (channel === "log") renderLog();
+  else if (channel === "settings") { if (ui.modal && ui.modal.kind === "settings") renderSettings(); }
+  else if (channel === "dossier") renderDossier();
+  else if (channel === "lists") { if (ui.modal && ui.modal.kind === "lists") renderLists(); }
 }
-function renderChat() {
-  const key = state.chat.length ? state.chat.length + ":" + state.chat[0].message + state.chat[0].name : "0";
-  if (key === chatKey) return;
-  chatKey = key;
-  const log = $("chatlog");
-  const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
-  log.replaceChildren();
-  for (const c of [...state.chat].reverse()) {
-    const line = el("div", { class: "chatline" });
-    if (c.dead) line.append(el("span", { class: "pre", text: "*DEAD*" }));
-    if (c.team) line.append(el("span", { class: "pre", text: "(TEAM)" }));
-    line.append(el("span", { class: "who " + c.teamShare, text: c.name }), document.createTextNode(": " + c.message));
-    log.append(line);
-  }
-  if (atBottom) log.scrollTop = log.scrollHeight;
-}
-function render() {
-  if (!state) return;
-  $("server").textContent = (state.server.name || "Not connected to a server") + (state.server.map ? "  |  " + state.server.map : "") + "  |  TF2PL " + state.appVersion;
-  $("vote").hidden = !state.voteInProgress;
-  const byTeam = (t) => state.players.filter((p) => p.team === t).sort((a, b) => b.kills - a.kills || a.name.localeCompare(b.name));
-  renderTeam("team-red", byTeam("red"));
-  renderTeam("team-blue", byTeam("blue"));
-  const others = state.players.filter((p) => p.team !== "red" && p.team !== "blue");
-  $("others").hidden = !others.length;
-  $("others").textContent = others.length ? "Spectating / connecting: " + others.map((p) => p.name || p.steamid3).join(", ") : "";
-  renderDetails();
-  renderChat();
-}
-async function poll() {
+async function pollOnce() {
   try {
     const r = await fetch("/api/state", { headers: { "X-TF2PL-Token": TOKEN }, cache: "no-store" });
-    if (r.status === 401) { $("status").textContent = "reload this page"; $("status").className = "badge bad"; return; }
+    if (r.status === 401) { setConn("off", "reload this page"); return false; }
     if (!r.ok) throw new Error("HTTP " + r.status);
-    const s = await r.json();
-    if (s && s.players) { state = s; lastOk = Date.now(); render(); }
-    $("status").textContent = "live"; $("status").className = "badge ok";
+    const all = await r.json();
+    for (const k of ["state", "chat", "log", "settings", "dossier", "lists"]) if (k in all) accept(k, all[k]);
+    if (ui.conn !== "live") setConn("poll");
+    return true;
   } catch (e) {
-    if (Date.now() - lastOk > 4000) { $("status").textContent = "TF2PL not responding"; $("status").className = "badge bad"; }
+    if (Date.now() - ui.lastOk > 4000) { setConn("off", "TF2PL not responding"); showMoved(); }
+    return false;
   }
 }
-$("native").addEventListener("click", () => { post({ type: "ui_mode", mode: "native" }); $("status").textContent = "switched to native UI"; });
-$("d-addtag").addEventListener("click", () => {
-  const v = $("d-newtag").value.trim().toLowerCase();
-  if (!selected || !/^[a-z][a-z0-9_-]{0,63}$/.test(v)) { $("d-newtag").focus(); return; }
-  post({ type: "tag", steamid: selected, tag: "custom:" + v, set: true, reason: $("d-reason").value });
-  $("d-newtag").value = ""; $("d-reason").value = "";
+function startPolling() {
+  if (ui.pollTimer) return;
+  ui.pollTimer = setInterval(pollOnce, 1000);
+}
+function stopPolling() { if (ui.pollTimer) { clearInterval(ui.pollTimer); ui.pollTimer = null; } }
+function connect() {
+  if (!window.EventSource) { startPolling(); return; }
+  const es = new EventSource("/api/events?token=" + encodeURIComponent(TOKEN));
+  ui.es = es;
+  for (const ch of ["state", "chat", "log", "settings", "dossier", "lists"])
+    es.addEventListener(ch, (e) => { try { accept(ch, JSON.parse(e.data)); } catch (err) {} });
+  es.onopen = () => { setConn("live"); stopPolling(); $("b-moved").hidden = true; };
+  es.onerror = () => {
+    es.close(); ui.es = null;
+    if (ui.conn === "live") setConn("poll");
+    startPolling();
+    setTimeout(connect, 5000);
+  };
+}
+function showMoved() {
+  const st = S.state;
+  const b = $("b-moved");
+  if (st && st.webPort && String(st.webPort) !== location.port) {
+    b.replaceChildren(h("b", { text: "MOVED" }), h("span", { class: "grow", text: "The web UI now listens on port " + st.webPort + "." }),
+      h("a", { class: "btn small", href: "http://127.0.0.1:" + st.webPort + "/", text: "Open it" }));
+    b.hidden = false;
+  }
+}
+
+// ----------------------------------------------------------------------------------------------- lookups
+function attrInfo(id) {
+  const st = S.state;
+  if (st) for (const a of st.attributes) if (a.id === id) return a;
+  const tagColor = st && st.tagColors && st.tagColors[id];
+  return { id, name: id.startsWith("custom:") ? id.slice(7) : id, color: tagColor || "#b8c7c4" };
+}
+function textOn(hex) {
+  const n = parseInt((hex || "#cccccc").slice(1), 16);
+  const lum = ((n >> 16) & 255) * .299 + ((n >> 8) & 255) * .587 + (n & 255) * .114;
+  return lum > 140 ? "#000" : "#fff";
+}
+function pill(id) {
+  const a = attrInfo(id);
+  return h("span", { class: "pill", text: a.name, style: { background: a.color, color: textOn(a.color) } });
+}
+function combinedMarks(p) {
+  const seen = [];
+  for (const m of p.marks || []) for (const a of m.attrs) if (!seen.includes(a)) seen.push(a);
+  // built-in marks first, in their usual order, then tags
+  const order = (S.state ? S.state.attributes.map((a) => a.id) : []);
+  return seen.sort((a, b) => (order.indexOf(a) < 0 ? 999 : order.indexOf(a)) - (order.indexOf(b) < 0 ? 999 : order.indexOf(b)));
+}
+function findPlayer(id) { return S.state && id ? S.state.players.find((p) => p.id === id) : null; }
+function siteURL(tpl, id64, id3) { return tpl.split("%SteamID64%").join(id64).split("%SteamID3%").join(id3); }
+function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")"; }
+
+// ----------------------------------------------------------------------------------------------- header, strip, chips
+const CHIPS = [
+  { name: "pause", label: "Pause", get: (s) => s.paused, warn: false, tip: "Stops reading the console and sending commands until unpaused." },
+  { name: "chat_warnings", label: "Chat warnings", get: (s) => s.toggles.chatWarnings, warn: true, tip: "Enables chat message warnings about cheaters." },
+  { name: "party_warnings", label: "Party warnings", get: (s) => s.toggles.partyWarnings, warn: true, tip: "Enables party message warnings about cheaters." },
+  { name: "auto_votekick", label: "Auto votekick", get: (s) => s.toggles.autoVotekick, warn: true, tip: "Automatically votekicks cheaters on your team." },
+  { name: "auto_mark", label: "Auto-mark", get: (s) => s.toggles.autoMark, warn: true, tip: "Automatically marks players matching the detection rules." },
+  { name: "auto_mark_bans", label: "Mark ban records", get: (s) => s.toggles.autoMarkBans, warn: true, tip: "Requires Auto-mark. Marks VAC/game ban history and SourceBans." },
+  { name: "show_commands", label: "Show commands", get: (s) => s.showCommands, warn: false, tip: "Prints out all game commands to the log." },
+  { name: "streamer", label: "Streamer mode", get: (s) => s.streamer.enabled, warn: false, tip: "Shows your custom streamer profile instead of your own name, avatar and SteamID. Set it up in Settings > Streamer mode." },
+  { name: "preview", label: "Preview", get: (s) => s.preview.requested, warn: false, tip: "Shows a sample lobby so you can explore TF2PL without TF2. Nothing is sent to the game." },
+];
+function renderChips(st) {
+  const box = $("chips");
+  if (box.childElementCount !== CHIPS.length) {
+    box.replaceChildren(...CHIPS.map((c) => h("button", { class: "chip", "data-chip": c.name, title: c.tip, text: c.label,
+      on: { click: () => { const now = c.get(S.state); post({ type: "toggle", name: c.name, value: !now }); } } })));
+  }
+  CHIPS.forEach((c, i) => {
+    const on = !!c.get(st);
+    const el = box.children[i];
+    el.className = "chip" + (on ? " on" : "") + (c.warn ? " warn" : "");
+    el.title = c.tip + (c.warn && !on ? "\n\nThis is orange because it is currently disabled." : "");
+  });
+}
+function renderState() {
+  const st = S.state;
+  if (!st) return;
+  const screen = $("screen");
+  screen.textContent = st.preview.active ? "PREVIEW" : "SCOREBOARD";
+  screen.className = st.preview.active ? "preview" : "";
+  $("b-preview").hidden = !st.preview.active;
+
+  const up = $("b-update");
+  if (st.update && st.update.status === "UpdateAvailable" && st.update.available && st.update.available.url) {
+    up.replaceChildren(h("b", { text: "UPDATE" }), h("span", { class: "grow", text: "TF2PL " + st.update.available.version + " is available." }),
+      h("a", { class: "btn small primary", href: st.update.available.url, target: "_blank", rel: "noopener noreferrer", text: "Release page" }));
+    up.hidden = false;
+  } else up.hidden = true;
+
+  // where we are
+  const where = $("where");
+  if (st.server.name) {
+    where.replaceChildren(h("span", { text: st.server.name }),
+      st.server.map ? h("span", { class: "sep", text: "//" }) : null, st.server.map ? h("span", { class: "map", text: st.server.map }) : null);
+  } else where.replaceChildren(h("span", { class: "off", text: "Not connected" }));
+  const parse = $("parse");
+  parse.hidden = !(st.parseProgress < 0.95);
+  if (!parse.hidden) { parse.querySelector("i").style.width = (st.parseProgress * 100) + "%"; parse.querySelector("span").textContent = "parsing " + Math.round(st.parseProgress * 100) + "%"; }
+  $("c-players").textContent = pad(st.players.length, 2);
+  $("c-marked").textContent = pad(st.markedCount, 2);
+  $("c-marked-wrap").className = "counter" + (st.markedCount > 0 ? " hot" : "");
+  $("c-rules").textContent = pad(st.rules, 3);
+  $("c-rules-wrap").title = st.rules + " rules loaded, " + st.blacklistedPlayers + " blacklisted players across all player lists";
+  $("vote").hidden = !st.voteInProgress;
+  renderChips(st);
+
+  // panes (View menu / Settings > Interface)
+  const v = st.view;
+  $("p-chat").hidden = !v.chat;
+  $("p-board").hidden = !v.scoreboard;
+  $("p-log").hidden = !v.appLog;
+  $("p-right").hidden = !v.scoreboard && !v.appLog;
+  $("p-right").className = "right" + (v.scoreboard && !v.appLog ? " onlyboard" : !v.scoreboard && v.appLog ? " onlylog" : "");
+  $("main").className = !v.chat ? "nochat" : (!v.scoreboard && !v.appLog ? "noright" : "");
+
+  renderBoard();
+  renderTeamStats();
+  if (ui.selected && !S.dossier) renderDossierQuick();
+  if (st.untrusted && !ui.untrustedHidden && !(ui.modal && ui.modal.kind === "untrusted")) openUntrusted();
+  if (!st.untrusted && ui.modal && ui.modal.kind === "untrusted") closeModal();
+  if (ui.modal && ui.modal.kind === "export") renderExport();
+  if (ui.modal && ui.modal.kind === "about") { /* static */ }
+  if (ui.menu && ui.menu.kind === "header") ui.menu.refresh && ui.menu.refresh();
+}
+
+// ----------------------------------------------------------------------------------------------- scoreboard
+const COLS = [
+  { key: "userid", label: "ID", num: true, val: (p) => p.userid == null ? -1 : p.userid },
+  { key: "name", label: "Name", val: (p) => (p.name || "").toLowerCase() },
+  { key: "kills", label: "Kills", num: true, val: (p) => p.kills },
+  { key: "deaths", label: "Deaths", num: true, val: (p) => p.deaths },
+  { key: "connected", label: "Time", num: true, val: (p) => p.connected },
+  { key: "ping", label: "Ping", num: true, val: (p) => p.ping },
+  { key: "steamid3", label: "Steam ID", val: (p) => p.steamid3 },
+];
+function rowBackground(p, st) {
+  if (p.teamShare === "same") return rgba(st.colors.friendlyBG, Math.min(st.colors.friendlyBGAlpha + .08, 1));
+  if (p.teamShare === "opposite") return rgba(st.colors.enemyBG, Math.min(st.colors.enemyBGAlpha + .08, 1));
+  if (p.team === "red") return "rgba(255,128,128,.16)";
+  if (p.team === "blue") return "rgba(128,128,255,.16)";
+  return "";
+}
+function renderBoard() {
+  const st = S.state;
+  const t = $("board");
+  const col = COLS.find((c) => c.key === ui.sort.col) || COLS[2];
+  const players = [...st.players].sort((a, b) => {
+    const x = col.val(a), y = col.val(b);
+    const d = x < y ? -1 : x > y ? 1 : 0;
+    return ui.sort.asc ? d : -d;
+  });
+  const head = h("tr", null, COLS.map((c) => h("th", {
+    class: (c.num ? "num " : "") + (c.key === ui.sort.col ? "sorted" + (ui.sort.asc ? " asc" : "") : ""), text: c.label,
+    on: { click: () => { ui.sort = { col: c.key, asc: c.key === ui.sort.col ? !ui.sort.asc : !c.num }; try { localStorage.setItem("tf2pl.sort", JSON.stringify(ui.sort)); } catch (e) {} renderBoard(); } }
+  })));
+  const rows = players.map((p) => {
+    const nameCell = h("td");
+    const active = p.state === "active" && p.name;
+    const nm = h("span", { class: "pname" + (p.isLocal ? " you" : ""), text: p.name || "<Unknown>" });
+    if (p.isLocal) nm.style.color = st.colors.you;
+    if (!active) nm.style.color = st.colors.connecting;
+    nameCell.append(nm);
+    for (const a of combinedMarks(p)) nameCell.append(pill(a));
+    const icons = h("span", { class: "icons" });
+    if (p.vac > 0) icons.append(h("span", { class: "ico vac", text: "VAC", title: "VAC Banned" }));
+    if (p.gameBans > 0) icons.append(h("span", { class: "ico game", text: "GB", title: "Game Banned" }));
+    if (p.friend) icons.append(h("span", { class: "ico heart", text: "\u2665", title: "Steam Friends" }));
+    if (p.sourceBans > 0) icons.append(h("span", { class: "ico sb", text: "SB", title: "Has SourceBans Entries" }));
+    if (icons.childElementCount) nameCell.prepend(icons);
+    const unknown = !p.name;
+    const tr = h("tr", { class: "prow" + (p.id === ui.selected ? " sel" : "") + (active ? "" : " connecting") },
+      h("td", { class: "num", text: p.userid == null ? "?" : p.userid }),
+      nameCell,
+      h("td", { class: "num", text: unknown ? "?" : p.kills }),
+      h("td", { class: "num", text: unknown ? "?" : p.deaths }),
+      h("td", { class: "num", text: unknown ? "?" : fmtTime(p.connected) }),
+      h("td", { class: "num", text: unknown ? "?" : p.ping }),
+      h("td", { class: "sid", text: p.steamid3 }));
+    const bg = rowBackground(p, st);
+    if (bg) tr.style.background = bg;
+    tr.addEventListener("click", () => selectPlayer(p.id));
+    tr.addEventListener("contextmenu", (e) => { e.preventDefault(); openPlayerMenu(e.clientX, e.clientY, p.id); });
+    tr.addEventListener("mousemove", (e) => showTip(e, p));
+    tr.addEventListener("mouseleave", hideTip);
+    return tr;
+  });
+  t.replaceChildren(head, ...rows);
+  $("board-empty").hidden = players.length > 0;
+}
+function renderTeamStats() {
+  const st = S.state;
+  const box = $("teamstats");
+  if (!st.view.teamStats) { box.replaceChildren(); box.hidden = true; return; }
+  box.hidden = false;
+  const team = [{ n: 0, k: 0, m: 0, a: 0, ma: 0 }, { n: 0, k: 0, m: 0, a: 0, ma: 0 }];
+  for (const p of st.players) {
+    const i = p.teamShare === "same" ? 0 : p.teamShare === "opposite" ? 1 : -1;
+    if (i < 0) continue;
+    const marked = (p.marks || []).length > 0, active = p.state === "active";
+    team[i].n++; team[i].k += p.kills; if (marked) team[i].m++; if (active) team[i].a++; if (marked && active) team[i].ma++;
+  }
+  const bar = (frac, text, cls) => h("div", { class: "bar" + (cls ? " " + cls : "") }, h("i", { style: { width: (frac * 100) + "%" } }), h("span", { text }));
+  const bars = [];
+  const total = team[0].n + team[1].n;
+  if (total > 0) bars.push(bar(team[0].n / total, "Team Players: " + team[0].n + " | " + team[1].n));
+  const kills = team[0].k + team[1].k;
+  if (kills > 0) bars.push(bar(team[0].k / kills, "Team Kills: " + team[0].k + " | " + team[1].k));
+  if (total > 0) {
+    const marked = team[0].m + team[1].m, unmarked = total - marked;
+    bars.push(bar(unmarked / total, "MarkedVS (Total): " + unmarked + " vs " + marked, "marked"));
+    if (team[0].m > 0) bars.push(bar((team[0].n - team[0].m) / team[0].n, "MarkedVS (Team): " + (team[0].n - team[0].m) + " vs " + team[0].m, "marked"));
+    if (team[1].m > 0) bars.push(bar((team[1].n - team[1].m) / team[1].n, "MarkedVS (Enemy): " + (team[1].n - team[1].m) + " vs " + team[1].m, "marked"));
+  }
+  box.replaceChildren(...bars);
+}
+function showTip(e, p) {
+  const tip = $("tip");
+  const lines = [h("div", { style: { fontWeight: 700 }, text: p.name || p.steamid3 })];
+  const marks = combinedMarks(p);
+  if (marks.length) lines.push(h("div", null, marks.map(pill)));
+  const bits = [];
+  if (p.vac > 0) bits.push(p.vac + " VAC ban" + (p.vac > 1 ? "s" : ""));
+  if (p.gameBans > 0) bits.push(p.gameBans + " game ban" + (p.gameBans > 1 ? "s" : ""));
+  if (p.sourceBans > 0) bits.push(p.sourceBans + " SourceBans");
+  if (p.friend) bits.push("Steam friend");
+  if (p.markedFriends) bits.push(p.markedFriends.marked + " of " + p.markedFriends.total + " friends marked");
+  if (bits.length) lines.push(h("div", { class: "mutedtext", text: bits.join("  \u00b7  ") }));
+  lines.push(h("div", { class: "dimtext", text: "Click for the full dossier, right-click for actions" }));
+  tip.replaceChildren(...lines);
+  tip.style.display = "block";
+  const x = Math.min(e.clientX + 16, innerWidth - tip.offsetWidth - 8), y = Math.min(e.clientY + 14, innerHeight - tip.offsetHeight - 8);
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function hideTip() { $("tip").style.display = "none"; }
+
+// ----------------------------------------------------------------------------------------------- chat + log
+let chatKey = "", logKey = "";
+function atBottom(el) { return el.scrollTop + el.clientHeight >= el.scrollHeight - 24; }
+function renderChat() {
+  const lines = S.chat || [];
+  const st = S.state;
+  const key = lines.length + ":" + (lines.length ? JSON.stringify(lines[lines.length - 1]) : "") + (st ? st.colors.chatYou : "");
+  if (key === chatKey) return;
+  chatKey = key;
+  const box = $("chat");
+  const stick = atBottom(box);
+  const colors = st ? st.colors : { chatYou: "#8dff6a", chatFriendly: "#b9fff7", chatEnemy: "#ff8a99" };
+  const who = (name, id, color) => {
+    const el = h("span", { class: "who", text: name, style: { color } });
+    if (id) {
+      el.addEventListener("click", () => selectPlayer(id));
+      el.addEventListener("contextmenu", (e) => { e.preventDefault(); openPlayerMenu(e.clientX, e.clientY, id, name); });
+    }
+    return el;
+  };
+  box.replaceChildren(...lines.map((c) => {
+    if (c.kind === "kill") return h("div", { class: "line kill" }, who(c.attacker, c.attackerId, c.self ? colors.chatYou : "#9a9a9a"), " -> ",
+      who(c.victim, c.victimId, "#9a9a9a"), " // " + c.weapon + (c.crit ? " (crit)" : ""));
+    if (c.kind === "suicide") return h("div", { class: "line kill" }, "-> ", who(c.name, c.id, "#9a9a9a"), " // suicide");
+    const color = c.self ? colors.chatYou : c.teamShare === "same" ? colors.chatFriendly : c.teamShare === "opposite" ? colors.chatEnemy : "#ccccff";
+    return h("div", { class: "line" }, c.dead ? h("span", { class: "pre", text: "*DEAD*" }) : null,
+      c.team ? h("span", { class: "pre", text: "(TEAM)", style: { color } }) : null,
+      who(c.name, c.id, color), h("span", { text: ": " }), h("span", { class: "msg", text: c.message }));
+  }));
+  if (!lines.length) box.append(h("div", { class: "empty", text: "No chat yet." }));
+  if (stick) box.scrollTop = box.scrollHeight;
+}
+function renderLog() {
+  const lines = S.log || [];
+  const key = lines.length + ":" + (lines.length ? lines[lines.length - 1].t + lines[lines.length - 1].text : "");
+  if (key === logKey) return;
+  logKey = key;
+  const box = $("log");
+  const stick = atBottom(box);
+  box.replaceChildren(...lines.map((l) => {
+    const d = new Date(l.t);
+    const ts = pad(d.getHours(), 2) + ":" + pad(d.getMinutes(), 2) + ":" + pad(d.getSeconds(), 2);
+    return h("div", { class: "logline", title: "Right-click to copy" }, h("span", { class: "ts", text: "[" + ts + "]" }),
+      h("span", { text: l.text, style: { color: l.color, opacity: l.alpha < 1 ? Math.max(l.alpha, .55) : 1 } }));
+  }));
+  for (const el of box.children) el.addEventListener("contextmenu", (e) => {
+    e.preventDefault(); openMenu(e.clientX, e.clientY, [{ label: "Copy", run: () => copy(el.lastChild.textContent) }]);
+  });
+  if (stick) box.scrollTop = box.scrollHeight;
+}
+
+// ----------------------------------------------------------------------------------------------- menus
+function closeMenu() { if (ui.menu) { ui.menu.el.remove(); ui.menu = null; } for (const b of document.querySelectorAll("nav.menus button")) b.classList.remove("open"); }
+function placeMenu(el, x, y) {
+  document.body.append(el);
+  const r = el.getBoundingClientRect();
+  el.style.left = Math.max(4, Math.min(x, innerWidth - r.width - 6)) + "px";
+  el.style.top = Math.max(4, Math.min(y, innerHeight - r.height - 6)) + "px";
+}
+// items: { label, run, check, disabled, sub:[items], header, sep }
+function buildMenu(items, depth) {
+  const el = h("div", { class: "menu" });
+  for (const it of items) {
+    if (!it) continue;
+    if (it.sep) { el.append(h("div", { class: "sep" })); continue; }
+    if (it.header) { el.append(h("div", { class: "hdr", text: it.header })); continue; }
+    const mi = h("div", { class: "mi" + (it.disabled ? " dis" : "") + (it.sub ? " sub" : "") },
+      h("span", { class: "ck", text: it.check ? "\u2713" : "" }), h("span", { text: it.label }));
+    // hovering any item closes the submenu of its siblings
+    mi.addEventListener("mouseenter", () => { for (const other of el.querySelectorAll(":scope > .menu")) if (other.owner !== mi) other.remove(); });
+    if (it.sub && !it.disabled) {
+      mi.addEventListener("mouseenter", () => {
+        if ([...el.querySelectorAll(":scope > .menu")].some((m) => m.owner === mi)) return;
+        const child = buildMenu(it.sub, depth + 1);
+        child.owner = mi;
+        const r = mi.getBoundingClientRect();
+        child.style.position = "fixed";
+        document.body.append(child);
+        const cr = child.getBoundingClientRect();
+        let left = r.right - 2; if (left + cr.width > innerWidth - 4) left = r.left - cr.width + 2;
+        child.style.left = left + "px";
+        child.style.top = Math.max(4, Math.min(r.top - 4, innerHeight - cr.height - 6)) + "px";
+        el.append(child); // keep it inside so closing the menu removes it
+      });
+      mi.addEventListener("click", (e) => e.stopPropagation());
+    } else if (!it.disabled && it.run) {
+      mi.addEventListener("click", (e) => { e.stopPropagation(); closeMenu(); it.run(); });
+    } else {
+      mi.addEventListener("click", (e) => e.stopPropagation());
+    }
+    el.append(mi);
+  }
+  return el;
+}
+function openMenu(x, y, items, kind) {
+  closeMenu(); closeDropdown();
+  const el = buildMenu(items, 0);
+  ui.menu = { el, kind: kind || "context" };
+  placeMenu(el, x, y);
+}
+function headerMenuItems(name) {
+  const st = S.state || { preview: {}, view: {} };
+  if (name === "file") return [
+    { label: "Open Config Folder", run: () => post({ type: "open_folder", which: "config" }) },
+    { label: "Open Logs Folder", run: () => post({ type: "open_folder", which: "logs" }) },
+    { sep: true },
+    { label: "Reload Playerlists/Rules", run: () => { post({ type: "reload_lists" }); toast("Reloading player lists and rules"); } },
+    { label: "Reload Settings", run: () => post({ type: "reload_settings" }) },
+    { label: "Player Lists...", run: () => openLists() },
+    { label: "Preview Mode", check: st.preview.requested, run: () => post({ type: "toggle", name: "preview", value: !st.preview.requested }) },
+    { label: "Total Export (All Playerlists)...", run: () => openExport(true) },
+    { sep: true },
+    { label: "Generate Debug Report", run: () => { post({ type: "debug_report" }); toast("Generating debug_report.zip on this PC"); } },
+    { sep: true },
+    { label: "Use native UI", run: () => switchNative() },
+  ];
+  if (name === "view") {
+    const v = st.view || {};
+    const tog = (key, label, val) => ({ label, check: val, run: () => post({ type: "toggle", name: key, value: !val }) });
+    return [tog("view.chat", "Show Chat Log", v.chat), tog("view.app_log", "Show App Log", v.appLog), tog("view.team_stats", "Show Team Stats", v.teamStats),
+      tog("view.scoreboard", "Show Scoreboard", v.scoreboard), { sep: true }, tog("kill_logs", "Show Kill Logs in Chat", st.killLogs)];
+  }
+  return [
+    { label: "TF2PL on GitHub", run: () => window.open("https://github.com/Lunaris-Surf/TF2PL", "_blank", "noopener") },
+    { label: "LunarisV Website", run: () => window.open("https://lunaris-surf.github.io/TF2PL/", "_blank", "noopener") },
+    { sep: true },
+    { label: "Version: " + (st.appVersion || "?"), disabled: true },
+    { label: "Check for Updates", run: () => { post({ type: "update_check" }); toast("Checking for updates..."); } },
+    { sep: true },
+    { label: "About TF2PL", run: () => openAbout() },
+  ];
+}
+for (const b of document.querySelectorAll("nav.menus button")) {
+  b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const wasOpen = b.classList.contains("open");
+    closeMenu();
+    if (wasOpen) return;
+    const r = b.getBoundingClientRect();
+    openMenu(r.left, r.bottom + 2, headerMenuItems(b.dataset.menu), "header");
+    b.classList.add("open");
+  });
+}
+function playerMenuItems(id, fallbackName) {
+  const st = S.state;
+  const p = findPlayer(id);
+  const d = S.dossier && S.dossier.id === id ? S.dossier : null;
+  const name = (p && p.name) || (d && d.name) || fallbackName || "";
+  const masked = (p && p.masked) || id === "self";
+  const id3 = p ? p.steamid3 : d ? d.steamid3 : "";
+  const items = [{ header: name || "<unknown>" }, { header: masked ? id3 : (id3 + "   " + id) }, { sep: true }];
+  items.push({ label: "Copy", sub: [
+    { label: "In-game Name", run: () => copy(name) },
+    { label: "Steam ID", disabled: masked, run: () => copy(id3) },
+    { label: "SteamID64", disabled: masked, run: () => copy(id) },
+  ] });
+  if (masked) items.push({ label: "Go To (hidden in streamer mode)", disabled: true });
+  else items.push({ label: "Go To", sub: st.profileSites.length ? st.profileSites.map((s) => ({ label: s.name, run: () => window.open(siteURL(s.url, id, id3), "_blank", "noopener") }))
+    .concat(st.profileSites.length > 1 ? [{ sep: true }, { label: "Open All", run: () => { for (const s of st.profileSites) window.open(siteURL(s.url, id, id3), "_blank", "noopener"); } }] : [])
+    : [{ label: "No sites configured", disabled: true }] });
+  const canKick = p && p.canVotekick && !st.voteInProgress;
+  items.push({ label: st.preview.active ? "Votekick (off in preview mode)" : "Votekick", disabled: !canKick,
+    sub: ["Cheating", "Idle", "Other", "Scamming"].map((r) => ({ label: r, run: () => confirmVotekick(id, name, r.toLowerCase()) })) });
+  items.push({ sep: true });
+  if (!masked && !(p && p.isLocal)) {
+    const editable = new Set((p && p.editable) || (d && d.editable) || []);
+    items.push({ label: "Mark", sub: st.attributes.map((a) => ({ label: a.name, check: editable.has(a.id),
+      run: () => post({ type: "mark", steamid: id, attr: a.id, set: !editable.has(a.id), reason: ui.reason }) }))
+      .concat([{ sep: true }, { label: "Reason, tags and more...", run: () => selectPlayer(id) }]) });
+  }
+  items.push({ label: "Dossier...", run: () => selectPlayer(id) });
+  items.push({ label: "Marked friends...", run: () => selectPlayer(id, "friends") });
+  if (!masked) items.push({ label: "Open in Player Lists...", run: () => { ui.lists.search = id; ui.lists.offset = 0; openLists(); } });
+  return items;
+}
+function openPlayerMenu(x, y, id, fallbackName) { hideTip(); openMenu(x, y, playerMenuItems(id, fallbackName)); }
+
+// themed select ------------------------------------------------------------------------------------------
+function closeDropdown() { if (ui.dropdown) { ui.dropdown.el.remove(); ui.dropdown.owner.classList.remove("open"); ui.dropdown = null; } }
+function tselect(options, value, onChange, opts) {
+  // options: [{value,label}]
+  const wrap = h("div", { class: "tsel" });
+  const btn = h("button", { type: "button", disabled: opts && opts.disabled }, h("span"));
+  wrap.append(btn);
+  wrap._opts = options; wrap._value = value;
+  const label = () => { const o = wrap._opts.find((x) => x.value === wrap._value); btn.firstChild.textContent = o ? o.label : (opts && opts.placeholder) || ""; };
+  wrap.setValue = (v) => { wrap._value = v; label(); };
+  wrap.setOptions = (o) => { wrap._opts = o; label(); };
+  label();
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (ui.dropdown && ui.dropdown.owner === wrap) { closeDropdown(); return; }
+    closeDropdown(); closeMenu();
+    const dd = h("div", { class: "dropdown", role: "listbox" });
+    wrap._opts.forEach((o) => dd.append(h("div", { class: "opt" + (o.value === wrap._value ? " cur" : ""), text: o.label,
+      on: { click: (ev) => { ev.stopPropagation(); closeDropdown(); if (o.value !== wrap._value) { wrap.setValue(o.value); onChange(o.value); } } } })));
+    document.body.append(dd);
+    const r = btn.getBoundingClientRect();
+    dd.style.minWidth = r.width + "px";
+    const dr = dd.getBoundingClientRect();
+    dd.style.left = Math.min(r.left, innerWidth - dr.width - 6) + "px";
+    dd.style.top = (r.bottom + dr.height + 4 > innerHeight ? Math.max(4, r.top - dr.height - 2) : r.bottom + 2) + "px";
+    wrap.classList.add("open");
+    ui.dropdown = { el: dd, owner: wrap };
+    const cur = dd.querySelector(".cur"); if (cur) cur.scrollIntoView({ block: "nearest" });
+  });
+  return wrap;
+}
+function chk(label, checked, onChange, opts) {
+  const input = h("input", { type: "checkbox", checked, disabled: opts && opts.disabled });
+  input.addEventListener("change", () => onChange(input.checked, input));
+  const l = h("label", { class: "chk", title: (opts && opts.title) || null }, input, label != null ? h("span", null, label) : null);
+  l.input = input;
+  return l;
+}
+document.addEventListener("click", () => { closeMenu(); closeDropdown(); });
+window.addEventListener("resize", () => { closeMenu(); closeDropdown(); });
+document.addEventListener("scroll", () => closeDropdown(), true);
+
+// ----------------------------------------------------------------------------------------------- dossier drawer
+function selectPlayer(id, focusSection) {
+  if (!id) return;
+  ui.selected = id;
+  ui.focusSection = focusSection || null;
+  if (!S.dossier || S.dossier.id !== id) S.dossier = null;
+  $("drawer").classList.add("open");
+  post({ type: "focus", steamid: id });
+  renderDossier();
+  if (S.state) renderBoard();
+}
+function closeDrawer() {
+  $("drawer").classList.remove("open");
+  ui.selected = null;
+  post({ type: "focus", steamid: null });
+  if (S.state) renderBoard();
+}
+$("d-close").addEventListener("click", closeDrawer);
+function statusText(x, okFn) {
+  if (!x) return h("span", { class: "v-dim", text: "-" });
+  switch (x.status) {
+    case "ok": return okFn(x);
+    case "loading": return h("span", { class: "v-dim", text: "loading..." });
+    case "private": return h("span", { class: "v-yellow", text: "Private" });
+    case "no_api_key": return h("span", { class: "v-dim", text: "Enter Steam API key in Settings" });
+    case "disabled": return h("span", { class: "v-dim", text: "Enable in Settings" });
+    default: return h("span", { class: "v-red", text: x.message || "error" });
+  }
+}
+function kv(pairs) { const g = h("div", { class: "kv" }); for (const [k, v] of pairs) if (v != null) g.append(h("div", { text: k }), h("div", null, v)); return g; }
+function sec(label, ...kids) { return h("div", { class: "sec" }, h("div", { class: "micro", text: label }), ...kids); }
+function renderDossierQuick() {
+  // until the dossier arrives, show what the scoreboard knows
+  const p = findPlayer(ui.selected);
+  $("d-name").textContent = p ? (p.name || "<unknown>") : "Loading...";
+  $("d-ids").textContent = p ? p.steamid3 : "";
+}
+let reasonInput = null;
+function renderDossier() {
+  if (!ui.selected) return;
+  const d = S.dossier && (S.dossier.id === ui.selected) ? S.dossier : null;
+  const st = S.state;
+  if (!d) { renderDossierQuick(); $("d-body").replaceChildren(h("div", { class: "empty", text: "Loading dossier..." })); return; }
+  const p = findPlayer(d.id);
+
+  const av = $("d-avatar");
+  const src = d.masked ? (d.hasCustomAvatar ? "/api/avatar?token=" + encodeURIComponent(TOKEN) + "&v=" + Math.floor(Date.now() / 30000) : "") : (d.avatar || "");
+  if (src) { if (av.getAttribute("src") !== src) av.src = src; av.style.visibility = "visible"; }
+  else { av.removeAttribute("src"); av.style.visibility = "visible"; }
+  $("d-name").textContent = d.name || "<unknown name>";
+  $("d-ids").textContent = d.masked ? d.steamid3 : (d.steamid3 + "   " + d.steamid64 + (d.userid != null ? "   #" + d.userid : ""));
+  const badges = $("d-badges"); badges.replaceChildren();
+  if (d.inGame) badges.append(h("span", { class: "badge ok", text: "In game" }));
+  if (d.isLocal) badges.append(h("span", { class: "badge", text: "You" }));
+  if (d.sample) badges.append(h("span", { class: "badge hot", text: "Preview sample" }));
+  if (d.masked) badges.append(h("span", { class: "badge hot", text: "Streamer mode" }));
+
+  const body = [];
+  if (d.masked) {
+    body.push(h("div", { class: "note", text: "Streamer mode is on: your profile details, SteamID and profile links are hidden here." }));
+    $("d-body").replaceChildren(...body);
+    return;
+  }
+
+  // the native dossier tooltip
+  const s = d.summary;
+  const rows = [];
+  if (s && s.status === "ok") {
+    if (s.nickname && s.nickname !== d.name) rows.push(["Steam name", h("span", { class: "v-yellow", text: "\"" + s.nickname + "\"" })]);
+    rows.push(["Real name", s.realName ? "\"" + s.realName + "\"" : h("span", { class: "v-dim", text: "Not set" })]);
+    rows.push(["Vanity URL", s.vanity ? "\"" + s.vanity + "\"" : h("span", { class: "v-dim", text: "Not set" })]);
+    rows.push(["Account age", s.accountAgeDays != null ? fmtDays(s.accountAgeDays) :
+      h("span", null, h("span", { class: "v-yellow", text: "Private" }), d.estimatedAgeDays != null ? " (estimated " + fmtDays(d.estimatedAgeDays) + ")" : "")]);
+    const vis = { public: ["Public", "v-green"], friends: ["Friends Only", "v-yellow"], private: ["Private", "v-yellow"] }[s.visibility] || ["Unknown", "v-red"];
+    rows.push(["Profile state", h("span", null, h("span", { class: vis[1], text: vis[0] }), !s.configured ? h("span", { class: "v-red", text: ", Not Configured" }) : null)]);
+  } else rows.push(["Player summary", statusText(s)]);
+  const b = d.bans;
+  if (b && b.status === "ok") {
+    const old = b.daysSinceLast >= 365 * 7 ? "v-yellow" : "v-red";
+    if (b.community) rows.push(["Community", h("span", { class: "v-red", text: "Banned" })]);
+    if (b.economy !== "none") rows.push(["Trade status", h("span", { class: b.economy === "probation" ? "v-yellow" : "v-red", text: b.economy === "probation" ? "Banned (Probation)" : b.economy === "banned" ? "Banned" : "Unknown" })]);
+    if (b.vac > 0) rows.push(["VAC bans", h("span", { class: old, text: b.vac })]);
+    if (b.game > 0) rows.push(["Game bans", h("span", { class: old, text: b.game })]);
+    if (b.vac || b.game) rows.push(["Last ban", h("span", { class: old, text: fmtDays(b.daysSinceLast) + " ago" })]);
+    if (!b.community && b.economy === "none" && !b.vac && !b.game) rows.push(["Bans", h("span", { class: "v-green", text: "None" })]);
+  } else rows.push(["Player bans", statusText(b)]);
+  rows.push(["TF2 playtime", statusText(d.playtime, (x) => x.hours + " hours")]);
+  rows.push(["Logs.tf", statusText(d.logs, (x) => x.count + " logs")]);
+  rows.push(["Inventory", statusText(d.inventory, (x) => x.items + " items (" + x.slots + " slots)")]);
+  const f = d.friends;
+  rows.push(["Friends marked", statusText(f, (x) => x.marked ? h("span", { class: "v-yellow", text: x.marked + " (" + Math.round(x.marked / Math.max(1, x.total) * 100) + "% of " + x.total + ")" }) : "0 of " + x.total)]);
+  if (f && f.status === "ok") for (const k in f.byMark) rows.push(["", h("span", { class: "v-yellow", text: f.byMark[k] + " " + k })]);
+  if (d.thirst) rows.push(["Their thirst", Math.round(d.thirst.deaths === 0 ? d.thirst.kills * 100 : d.thirst.kills / d.thirst.deaths * 100) + "%"]);
+  if (d.inGame) body.push(sec("Dossier", kv(rows)));
+
+  const sb = d.sourceBans;
+  if (d.inGame) body.push(sec("SourceBans", statusText(sb, (x) => x.list.length ? h("div", null, x.list.map((bn) =>
+    h("div", { class: "listmark" }, h("div", null, bn.server + " (as \"" + bn.name + "\") = ", h("span", { class: bn.state === "current" || bn.state === "permanent" ? "v-yellow" : "", text: bn.state }), " [" + fmtDays(bn.daysAgo) + " ago]"),
+      h("div", { class: "ln", text: "reason: " + (bn.reason || "-") })))) : h("span", { class: "v-green", text: "0 bans" }))));
+
+  // marks by list
+  const lists = d.lists.length ? d.lists.map((m) => h("div", { class: "listmark" + (m.writable ? " own" : "") },
+    h("div", { class: "ln", text: m.list + (m.writable ? " (your list)" : "") }), h("div", null, m.attrs.map(pill)),
+    m.proof && m.proof.length ? m.proof.map((pr) => h("div", { class: "proof", text: "- " + pr })) : h("div", { class: "proof", style: { color: "#ff0" }, text: "<no reason given>" }),
+    m.lastSeen ? h("div", { class: "ln", text: "first seen " + new Date(m.lastSeen.t * 1000).toISOString().slice(0, 10) + (m.lastSeen.name ? " as \"" + m.lastSeen.name + "\"" : "") }) : null))
+    : [h("div", { class: "mutedtext", text: "Not marked in any loaded list." })];
+  body.push(sec("Marks by list", ...lists));
+
+  // your list editor
+  if (d.isLocal) body.push(sec("Your list", h("div", { class: "mutedtext", text: "This is you - your own SteamID can't be marked." })));
+  else {
+    const editable = new Set(d.editable || []);
+    if (!reasonInput) {
+      reasonInput = h("input", { type: "text", maxlength: 500, placeholder: "Reason / proof (saved with the next change)" });
+      reasonInput.addEventListener("input", () => { ui.reason = reasonInput.value; });
+    }
+    const consumeReason = () => { const r = ui.reason; ui.reason = ""; reasonInput.value = ""; return r; };
+    const grid = h("div", { class: "marks-grid", style: { marginTop: "8px" } },
+      st.attributes.map((a) => chk(h("span", null, h("span", { class: "sw", style: { background: a.color } }), a.name), editable.has(a.id),
+        (v) => post({ type: "mark", steamid: d.id, attr: a.id, set: v, reason: consumeReason(), name: d.name }))));
+    const allTags = [...new Set([...(st.customTags || []), ...[...editable].filter((x) => x.startsWith("custom:"))])];
+    const tags = allTags.length ? h("div", { class: "marks-grid", style: { marginTop: "6px" } }, allTags.map((tag) =>
+      chk(tag.slice(7), editable.has(tag), (v) => post({ type: "tag", steamid: d.id, tag, set: v, reason: consumeReason(), name: d.name })))) : null;
+    const newTag = h("input", { type: "text", maxlength: 64, placeholder: "new tag, e.g. watchlist", style: { width: "200px" } });
+    const addTag = () => {
+      const v = newTag.value.trim().toLowerCase();
+      if (!/^[a-z][a-z0-9_-]{0,63}$/.test(v)) { toast("Use 1-64 lowercase letters, digits, - or _; start with a letter.", true); newTag.focus(); return; }
+      post({ type: "tag", steamid: d.id, tag: "custom:" + v, set: true, reason: consumeReason(), name: d.name }); newTag.value = "";
+    };
+    newTag.addEventListener("keydown", (e) => { if (e.key === "Enter") addTag(); });
+    const inWritable = editable.size > 0 && !d.sample;
+    body.push(sec("Your list", d.sample ? h("div", { class: "note", style: { color: "var(--orangehi)" }, text: "Preview sample player: marks are kept in memory and never saved." }) : null,
+      reasonInput, grid, tags,
+      h("div", { class: "row" }, newTag, h("button", { class: "btn small", text: "Add tag", on: { click: addTag } })),
+      h("div", { class: "row" }, h("button", { class: "btn small ghost danger", text: "Remove from my list", disabled: !inWritable,
+        on: { click: () => confirmBox("Remove all of your marks and reasons for " + (d.name || d.steamid3) + "?", "Yes, remove", () => post({ type: "remove_from_list", steamid: d.id })) } })),
+      h("div", { class: "note", text: "Only your own list is changed. Marks from subscribed lists stay until that list changes." })));
+  }
+
+  // actions
+  const actions = h("div", { class: "row" },
+    h("button", { class: "btn small", text: "Copy SteamID64", on: { click: () => copy(d.steamid64) } }),
+    h("button", { class: "btn small", text: "Copy name", on: { click: () => copy(d.name || "") } }),
+    h("button", { class: "btn small", text: "Open in Player Lists", on: { click: () => { ui.lists.search = d.steamid64; ui.lists.offset = 0; openLists(); } } }));
+  const sites = h("div", { class: "row" }, st.profileSites.map((s) => h("a", { class: "btn small ghost", href: siteURL(s.url, d.steamid64, d.steamid3), target: "_blank", rel: "noopener noreferrer", text: s.name })));
+  const kick = h("div", { class: "row" }, ["cheating", "idle", "scamming", "other"].map((r) => h("button", { class: "btn small" + (r === "cheating" ? " danger" : ""),
+    text: r[0].toUpperCase() + r.slice(1), disabled: !d.canVotekick || st.voteInProgress, on: { click: () => confirmVotekick(d.id, d.name, r) } })));
+  body.push(sec("Actions", actions, sites));
+  if (d.inGame && !d.isLocal) body.push(sec(st.preview.active ? "Votekick (off in preview mode)" : "Votekick", kick));
+
+  // marked friends (native: Marked Friends window)
+  if (f && f.status === "ok") {
+    const fr = f.list.length ? h("table", { class: "friends" }, h("tr", null, h("th", { text: "Name" }), h("th", { text: "Marks" }), h("th", { text: "Lists" })),
+      f.list.map((x) => h("tr", { class: "prow", on: { click: () => selectPlayer(x.id) } },
+        h("td", null, x.name || x.steamid3, x.inGame ? h("span", { class: "badge ok", style: { marginLeft: "6px" }, text: "in game" }) : null),
+        h("td", null, x.attrs.map(pill)), h("td", { class: "mutedtext", text: x.lists.join(", ") }))))
+      : h("div", { class: "mutedtext", text: "None of their " + f.total + " friends are marked." });
+    const fsec = sec("Marked friends (" + f.marked + " of " + f.total + ")", fr);
+    fsec.id = "d-friends";
+    body.push(fsec);
+  } else if (d.inGame) {
+    const fsec = sec("Marked friends", statusText(f));
+    fsec.id = "d-friends";
+    body.push(fsec);
+  }
+
+  // keep typing focus: re-use the reason input element
+  const keepFocus = document.activeElement === reasonInput;
+  const bodyEl = $("d-body");
+  const scroll = bodyEl.scrollTop;
+  bodyEl.replaceChildren(...body);
+  bodyEl.scrollTop = scroll;
+  if (keepFocus) reasonInput.focus();
+  if (ui.focusSection === "friends") { const el = $("d-friends"); if (el) el.scrollIntoView({ block: "start" }); ui.focusSection = null; }
+}
+
+// ----------------------------------------------------------------------------------------------- modals
+function closeModal() {
+  if (!ui.modal) return;
+  const kind = ui.modal.kind;
+  ui.modal.el.remove();
+  ui.modal = null;
+  if (kind === "lists") post({ type: "lists_close" });
+  if (kind === "export" && S.state && S.state.export && !S.state.export.running) post({ type: "export", op: "close" });
+}
+function openModal(kind, title, cls, bodyEl, footEl) {
+  closeModal(); closeMenu(); closeDropdown();
+  const modal = h("div", { class: "modal" + (cls ? " " + cls : "") },
+    h("h3", null, h("span", { class: "micro" , text: "///" }), h("span", { text: title }), h("span", { class: "grow" }),
+      h("button", { class: "x", title: "Close (Esc)", text: "\u00d7", on: { click: () => closeModal() } })),
+    bodyEl, footEl || null);
+  const back = h("div", { class: "modal-back" }, modal);
+  back.addEventListener("mousedown", (e) => { if (e.target === back && kind !== "untrusted") closeModal(); });
+  document.body.append(back);
+  ui.modal = { kind, el: back, body: bodyEl, foot: footEl };
+  return ui.modal;
+}
+function confirmBox(text, okLabel, onOk) {
+  const prev = ui.modal && ui.modal.kind !== "confirm" ? ui.modal : null;
+  const body = h("div", { class: "mbody" }, h("div", { text }));
+  const back = h("div", { class: "modal-back", style: { zIndex: 70 } });
+  const done = () => back.remove();
+  const foot = h("div", { class: "mfoot" },
+    h("button", { class: "btn ghost", text: "Cancel", on: { click: done } }),
+    h("button", { class: "btn primary", text: okLabel, on: { click: () => { done(); onOk(); } } }));
+  back.append(h("div", { class: "modal small" }, h("h3", null, h("span", { class: "micro", text: "///" }), h("span", { text: "Confirm" })), body, foot));
+  back.addEventListener("mousedown", (e) => { if (e.target === back) done(); });
+  document.body.append(back);
+  back.querySelector(".btn.primary").focus();
+  return prev;
+}
+function confirmVotekick(id, name, reason) {
+  confirmBox("Start a votekick against " + (name || id) + " (" + reason + ")?", "Call vote", () => post({ type: "votekick", steamid: id, reason }));
+}
+function switchNative() {
+  confirmBox("Switch TF2PL back to its native window? This page will stop updating.", "Use native UI", () => { post({ type: "ui_mode", mode: "native" }); setConn("off", "native UI"); });
+}
+
+// settings ---------------------------------------------------------------------------------------------
+function openSettings() {
+  const body = h("div", { class: "mbody", style: { padding: 0 } });
+  openModal("settings", "Settings", "wide", body);
+  ui.settingsSig = "";
+  renderSettings();
+}
+$("open-settings").addEventListener("click", (e) => { e.stopPropagation(); openSettings(); });
+function settingsSignature(st) {
+  return st.sections.map((s) => s.name + "[" + s.items.map((i) => i.id + (i.visible ? "" : "!") + (i.options ? i.options.length : "")).join(",") + "]").join(";");
+}
+function settingControl(item) {
+  const set = (value) => post({ type: "setting", id: item.id, value });
+  const wrap = h("div", { class: "setting", "data-id": item.id, hidden: !item.visible });
+  let ctl, update;
+  switch (item.type) {
+    case "bool": {
+      const c = chk(item.label, item.value, (v) => set(v));
+      ctl = c; update = (v) => { c.input.checked = !!v; };
+      wrap.append(h("div", { class: "ctl" }, c));
+      break;
+    }
+    case "int": case "float": {
+      const range = h("input", { type: "range", min: item.min, max: item.max, step: item.type === "float" ? (item.step || .1) : 1, value: item.value });
+      const num = h("input", { type: "number", min: item.min, max: item.max, step: item.type === "float" ? (item.step || .1) : 1, value: item.value });
+      const commit = (v) => { v = Number(v); if (isNaN(v) || v < item.min || v > item.max) { wrap.classList.add("err"); return; } wrap.classList.remove("err"); set(item.type === "int" ? Math.round(v) : v); };
+      range.addEventListener("input", () => { num.value = range.value; });
+      range.addEventListener("change", () => commit(range.value));
+      num.addEventListener("change", () => { range.value = num.value; commit(num.value); });
+      const big = item.max - item.min > 2000; // ports: no slider
+      wrap.append(h("label", { class: "lbl", text: item.label }), h("div", { class: "ctl" }, big ? null : range, num));
+      update = (v) => { if (document.activeElement !== num) num.value = v; if (document.activeElement !== range) range.value = v; };
+      break;
+    }
+    case "string": case "path": {
+      const input = h("input", { type: "text", value: item.value, placeholder: item.placeholder || "" });
+      const commit = () => { if (input.value !== input._last) { input._last = input.value; set(input.value); } };
+      input._last = item.value;
+      input.addEventListener("change", commit);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") commit(); });
+      const extra = [];
+      if (item.type === "path") {
+        extra.push(h("button", { class: "btn small", text: "Browse...", title: "Opens a file picker on this PC", on: { click: () => post({ type: "browse_avatar" }) } }));
+        extra.push(h("button", { class: "btn small ghost", text: "Clear", on: { click: () => { input.value = ""; commit(); } } }));
+      }
+      wrap.append(h("label", { class: "lbl", text: item.label }), h("div", { class: "ctl" }, input, ...extra));
+      update = (v) => { if (document.activeElement !== input) { input.value = v; input._last = v; } };
+      break;
+    }
+    case "secret": {
+      const input = h("input", { type: "password", placeholder: item.value ? "(saved - type to replace)" : "not set", autocomplete: "off" });
+      const save = h("button", { class: "btn small", text: "Save", on: { click: () => { set(input.value); input.value = ""; } } });
+      const clear = h("button", { class: "btn small ghost", text: "Clear", on: { click: () => confirmBox("Remove the saved " + item.label + "?", "Remove", () => set("")) } });
+      const state = h("span", { class: "badge" });
+      wrap.append(h("label", { class: "lbl", text: item.label }), h("div", { class: "ctl" }, input, save, clear, state));
+      update = (v) => { state.textContent = v ? "saved" : "not set"; state.className = "badge" + (v ? " ok" : ""); input.placeholder = v ? "(saved - type to replace)" : "not set"; clear.disabled = !v; };
+      update(item.value);
+      break;
+    }
+    case "enum": {
+      const sel = tselect(item.options, item.value, (v) => set(v));
+      wrap.append(h("label", { class: "lbl", text: item.label }), h("div", { class: "ctl" }, sel));
+      update = (v) => sel.setValue(v);
+      break;
+    }
+    case "color": {
+      const color = h("input", { type: "color", value: item.value.hex });
+      const alpha = h("input", { type: "range", min: 0, max: 1, step: .01, value: item.value.alpha, title: "Opacity" });
+      const a = h("span", { class: "mutedtext", text: Math.round(item.value.alpha * 100) + "%" });
+      const commit = () => set({ hex: color.value, alpha: Number(alpha.value) });
+      color.addEventListener("change", commit);
+      alpha.addEventListener("input", () => { a.textContent = Math.round(alpha.value * 100) + "%"; });
+      alpha.addEventListener("change", commit);
+      wrap.append(h("label", { class: "lbl", text: item.label }), h("div", { class: "ctl" }, color, alpha, a));
+      update = (v) => { if (document.activeElement !== color) color.value = v.hex; if (document.activeElement !== alpha) { alpha.value = v.alpha; a.textContent = Math.round(v.alpha * 100) + "%"; } };
+      break;
+    }
+  }
+  if (item.help) wrap.append(h("div", { class: "help", text: item.help }));
+  wrap.update = update;
+  return wrap;
+}
+function renderSettings() {
+  const m = ui.modal;
+  const st = S.settings;
+  if (!m || m.kind !== "settings") return;
+  if (!st) { m.body.replaceChildren(h("div", { class: "empty", text: "Loading settings..." })); return; }
+  const sig = settingsSignature(st);
+  if (sig === ui.settingsSig && m.items) {
+    // same layout: update values in place so typing isn't interrupted
+    for (const s of st.sections) for (const it of s.items) {
+      const el = m.items[it.id];
+      if (el && el.update) el.update(it.value);
+      if (el) el.hidden = !it.visible;
+    }
+    return;
+  }
+  ui.settingsSig = sig;
+  if (!ui.settingsSection || !st.sections.find((s) => s.name === ui.settingsSection)) ui.settingsSection = st.sections[0].name;
+  const nav = h("nav");
+  const items = h("div", { class: "items" });
+  const filter = h("input", { type: "text", placeholder: "Filter settings", value: ui.settingsFilter, style: { margin: "8px 0 4px" } });
+  m.items = {};
+  const show = () => {
+    const q = ui.settingsFilter.trim().toLowerCase();
+    items.replaceChildren(filter);
+    for (const b of nav.children) b.classList.toggle("cur", !q && b.dataset.name === ui.settingsSection);
+    for (const s of st.sections) {
+      if (!q && s.name !== ui.settingsSection) continue;
+      const matches = s.items.filter((it) => !q || (it.label + " " + it.help + " " + s.name).toLowerCase().includes(q));
+      if (!matches.length) continue;
+      items.append(h("div", { class: "micro", style: { marginTop: "12px" }, text: s.name }));
+      for (const it of matches) items.append(m.items[it.id]);
+      if (s.name === "Streamer mode") items.append(h("div", { class: "note", text: "Streamer mode changes only what TF2PL shows. Player lists, logs and game commands still use your real profile." }));
+    }
+    items.append(h("div", { class: "note", text: st.nativeOnly }));
+  };
+  for (const s of st.sections) {
+    for (const it of s.items) m.items[it.id] = settingControl(it);
+    nav.append(h("button", { "data-name": s.name, text: s.name, on: { click: () => { ui.settingsSection = s.name; ui.settingsFilter = ""; filter.value = ""; show(); } } }));
+  }
+  filter.addEventListener("input", () => { ui.settingsFilter = filter.value; show(); filter.focus(); });
+  show();
+  m.body.replaceChildren(h("div", { class: "settings" }, nav, items));
+}
+
+// player lists -------------------------------------------------------------------------------------------
+let listsTimer = null;
+function queryLists() { post(Object.assign({ type: "lists_query", limit: 200 }, ui.lists)); }
+function openLists() {
+  const body = h("div", { class: "mbody lists-body" });
+  const m = openModal("lists", "Player Lists", "wide", body);
+  const search = h("input", { type: "text", placeholder: "Search name or SteamID", value: ui.lists.search });
+  search.addEventListener("input", () => { ui.lists.search = search.value; ui.lists.offset = 0; clearTimeout(listsTimer); listsTimer = setTimeout(queryLists, 200); });
+  const listSel = tselect([{ value: "", label: "All lists" }], ui.lists.list, (v) => { ui.lists.list = v; ui.lists.offset = 0; queryLists(); }, { placeholder: "All lists" });
+  const markSel = tselect([{ value: "", label: "Any mark" }], ui.lists.mark, (v) => { ui.lists.mark = v; ui.lists.offset = 0; queryLists(); }, { placeholder: "Any mark" });
+  const only = chk("Only my list", ui.lists.onlyWritable, (v) => { ui.lists.onlyWritable = v; ui.lists.offset = 0; queryLists(); });
+  const add = h("input", { type: "text", placeholder: "Add / look up: SteamID64, [U:1:...], STEAM_0:... or profile link", style: { width: "380px" } });
+  const lookup = () => { const v = add.value.trim(); if (!v) return; post({ type: "lookup", text: v }); ui.selected = null; $("drawer").classList.add("open"); ui.pendingLookup = true; add.value = ""; };
+  add.addEventListener("keydown", (e) => { if (e.key === "Enter") lookup(); });
+  const info = h("div", { class: "mutedtext", style: { padding: "0 0 8px" } });
+  const table = h("table");
+  const pager = h("div", { class: "row" });
+  body.append(h("div", { class: "toolbar" }, search, listSel, markSel, only,
+    h("button", { class: "btn small", text: "Refresh", on: { click: queryLists } })),
+    h("div", { class: "toolbar" }, add, h("button", { class: "btn small primary", text: "Add player", on: { click: lookup } })),
+    info, h("div", { class: "scroll" }, table), pager);
+  m.parts = { search, listSel, markSel, only, info, table, pager };
+  S.lists = null;
+  queryLists();
+  renderLists();
+  setTimeout(() => search.focus(), 0);
+}
+function renderLists() {
+  const m = ui.modal;
+  if (!m || m.kind !== "lists") return;
+  const L = S.lists, st = S.state;
+  const p = m.parts;
+  if (st) p.markSel.setOptions([{ value: "", label: "Any mark" }].concat(st.attributes.map((a) => ({ value: a.id, label: a.name })),
+    (st.customTags || []).map((t) => ({ value: t, label: t.slice(7) }))));
+  if (!L) { p.info.textContent = "Loading..."; p.table.replaceChildren(); return; }
+  const writable = L.writable || "";
+  p.listSel.setOptions([{ value: "", label: "All lists" }].concat(L.lists.map((l) => ({ value: l, label: l + (l === writable ? " (your list)" : "") }))));
+  p.info.textContent = L.matched + " of " + L.total + " entries across " + L.lists.length + " list(s)" + (L.loading ? " - some lists are still loading" : "") +
+    (L.matched > L.rows.length ? "  |  showing " + (L.query.offset + 1) + "-" + (L.query.offset + L.rows.length) : "");
+  p.table.replaceChildren(h("tr", null, h("th", { text: "Name" }), h("th", { text: "SteamID" }), h("th", { text: "Marks" }), h("th", { text: "List" })),
+    ...L.rows.map((r) => {
+      const tr = h("tr", { class: "prow" + (r.id === ui.selected ? " sel" : "") },
+        h("td", { text: r.name || "<unknown name>" }), h("td", { class: "sid", text: r.steamid3 }),
+        h("td", null, r.attrs.map(pill)), h("td", { class: r.writable ? "" : "mutedtext", style: r.writable ? { color: "var(--teal)" } : null, text: r.list + (r.writable ? " (your list)" : "") }));
+      tr.addEventListener("click", () => selectPlayer(r.id));
+      tr.addEventListener("contextmenu", (e) => { e.preventDefault(); openPlayerMenu(e.clientX, e.clientY, r.id, r.name); });
+      return tr;
+    }));
+  if (!L.rows.length) p.table.append(h("tr", null, h("td", { colspan: 4, class: "mutedtext", text: "Nothing matches." })));
+  const prev = h("button", { class: "btn small", text: "Previous", disabled: L.query.offset <= 0, on: { click: () => { ui.lists.offset = Math.max(0, L.query.offset - L.query.limit); queryLists(); } } });
+  const next = h("button", { class: "btn small", text: "Next", disabled: L.query.offset + L.rows.length >= L.matched, on: { click: () => { ui.lists.offset = L.query.offset + L.query.limit; queryLists(); } } });
+  p.pager.replaceChildren(prev, next);
+}
+
+// export / about / untrusted -------------------------------------------------------------------------------
+function openExport(start) {
+  const body = h("div", { class: "mbody" });
+  const foot = h("div", { class: "mfoot" });
+  openModal("export", "Total Export", "", body, foot);
+  if (start && !(S.state && S.state.export && S.state.export.running)) post({ type: "export", op: "start" });
+  renderExport();
+}
+function renderExport() {
+  const m = ui.modal;
+  if (!m || m.kind !== "export") return;
+  const x = S.state && S.state.export;
+  const running = x && x.running;
+  const kids = [h("div", { class: "mutedtext", text: "Combines every loaded playerlist into TF2PL and TF2BD-compatible exports. Names are filled in and VAC/game/SourceBan markers are refreshed from the APIs. Accounts that no longer exist on Steam are removed. Files are written as cfg/playerlist.export.tf2pl.json and cfg/playerlist.export.tf2bd.json." })];
+  if (x) {
+    const frac = x.total > 0 ? x.completed / x.total : 0;
+    if (running) kids.push(h("div", { style: { marginTop: "14px" }, text: x.message }), h("div", { class: "progress", style: { marginTop: "6px" } }, h("i", { style: { width: (frac * 100) + "%" } }), h("span", { text: x.completed + " / " + x.total })));
+    else if (x.stage === "finished" || x.stage === "failed") {
+      kids.push(h("div", { style: { marginTop: "14px", color: x.stage === "failed" ? "var(--red)" : "var(--green)" }, text: x.message }),
+        kv([["Players exported", x.total], ["Removed (nonexistent)", x.removedNonexistent], ["Names filled in", x.filledNames], ["VAC banned", x.vacBanned], ["Game banned", x.gameBanned], ["SourceBanned", x.sourceBanned]]));
+    }
+  }
+  m.body.replaceChildren(...kids);
+  m.foot.replaceChildren(
+    running ? h("button", { class: "btn", text: "Cancel", on: { click: () => post({ type: "export", op: "cancel" }) } }) : null,
+    h("button", { class: "btn primary", text: x ? "Export again" : "Start export", disabled: running, on: { click: () => post({ type: "export", op: "start" }) } }));
+}
+function openAbout() {
+  const st = S.state || {};
+  const link = (href, text) => h("a", { href, target: "_blank", rel: "noopener noreferrer", text });
+  const body = h("div", { class: "mbody" },
+    h("p", null, h("b", { text: "TF2PL by LunarisV v" + (st.appVersion || "?") })),
+    h("p", { text: "Automatically detects and votekicks cheaters in Team Fortress 2 Casual." }),
+    h("p", { class: "mutedtext", text: "This program is free, open source software licensed under the MIT license. Full license text for this program and its dependencies can be found in the licenses subfolder next to the executable." }),
+    h("p", { text: "TF2PL (Team Fortress 2 PlayerList) by LunarisV. Built from the open-source TF2 Bot Detector project." }),
+    h("div", { class: "micro", text: "Credits" }),
+    h("ul", null,
+      h("li", null, "Code/concept by Matt \"pazer\" Haynie - ", link("https://github.com/PazerOP", "GitHub"), ", ", link("https://twitter.com/PazerFromSilver", "Twitter")),
+      h("li", null, "Artwork/icon by S-Purple - ", link("https://twitter.com/spurpleheart", "Twitter (NSFW)")),
+      h("li", null, "Documentation/moderation by Nicholas \"ClusterConsultant\" Flamel - ", link("https://github.com/ClusterConsultant", "GitHub")),
+      h("li", null, "SourceBans information made possible by xzf from ", link("https://steamhistory.net", "SteamHistory.net")),
+      h("li", { text: "\"Game Ban\" icon made by Freepik from www.flaticon.com; \"Source Bans\" icon made by minein4" })));
+  openModal("about", "About TF2PL", "", body);
+}
+function openUntrusted() {
+  const r = S.state.untrusted;
+  const files = (list) => h("ul", { class: "files" }, list.map((f) => h("li", { text: f })));
+  const kids = [h("div", { class: "micro", style: { color: "var(--red)" }, text: "Security notice" })];
+  const blacklisted = r.blacklistedDeleted.length || r.blacklistedDisabled.length || r.blacklistedKept.length;
+  if (blacklisted) {
+    kids.push(h("p", { style: { color: "var(--red)" }, text: "Blacklisted player lists: Vorobey's HackerPolice and ShadeFall." }),
+      h("p", { class: "mutedtext", text: "Their maintainers were found to be malicious: Vorobey's list knowingly accepts fake and manipulated evidence, and ShadeFall is run by an active cheater whose \"anticheat\" produces fabricated evidence used to mark players." }));
+    if (r.blacklistedDeleted.length) kids.push(h("div", { text: "These blacklisted lists were deleted:" }), files(r.blacklistedDeleted));
+    if (r.blacklistedDisabled.length) kids.push(h("div", { text: "These lists carried blacklisted entries and were disabled (renamed to *.blacklisted-disabled, not deleted):" }), files(r.blacklistedDisabled));
+    if (r.blacklistedKept.length) kids.push(h("div", { style: { color: "var(--orange)" }, text: "These lists contain blacklisted entries but were left enabled. Remove those entries, or the marks they add can't be trusted:" }), files(r.blacklistedKept));
+  }
+  if (r.deleted.length) kids.push(h("div", { text: "TF2PL removed untrusted player lists (Sterling, Shitlist). These lists were found adding incorrect and fake cheater listings, so they are no longer trusted and were deleted:" }), files(r.deleted));
+  if (r.contaminated.length) kids.push(h("div", { style: { color: "var(--orange)" }, text: "These lists contain entries from untrusted lists and are unreliable:" }), files(r.contaminated),
+    h("div", { class: "mutedtext", text: "Players marked by these lists may not be cheaters. Double-check before acting on them, or remove the lists." }));
+  if (r.exports.length) kids.push(h("div", { style: { color: "var(--orange)" }, text: "These exports were combined from all your lists while an untrusted list was installed and may include its entries:" }), files(r.exports),
+    h("div", { class: "mutedtext", text: "Consider deleting them and running File > Total Export again." }));
+  const kept = r.contaminated.length || r.exports.length;
+  const foot = h("div", { class: "mfoot" },
+    kept ? h("button", { class: "btn ghost", text: "Don't warn about these again", title: "Only applies to untrusted lists. Blacklisted lists are always warned about.",
+      on: { click: () => { post({ type: "untrusted_dismiss", acknowledge: true }); ui.untrustedHidden = true; closeModal(); } } }) : null,
+    h("button", { class: "btn primary", text: "Understood", on: { click: () => { post({ type: "untrusted_dismiss", acknowledge: false }); ui.untrustedHidden = true; closeModal(); setTimeout(() => { ui.untrustedHidden = false; }, 3000); } } }));
+  openModal("untrusted", "Untrusted player list", "", h("div", { class: "mbody" }, ...kids), foot);
+}
+
+// ----------------------------------------------------------------------------------------------- misc wiring
+document.addEventListener("click", (e) => {
+  const act = e.target.closest && e.target.closest("[data-act]");
+  if (act && act.dataset.act === "exit-preview") post({ type: "toggle", name: "preview", value: false });
 });
-for (const b of $("d-kick").querySelectorAll("button"))
-  b.addEventListener("click", () => { if (selected && confirm("Start a votekick (" + b.dataset.reason + ")?")) post({ type: "votekick", steamid: selected, reason: b.dataset.reason }); });
-poll();
-setInterval(poll, 1000);
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  const confirmBack = [...document.querySelectorAll(".modal-back")].find((b) => b.style.zIndex === "70");
+  if (confirmBack) { confirmBack.remove(); return; }
+  if (ui.dropdown) { closeDropdown(); return; }
+  if (ui.menu) { closeMenu(); return; }
+  if (ui.modal && ui.modal.kind !== "untrusted") { closeModal(); return; }
+  if ($("drawer").classList.contains("open")) closeDrawer();
+});
+pollOnce().then(() => connect());
 </script>
 </body>
 </html>

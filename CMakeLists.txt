@@ -22,7 +22,7 @@ endif()
 set_warning_level(3)
 
 # The vendored mh/ headers (formerly the mh_stuff submodule) are provided by tf2_bot_detector::common,
-# which carries their include path, MH_* defines, fmt and C++20 as PUBLIC usage requirements.
+# which carries their include path, TF2PL_* defines, fmt and C++20 as PUBLIC usage requirements.
 
 add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)

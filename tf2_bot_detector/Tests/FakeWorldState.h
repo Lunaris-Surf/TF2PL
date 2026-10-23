@@ -59,14 +59,14 @@ namespace tf2_bot_detector::Testing
 		duration_t m_ActiveTime{};
 		std::optional<time_point_t> m_EstimatedAccountCreationTime;
 
-		mh::expected<SteamAPI::PlayerSummary> m_Summary = NotLoadedError();
-		mh::expected<SteamAPI::PlayerBans> m_Bans = NotLoadedError();
-		mh::expected<SteamHistoryAPI::PlayerSourceBanState> m_SourceBanState = NotLoadedError();
-		mh::expected<SteamHistoryAPI::PlayerSourceBans> m_SourceBans = NotLoadedError();
-		mh::expected<duration_t> m_TF2Playtime = NotLoadedError();
-		mh::expected<LogsTFAPI::PlayerLogsInfo> m_Logs = NotLoadedError();
-		mh::expected<SteamAPI::PlayerFriends> m_Friends = NotLoadedError();
-		mh::expected<SteamAPI::PlayerInventoryInfo> m_Inventory = NotLoadedError();
+		tf2pl::expected<SteamAPI::PlayerSummary> m_Summary = NotLoadedError();
+		tf2pl::expected<SteamAPI::PlayerBans> m_Bans = NotLoadedError();
+		tf2pl::expected<SteamHistoryAPI::PlayerSourceBanState> m_SourceBanState = NotLoadedError();
+		tf2pl::expected<SteamHistoryAPI::PlayerSourceBans> m_SourceBans = NotLoadedError();
+		tf2pl::expected<duration_t> m_TF2Playtime = NotLoadedError();
+		tf2pl::expected<LogsTFAPI::PlayerLogsInfo> m_Logs = NotLoadedError();
+		tf2pl::expected<SteamAPI::PlayerFriends> m_Friends = NotLoadedError();
+		tf2pl::expected<SteamAPI::PlayerInventoryInfo> m_Inventory = NotLoadedError();
 
 		/// Adds a friend (by SteamID) to this player's friends list, creating the list if it was "not loaded".
 		FakePlayer& AddFriend(const SteamID& id);
@@ -77,11 +77,11 @@ namespace tf2_bot_detector::Testing
 		const LobbyMember* GetLobbyMember() const override { return m_LobbyMember ? &*m_LobbyMember : nullptr; }
 		std::string GetNameUnsafe() const override { return m_Name; }
 		SteamID GetSteamID() const override { return m_SteamID; }
-		const mh::expected<SteamAPI::PlayerSummary>& GetPlayerSummary() const override { return m_Summary; }
-		const mh::expected<SteamAPI::PlayerBans>& GetPlayerBans() const override { return m_Bans; }
-		const mh::expected<SteamHistoryAPI::PlayerSourceBanState>& GetPlayerSourceBanState() const override { return m_SourceBanState; }
-		const mh::expected<SteamHistoryAPI::PlayerSourceBans>& GetPlayerSourceBans() const override { return m_SourceBans; }
-		mh::expected<duration_t> GetTF2Playtime() const override { return m_TF2Playtime; }
+		const tf2pl::expected<SteamAPI::PlayerSummary>& GetPlayerSummary() const override { return m_Summary; }
+		const tf2pl::expected<SteamAPI::PlayerBans>& GetPlayerBans() const override { return m_Bans; }
+		const tf2pl::expected<SteamHistoryAPI::PlayerSourceBanState>& GetPlayerSourceBanState() const override { return m_SourceBanState; }
+		const tf2pl::expected<SteamHistoryAPI::PlayerSourceBans>& GetPlayerSourceBans() const override { return m_SourceBans; }
+		tf2pl::expected<duration_t> GetTF2Playtime() const override { return m_TF2Playtime; }
 		bool IsFriend() const override { return m_IsFriend; }
 		std::optional<UserID_t> GetUserID() const override { return m_UserID; }
 		PlayerStatusState GetConnectionState() const override { return m_State; }
@@ -92,9 +92,9 @@ namespace tf2_bot_detector::Testing
 		uint16_t GetPing() const override { return m_Ping; }
 		time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
 		std::optional<time_point_t> GetEstimatedAccountCreationTime() const override { return m_EstimatedAccountCreationTime; }
-		const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override { return m_Logs; }
-		const mh::expected<SteamAPI::PlayerFriends>& GetFriendsInfo() const override { return m_Friends; }
-		const mh::expected<SteamAPI::PlayerInventoryInfo>& GetInventoryInfo() const override { return m_Inventory; }
+		const tf2pl::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override { return m_Logs; }
+		const tf2pl::expected<SteamAPI::PlayerFriends>& GetFriendsInfo() const override { return m_Friends; }
+		const tf2pl::expected<SteamAPI::PlayerInventoryInfo>& GetInventoryInfo() const override { return m_Inventory; }
 		duration_t GetActiveTime() const override { return m_ActiveTime; }
 		std::any& GetOrCreateDataStorage(const std::type_index& type) override { return m_Data[type]; }
 
@@ -160,7 +160,7 @@ namespace tf2_bot_detector::Testing
 		void RemoveConsoleLineListener(IConsoleLineListener* listener) override;
 
 		void AddConsoleOutputChunk(const std::string_view& chunk) override;
-		mh::task<> AddConsoleOutputLine(std::string line) override;
+		tf2pl::task<> AddConsoleOutputLine(std::string line) override;
 
 		bool ApplyG15Dump(const std::vector<G15PlayerData>& players) override;
 
@@ -176,8 +176,8 @@ namespace tf2_bot_detector::Testing
 		const IPlayer* LocalPlayer() const override { return FindPlayer(m_LocalSteamID); }
 
 		size_t GetApproxLobbyMemberCount() const override;
-		mh::generator<const IPlayer&> GetLobbyMembers() const override;
-		mh::generator<const IPlayer&> GetPlayers() const override;
+		tf2pl::generator<const IPlayer&> GetLobbyMembers() const override;
+		tf2pl::generator<const IPlayer&> GetPlayers() const override;
 
 		bool IsLocalPlayerInitialized() const override { return m_LocalSteamID.IsValid(); }
 		bool IsVoteInProgress() const override { return m_VoteInProgress; }

@@ -8,15 +8,15 @@
 #include "Log.h"
 #include "WorldState.h"
 
-#include <mh/algorithm/multi_compare.hpp>
-#include <mh/text/charconv_helper.hpp>
-#include <mh/text/fmtstr.hpp>
+#include <tf2pl/algorithm/multi_compare.hpp>
+#include <tf2pl/text/charconv_helper.hpp>
+#include <tf2pl/text/fmtstr.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <Util/ScopeGuards.h>
 
 #include <regex>

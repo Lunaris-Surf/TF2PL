@@ -5,8 +5,8 @@
 #include "Clock.h"
 #include "SteamID.h"
 
-#include <mh/coroutine/task.hpp>
-#include <mh/memory/stack_info.hpp>
+#include <tf2pl/coroutine/task.hpp>
+#include <tf2pl/memory/stack_info.hpp>
 
 #include <cassert>
 #include <optional>
@@ -91,11 +91,11 @@ namespace tf2_bot_detector::DB
 		[[nodiscard]] virtual bool TryGet(AccountInventorySizeInfo& info) const = 0;
 
 		template<typename TInfo, typename TUpdateFunc>
-		mh::task<> GetOrUpdateAsync(TInfo& info, TUpdateFunc&& updateFunc)
+		tf2pl::task<> GetOrUpdateAsync(TInfo& info, TUpdateFunc&& updateFunc)
 		{
 #ifdef _WIN32
-			assert(!mh::is_variable_on_current_stack(info));
-			assert(!mh::is_variable_on_current_stack(updateFunc));
+			assert(!tf2pl::is_variable_on_current_stack(info));
+			assert(!tf2pl::is_variable_on_current_stack(updateFunc));
 #endif
 
 			constexpr bool HAS_EXPIRATION = std::is_base_of_v<detail::BaseCacheInfo_Expiration, TInfo>;

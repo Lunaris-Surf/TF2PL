@@ -1,5 +1,28 @@
 # LunarisV configuration
 
+## Web UI address
+
+On first Web UI startup, TF2PL checks for `127.0.0.1 local.tf2pl` in the
+system hosts file (Windows: `%SystemRoot%\System32\drivers\etc\hosts`;
+Linux: `/etc/hosts`). If missing, the bundled `TF2PLHostSetup` helper requests
+administrator authentication and appends the entry. On Linux this uses
+`/usr/bin/pkexec` and requires a desktop authentication agent. The application
+and web server continue running as your normal user.
+
+After setup, the browser opens `http://local.tf2pl:<configured-port>/`.
+The port is still required: a hosts entry maps a name to an IP, not a port.
+Setup preserves other entries, skips an existing correct mapping, and leaves
+conflicting mappings untouched. If authentication is cancelled, the helper is
+missing, or the file cannot be updated, TF2PL keeps using `127.0.0.1` and logs
+the reason. Setup is attempted once per Web UI controller lifetime.
+
+The mapping persists after exit, so later launches need no authentication.
+Remove the line ending in `# TF2PL Web UI` from the hosts file to undo setup.
+Keep `TF2PLHostSetup.exe` (Windows) or `TF2PLHostSetup` (Linux) beside TF2PL;
+for AppImages, the helper ships beside the `.AppImage` file.
+
+## Player lists
+
 LunarisV preserves the TF2BD v3 `players`, `steamid`, `attributes`, `proof`, and
 `last_seen` structure. The extended tag vocabulary and rule `sources` field require
 LunarisV; older TF2BD builds may reject them. Existing TF2BD lists and rules remain

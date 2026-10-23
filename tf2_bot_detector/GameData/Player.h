@@ -14,7 +14,7 @@
 #include "ConsoleLog/ConsoleLogParser.h"
 #include "ConsoleLog/ConsoleLineListener.h"
 
-#include <mh/concurrency/thread_sentinel.hpp>
+#include <tf2pl/concurrency/thread_sentinel.hpp>
 
 namespace tf2_bot_detector
 {
@@ -36,30 +36,30 @@ namespace tf2_bot_detector
 		const PlayerScores& GetScores() const override { return m_Scores; }
 		uint16_t GetPing() const override { return m_Status.m_Ping; }
 		time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
-		const mh::expected<SteamAPI::PlayerSummary>& GetPlayerSummary() const override;
-		const mh::expected<SteamAPI::PlayerBans>& GetPlayerBans() const override;
-		const mh::expected<SteamHistoryAPI::PlayerSourceBanState>& GetPlayerSourceBanState() const override;
-		const mh::expected<SteamHistoryAPI::PlayerSourceBans>& GetPlayerSourceBans() const override;
+		const tf2pl::expected<SteamAPI::PlayerSummary>& GetPlayerSummary() const override;
+		const tf2pl::expected<SteamAPI::PlayerBans>& GetPlayerBans() const override;
+		const tf2pl::expected<SteamHistoryAPI::PlayerSourceBanState>& GetPlayerSourceBanState() const override;
+		const tf2pl::expected<SteamHistoryAPI::PlayerSourceBans>& GetPlayerSourceBans() const override;
 
-		mh::expected<duration_t> GetTF2Playtime() const override;
+		tf2pl::expected<duration_t> GetTF2Playtime() const override;
 		bool IsFriend() const override;
 		duration_t GetActiveTime() const override;
 
 		std::optional<time_point_t> GetEstimatedAccountCreationTime() const override;
 
-		const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override;
-		const mh::expected<SteamAPI::PlayerFriends>& GetFriendsInfo() const override;
-		const mh::expected<SteamAPI::PlayerInventoryInfo>& GetInventoryInfo() const override;
+		const tf2pl::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override;
+		const tf2pl::expected<SteamAPI::PlayerFriends>& GetFriendsInfo() const override;
+		const tf2pl::expected<SteamAPI::PlayerInventoryInfo>& GetInventoryInfo() const override;
 
 		PlayerScores m_Scores{};
 		TFTeam m_Team{};
 
 		uint8_t m_ClientIndex{};
-		mutable mh::expected<SteamAPI::PlayerSummary> m_PlayerSummary = ErrorCode::LazyValueUninitialized;
-		mutable mh::expected<SteamAPI::PlayerBans> m_PlayerSteamBans = ErrorCode::LazyValueUninitialized;
+		mutable tf2pl::expected<SteamAPI::PlayerSummary> m_PlayerSummary = ErrorCode::LazyValueUninitialized;
+		mutable tf2pl::expected<SteamAPI::PlayerBans> m_PlayerSteamBans = ErrorCode::LazyValueUninitialized;
 
-		mutable mh::expected<SteamHistoryAPI::PlayerSourceBans> m_PlayerSourceBans = ErrorCode::LazyValueUninitialized;
-		mutable mh::expected<SteamHistoryAPI::PlayerSourceBanState> m_PlayerSourceBanState = ErrorCode::LazyValueUninitialized;
+		mutable tf2pl::expected<SteamHistoryAPI::PlayerSourceBans> m_PlayerSourceBans = ErrorCode::LazyValueUninitialized;
+		mutable tf2pl::expected<SteamHistoryAPI::PlayerSourceBanState> m_PlayerSourceBanState = ErrorCode::LazyValueUninitialized;
 
 		void SetStatus(PlayerStatus status, time_point_t timestamp);
 		const PlayerStatus& GetStatus() const { return m_Status; }
@@ -75,11 +75,11 @@ namespace tf2_bot_detector
 		std::shared_ptr<const Player> shared_from_this() const { return std::static_pointer_cast<const Player>(IPlayer::shared_from_this()); }
 
 	private:
-		mh::thread_sentinel m_Sentinel;
+		tf2pl::thread_sentinel m_Sentinel;
 
 		template<typename T, typename TFunc>
-		const mh::expected<T>& GetOrFetchDataAsync(mh::expected<T>& variable, TFunc&& updateFunc,
-			std::initializer_list<std::error_condition> silentErrors = {}, MH_SOURCE_LOCATION_AUTO(location)) const;
+		const tf2pl::expected<T>& GetOrFetchDataAsync(tf2pl::expected<T>& variable, TFunc&& updateFunc,
+			std::initializer_list<std::error_condition> silentErrors = {}, TF2PL_SOURCE_LOCATION_AUTO(location)) const;
 
 		WorldState* m_World = nullptr;
 		PlayerStatus m_Status{};
@@ -89,9 +89,9 @@ namespace tf2_bot_detector
 		time_point_t m_LastStatusUpdateTime{};
 		time_point_t m_LastPingUpdateTime{};
 
-		mutable mh::expected<duration_t> m_TF2Playtime = ErrorCode::LazyValueUninitialized;
-		mutable mh::expected<LogsTFAPI::PlayerLogsInfo> m_LogsInfo = ErrorCode::LazyValueUninitialized;
-		mutable mh::expected<SteamAPI::PlayerFriends> m_FriendsInfo = ErrorCode::LazyValueUninitialized;
-		mutable mh::expected<SteamAPI::PlayerInventoryInfo> m_InventoryInfo = ErrorCode::LazyValueUninitialized;
+		mutable tf2pl::expected<duration_t> m_TF2Playtime = ErrorCode::LazyValueUninitialized;
+		mutable tf2pl::expected<LogsTFAPI::PlayerLogsInfo> m_LogsInfo = ErrorCode::LazyValueUninitialized;
+		mutable tf2pl::expected<SteamAPI::PlayerFriends> m_FriendsInfo = ErrorCode::LazyValueUninitialized;
+		mutable tf2pl::expected<SteamAPI::PlayerInventoryInfo> m_InventoryInfo = ErrorCode::LazyValueUninitialized;
 	};
 }

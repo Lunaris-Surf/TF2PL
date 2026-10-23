@@ -1,9 +1,9 @@
 // cpp-httplib's CPPHTTPLIB_*_SUPPORT macros come from the httplib::httplib CMake target.
 
-#include <mh/algorithm/multi_compare.hpp>
-#include <mh/concurrency/thread_pool.hpp>
-#include <mh/error/error_code_exception.hpp>
-#include <mh/text/case_insensitive_string.hpp>
+#include <tf2pl/algorithm/multi_compare.hpp>
+#include <tf2pl/concurrency/thread_pool.hpp>
+#include <tf2pl/error/error_code_exception.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
 
 #include "GlobalDispatcher.h"
 #include "HTTPClient.h"
@@ -29,7 +29,7 @@ namespace
 		using std::runtime_error::runtime_error;
 	};
 
-	// httplib::Result is move-only, but mh::task hands results back by copy, so the worker returns this instead.
+	// httplib::Result is move-only, but tf2pl::task hands results back by copy, so the worker returns this instead.
 	struct HTTPGetResult
 	{
 		bool m_Transferred = false;     // false: socket/TLS/timeout failure, see m_Error
@@ -39,9 +39,9 @@ namespace
 	};
 
 	// cpp-httplib is blocking; requests run here and the coroutine resumes when they finish.
-	mh::thread_pool& GetHTTPThreadPool()
+	tf2pl::thread_pool& GetHTTPThreadPool()
 	{
-		static mh::thread_pool s_Pool(4);
+		static tf2pl::thread_pool s_Pool(4);
 		return s_Pool;
 	}
 
@@ -80,7 +80,7 @@ namespace
 	{
 	public:
 		std::string GetString(const URL& url) const override;
-		mh::task<std::string> GetStringAsync(URL url) const override;
+		tf2pl::task<std::string> GetStringAsync(URL url) const override;
 
 		RequestCounts GetRequestCounts() const override;
 
@@ -133,7 +133,7 @@ static duration_t GetMinRequestInterval(const URL& url)
 	}
 	else if (url.m_Host == "api.steampowered.com")
 	{
-		if (mh::case_insensitive_view(url.m_Path).find("/GetPlayerItems/") != url.m_Path.npos)
+		if (tf2pl::case_insensitive_view(url.m_Path).find("/GetPlayerItems/") != url.m_Path.npos)
 			return 1000ms; // This is a slow/heavily throttled api
 
 		return 100ms;
@@ -146,7 +146,7 @@ static duration_t GetMinRequestInterval(const URL& url)
 	return 500ms;
 }
 
-mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
+tf2pl::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 {
 	auto self = shared_from_this(); // Make sure we don't vanish
 	std::shared_ptr<RequestInProgressObj> inProgressObj;
@@ -171,7 +171,7 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 	int32_t retryCount = 0;
 	while (true)
 	{
-		using throttle_time_t = mh::thread_pool::clock_t::time_point;
+		using throttle_time_t = tf2pl::thread_pool::clock_t::time_point;
 		throttle_time_t throttleTime{};
 		{
 			const duration_t MIN_INTERVAL = GetMinRequestInterval(url);
@@ -180,7 +180,7 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 			static std::map<std::string, throttle_time_t> s_ThrottleDomains;
 			std::lock_guard lock(s_ThrottleMutex);
 
-			auto now = mh::thread_pool::clock_t::now();
+			auto now = tf2pl::thread_pool::clock_t::now();
 
 			if (auto found = s_ThrottleDomains.find(url.m_Host);
 				found != s_ThrottleDomains.end())
@@ -258,7 +258,7 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 		}
 		catch (const http_error& e)
 		{
-			const auto PrintRetryWarning = [&](MH_SOURCE_LOCATION_AUTO(location))
+			const auto PrintRetryWarning = [&](TF2PL_SOURCE_LOCATION_AUTO(location))
 			{
 				DebugLogWarning(location, "HTTP {} on {}, retrying...", (int)e.code().value(), url);
 			};
@@ -273,7 +273,7 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 				// retry a few times for http 500-class errors, might be tf2bd-util being broken
 				PrintRetryWarning();
 			}
-			else if (mh::any_eq(e.code(), HTTPResponseCode::BadGateway, HTTPResponseCode::ServiceUnavailable) && retryCount < 20)
+			else if (tf2pl::any_eq(e.code(), HTTPResponseCode::BadGateway, HTTPResponseCode::ServiceUnavailable) && retryCount < 20)
 			{
 				// give a good like 20 tries, since they are likely indicitive of an api being temporarily down
 				PrintRetryWarning();

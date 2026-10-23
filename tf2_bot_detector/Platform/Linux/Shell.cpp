@@ -2,7 +2,7 @@
 #include "Util/TextUtils.h"
 #include "Log.h"
 
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
@@ -53,6 +53,25 @@ std::filesystem::path tf2_bot_detector::Shell::BrowseForFolderDialog() {
     file_str.pop_back(); // remove trailing newline, #46 (shit fix but whatever)
     Log("Selected file: {}", file_str);
 
+    return std::filesystem::path(file_str);
+}
+
+std::filesystem::path tf2_bot_detector::Shell::BrowseForImageDialog() {
+    FILE *pipe = popen("zenity --file-selection --file-filter='Images | *.png *.jpg *.jpeg *.bmp *.tga *.gif' --file-filter='All files | *'", "r");
+    if (!pipe) {
+        LogError("failure to open pipe, zenity might not be installed.");
+        return {};
+    }
+
+    char buffer[PATH_MAX] = {};
+    const bool gotLine = fgets(buffer, sizeof(buffer), pipe) != nullptr;
+    pclose(pipe);
+    if (!gotLine)
+        return {}; // cancelled
+
+    std::string file_str = buffer;
+    while (!file_str.empty() && (file_str.back() == '\n' || file_str.back() == '\r'))
+        file_str.pop_back();
     return std::filesystem::path(file_str);
 }
 

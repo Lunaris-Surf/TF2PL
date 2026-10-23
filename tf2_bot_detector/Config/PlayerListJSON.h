@@ -4,7 +4,7 @@
 #include "ModeratorLogic.h"
 #include "SteamID.h"
 
-#include <mh/coroutine/generator.hpp>
+#include <tf2pl/coroutine/generator.hpp>
 #include <nlohmann/json_fwd.hpp>
 #include <fmt/ranges.h>
 
@@ -202,14 +202,14 @@ namespace tf2_bot_detector
 		bool LoadFiles();
 		void SaveFiles() const;
 
-		mh::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
+		tf2pl::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 			FindPlayerData(const SteamID& id) const;
 		/// <summary>
 		/// Yields every player across all loaded playerlists.
 		/// </summary>
-		mh::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
+		tf2pl::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 			GetAllPlayerData() const;
-		mh::generator<std::pair<const ConfigFileName&, PlayerAttributesList>>
+		tf2pl::generator<std::pair<const ConfigFileName&, PlayerAttributesList>>
 			FindPlayerAttributes(const SteamID& id, AttributePersistence persistence = AttributePersistence::Any) const;
 		PlayerMarks GetPlayerAttributes(const SteamID& id) const;
 		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes,
@@ -275,20 +275,20 @@ namespace tf2_bot_detector
 	void from_json(const nlohmann::json& j, PlayerAttribute& d);
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::PlayerAttribute)
-	MH_ENUM_REFLECT_VALUE(Cheater)
-	MH_ENUM_REFLECT_VALUE(Exploiter)
-	MH_ENUM_REFLECT_VALUE(Racist)
-	MH_ENUM_REFLECT_VALUE(Suspicious)
-	MH_ENUM_REFLECT_VALUE(SuspectedCheater)
-	MH_ENUM_REFLECT_VALUE(Blacklisted)
-	MH_ENUM_REFLECT_VALUE(VACBanned)
-	MH_ENUM_REFLECT_VALUE(GameBanned)
-	MH_ENUM_REFLECT_VALUE(SourceBanned)
-	MH_ENUM_REFLECT_VALUE(Pedophilia)
-	MH_ENUM_REFLECT_VALUE(UntrustedListUser)
-	MH_ENUM_REFLECT_VALUE(Zoophilia)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::PlayerAttribute)
+	TF2PL_ENUM_REFLECT_VALUE(Cheater)
+	TF2PL_ENUM_REFLECT_VALUE(Exploiter)
+	TF2PL_ENUM_REFLECT_VALUE(Racist)
+	TF2PL_ENUM_REFLECT_VALUE(Suspicious)
+	TF2PL_ENUM_REFLECT_VALUE(SuspectedCheater)
+	TF2PL_ENUM_REFLECT_VALUE(Blacklisted)
+	TF2PL_ENUM_REFLECT_VALUE(VACBanned)
+	TF2PL_ENUM_REFLECT_VALUE(GameBanned)
+	TF2PL_ENUM_REFLECT_VALUE(SourceBanned)
+	TF2PL_ENUM_REFLECT_VALUE(Pedophilia)
+	TF2PL_ENUM_REFLECT_VALUE(UntrustedListUser)
+	TF2PL_ENUM_REFLECT_VALUE(Zoophilia)
+TF2PL_ENUM_REFLECT_END()
 
 template<typename CharT>
 struct fmt::formatter<tf2_bot_detector::PlayerAttributesList, CharT>
@@ -309,7 +309,7 @@ struct fmt::formatter<tf2_bot_detector::PlayerAttributesList, CharT>
 			if (printed)
 				it = fmt::format_to(it, FMT_STRING(", "));
 
-			it = fmt::format_to(it, FMT_STRING("{:v}"), mh::enum_fmt(thisAttr));
+			it = fmt::format_to(it, FMT_STRING("{:v}"), tf2pl::enum_fmt(thisAttr));
 			printed = true;
 		}
 

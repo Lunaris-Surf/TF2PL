@@ -5,9 +5,9 @@
 #include "HTTPClient.h"
 #include "HTTPHelpers.h"
 
-#include <mh/concurrency/async.hpp>
-#include <mh/coroutine/generator.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/concurrency/async.hpp>
+#include <tf2pl/coroutine/generator.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
 #include <chrono>
@@ -29,7 +29,7 @@ namespace
 }
 
 // remove?
-static mh::generator<InternalRelease> GetAllReleases(const HTTPClient& client)
+static tf2pl::generator<InternalRelease> GetAllReleases(const HTTPClient& client)
 {
 	auto str = client.GetString("https://api.github.com/repos/Lunaris-Surf/TF2PL/releases");
 	if (str.empty())
@@ -62,7 +62,7 @@ static mh::generator<InternalRelease> GetAllReleases(const HTTPClient& client)
 	}
 }
 
-static mh::task<NewVersionResult> GetLatestVersion(const HTTPClient& client)
+static tf2pl::task<NewVersionResult> GetLatestVersion(const HTTPClient& client)
 {
 	DebugLog("GetLatestVersion()");
 	try
@@ -102,7 +102,7 @@ static mh::task<NewVersionResult> GetLatestVersion(const HTTPClient& client)
 	}
 }
 
-auto GithubAPI::CheckForNewVersion(const HTTPClient& client) -> mh::task<NewVersionResult>
+auto GithubAPI::CheckForNewVersion(const HTTPClient& client) -> tf2pl::task<NewVersionResult>
 {
 	return GetLatestVersion(client);
 }

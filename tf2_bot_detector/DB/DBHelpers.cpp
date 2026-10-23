@@ -2,8 +2,8 @@
 
 #include "DBHelpers.h"
 
-#include <mh/error/ensure.hpp>
-#include <mh/text/fmtstr.hpp>
+#include <tf2pl/error/ensure.hpp>
+#include <tf2pl/text/fmtstr.hpp>
 #include <SQLiteCpp/SQLiteCpp.h>
 
 using namespace tf2_bot_detector;
@@ -348,7 +348,7 @@ namespace
 		StringStatementGenerator& ParamImpl(T&& value)
 		{
 			m_Parameters.push_back(std::move(value));
-			return Text(mh::fmtstr<32>("?{}", m_Parameters.size())); // parameter indices start at 1
+			return Text(tf2pl::fmtstr<32>("?{}", m_Parameters.size())); // parameter indices start at 1
 		}
 	};
 }
@@ -371,7 +371,7 @@ Statement2 SelectStatementBuilder::Run(const SQLite::Database& db) const
 
 	for (size_t i = 0; i < gen.m_Parameters.size(); i++)
 	{
-		const mh::fmtstr<32> argName("?{}", (i + 1));
+		const tf2pl::fmtstr<32> argName("?{}", (i + 1));
 
 		std::visit([&](auto&& arg)
 			{

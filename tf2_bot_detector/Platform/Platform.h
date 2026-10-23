@@ -4,8 +4,8 @@
 #include "SteamID.h"
 #include "Version.h"
 
-#include <mh/coroutine/task.hpp>
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/coroutine/task.hpp>
+#include <tf2pl/reflection/enum.hpp>
 
 #include <filesystem>
 #include <future>
@@ -82,7 +82,7 @@ namespace tf2_bot_detector
 		namespace Processes
 		{
 			bool IsTF2Running();
-			mh::task<std::vector<std::string>> GetTF2CommandLineArgsAsync();
+			tf2pl::task<std::vector<std::string>> GetTF2CommandLineArgsAsync();
 			bool IsSteamRunning();
 			bool IsProcessRunning(const std::string_view& processName);
 
@@ -99,6 +99,8 @@ namespace tf2_bot_detector
 		{
 			std::vector<std::string> SplitCommandLineArgs(const std::string_view& cmdline);
 			std::filesystem::path BrowseForFolderDialog();
+			/// pick an image file (png/jpg/bmp/tga/gif); empty if cancelled
+			std::filesystem::path BrowseForImageDialog();
 			void ExploreToAndSelect(std::filesystem::path path);
 
 			void ExploreTo(const std::filesystem::path& path);
@@ -113,12 +115,12 @@ namespace tf2_bot_detector
 	}
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::Platform::OS)
-	MH_ENUM_REFLECT_VALUE(Windows)
-	MH_ENUM_REFLECT_VALUE(Linux)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::Platform::OS)
+	TF2PL_ENUM_REFLECT_VALUE(Windows)
+	TF2PL_ENUM_REFLECT_VALUE(Linux)
+TF2PL_ENUM_REFLECT_END()
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::Platform::Arch)
-	MH_ENUM_REFLECT_VALUE(x86)
-	MH_ENUM_REFLECT_VALUE(x64)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::Platform::Arch)
+	TF2PL_ENUM_REFLECT_VALUE(x86)
+	TF2PL_ENUM_REFLECT_VALUE(x64)
+TF2PL_ENUM_REFLECT_END()

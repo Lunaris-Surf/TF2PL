@@ -1,9 +1,9 @@
 #include "TextUtils.h"
 #include "Log.h"
 
-#include <mh/text/codecvt.hpp>
-#include <mh/text/fmtstr.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/codecvt.hpp>
+#include <tf2pl/text/fmtstr.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #include <codecvt>
 #include <fstream>
@@ -16,7 +16,7 @@ using namespace std::string_literals;
 std::u16string tf2_bot_detector::ToU16(const std::u8string_view& input)
 {
 	const char* dataTest = reinterpret_cast<const char*>(input.data());
-	return mh::change_encoding<char16_t>(input);
+	return tf2pl::change_encoding<char16_t>(input);
 }
 
 std::u16string tf2_bot_detector::ToU16(const char* input, const char* input_end)
@@ -35,30 +35,30 @@ std::u16string tf2_bot_detector::ToU16(const std::string_view& input)
 
 std::u16string tf2_bot_detector::ToU16(const std::wstring_view& input)
 {
-	return mh::change_encoding<char16_t>(input);
+	return tf2pl::change_encoding<char16_t>(input);
 	//return std::u16string(std::u16string_view(reinterpret_cast<const char16_t*>(input.data()), input.size()));
 }
 
 std::u8string tf2_bot_detector::ToU8(const std::string_view& input)
 {
-	return mh::change_encoding<char8_t>(input);
+	return tf2pl::change_encoding<char8_t>(input);
 	//return std::u8string(std::u8string_view(reinterpret_cast<const char8_t*>(input.data()), input.size()));
 }
 
 std::u8string tf2_bot_detector::ToU8(const std::u16string_view& input)
 {
-	return mh::change_encoding<char8_t>(input);
+	return tf2pl::change_encoding<char8_t>(input);
 }
 
 std::u8string tf2_bot_detector::ToU8(const std::wstring_view& input)
 {
-	return mh::change_encoding<char8_t>(input);
+	return tf2pl::change_encoding<char8_t>(input);
 	//return ToU8(std::u16string_view(reinterpret_cast<const char16_t*>(input.data()), input.size()));
 }
 
 std::string tf2_bot_detector::ToMB(const std::u8string_view& input)
 {
-	return mh::change_encoding<char>(input);
+	return tf2pl::change_encoding<char>(input);
 	//return std::string(std::string_view(reinterpret_cast<const char*>(input.data()), input.size()));
 }
 
@@ -70,13 +70,13 @@ std::string tf2_bot_detector::ToMB(const std::u16string_view& input)
 
 std::string tf2_bot_detector::ToMB(const std::wstring_view& input)
 {
-	return mh::change_encoding<char>(input);
+	return tf2pl::change_encoding<char>(input);
 	//return ToMB(ToU16(input));
 }
 
 std::wstring tf2_bot_detector::ToWC(const std::string_view& input)
 {
-	return mh::change_encoding<wchar_t>(input);
+	return tf2pl::change_encoding<wchar_t>(input);
 }
 
 std::u16string tf2_bot_detector::ReadWideFile(const std::filesystem::path& filename)
@@ -144,7 +144,7 @@ std::string tf2_bot_detector::CollapseNewlines(const std::string_view& input)
 
 			const auto smallGroupMsgLength = newlineCount * (std::size("\\n") - 1);
 
-			const mh::fmtstr<64> newlineGroupStr("(\\n x %zu)", newlineCount);
+			const tf2pl::fmtstr<64> newlineGroupStr("(\\n x %zu)", newlineCount);
 			if (smallGroupMsgLength >= newlineGroupStr.size())
 			{
 				retVal.append(newlineGroupStr);

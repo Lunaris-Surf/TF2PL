@@ -7,8 +7,8 @@
 #include "Networking/SteamAPI.h"
 #include "Networking/SteamHistoryAPI.h"
 
-#include <mh/text/fmtstr.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/fmtstr.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -298,7 +298,7 @@ void PlayerListExporter::RunExport()
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), "Total Export failed");
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Total Export failed");
 
 		SetStage(Progress::Stage::Failed, "Export failed. Check the app log for details.");
 	}
@@ -369,7 +369,7 @@ void PlayerListExporter::RefreshSummaries()
 		}
 
 		SetProgress(Progress::Stage::Summaries, offset + batch.size(), total,
-			mh::fmtstr<128>("Fetching player summaries... {} / {}", offset + batch.size(), total).c_str());
+			tf2pl::fmtstr<128>("Fetching player summaries... {} / {}", offset + batch.size(), total).c_str());
 	}
 
 	if (!nonexistent.empty())
@@ -380,7 +380,7 @@ void PlayerListExporter::RefreshSummaries()
 
 	m_Worker.m_RemovedNonexistent += nonexistent.size();
 	SetProgress(Progress::Stage::Summaries, total, total,
-		mh::fmtstr<192>("Removed {} nonexistent accounts, filled in {} names.", nonexistent.size(), m_Worker.m_FilledNames).c_str());
+		tf2pl::fmtstr<192>("Removed {} nonexistent accounts, filled in {} names.", nonexistent.size(), m_Worker.m_FilledNames).c_str());
 }
 
 void PlayerListExporter::RefreshBans()
@@ -414,11 +414,11 @@ void PlayerListExporter::RefreshBans()
 		}
 
 		SetProgress(Progress::Stage::Bans, offset + batch.size(), total,
-			mh::fmtstr<128>("Refreshing ban info... {} / {}", offset + batch.size(), total).c_str());
+			tf2pl::fmtstr<128>("Refreshing ban info... {} / {}", offset + batch.size(), total).c_str());
 	}
 
 	SetProgress(Progress::Stage::Bans, total, total,
-		mh::fmtstr<192>("Refreshed ban info: {} VAC bans, {} game bans.", m_Worker.m_VACBanned, m_Worker.m_GameBanned).c_str());
+		tf2pl::fmtstr<192>("Refreshed ban info: {} VAC bans, {} game bans.", m_Worker.m_VACBanned, m_Worker.m_GameBanned).c_str());
 }
 
 void PlayerListExporter::RefreshSourceBans()
@@ -462,11 +462,11 @@ void PlayerListExporter::RefreshSourceBans()
 		}
 
 		SetProgress(Progress::Stage::SourceBans, offset + batch.size(), total,
-			mh::fmtstr<128>("Refreshing SourceBans... {} / {}", offset + batch.size(), total).c_str());
+			tf2pl::fmtstr<128>("Refreshing SourceBans... {} / {}", offset + batch.size(), total).c_str());
 	}
 
 	SetProgress(Progress::Stage::SourceBans, total, total,
-		mh::fmtstr<192>("Refreshed SourceBans: {} SourceBan records.", m_Worker.m_SourceBanned).c_str());
+		tf2pl::fmtstr<192>("Refreshed SourceBans: {} SourceBan records.", m_Worker.m_SourceBanned).c_str());
 }
 
 void PlayerListExporter::WriteFiles() const

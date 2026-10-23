@@ -1,7 +1,7 @@
 #pragma once
 
 #include <imgui.h>
-#include <mh/types/disable_copy_move.hpp>
+#include <tf2pl/types/disable_copy_move.hpp>
 
 namespace ImGuiDesktop
 {
@@ -10,7 +10,7 @@ namespace ImGuiDesktop
 		template<typename T> struct StorageHelperBase;
 
 		template<>
-		struct StorageHelperBase<float> : mh::disable_copy_move
+		struct StorageHelperBase<float> : tf2pl::disable_copy_move
 		{
 		protected:
 			static constexpr auto GET_FUNC = &ImGuiStorage::GetFloat;
@@ -18,7 +18,7 @@ namespace ImGuiDesktop
 		};
 
 		template<>
-		struct StorageHelperBase<int> : mh::disable_copy_move
+		struct StorageHelperBase<int> : tf2pl::disable_copy_move
 		{
 		protected:
 			static constexpr auto GET_FUNC = &ImGuiStorage::GetInt;
@@ -26,7 +26,7 @@ namespace ImGuiDesktop
 		};
 
 		template<>
-		struct StorageHelperBase<bool> : mh::disable_copy_move
+		struct StorageHelperBase<bool> : tf2pl::disable_copy_move
 		{
 		protected:
 			static constexpr auto GET_FUNC = &ImGuiStorage::GetBool;

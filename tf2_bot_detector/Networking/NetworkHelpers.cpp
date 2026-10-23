@@ -2,7 +2,7 @@
 #include "NetworkHelpers.h"
 #include "Log.h"
 
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #include <stdexcept>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/reflection/enum.hpp>
 
 namespace tf2_bot_detector
 {
@@ -14,9 +14,9 @@ namespace tf2_bot_detector
 	};
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::ReleaseChannel)
-	MH_ENUM_REFLECT_VALUE(None)
-	MH_ENUM_REFLECT_VALUE(Public)
-	MH_ENUM_REFLECT_VALUE(Preview)
-	MH_ENUM_REFLECT_VALUE(Nightly)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::ReleaseChannel)
+	TF2PL_ENUM_REFLECT_VALUE(None)
+	TF2PL_ENUM_REFLECT_VALUE(Public)
+	TF2PL_ENUM_REFLECT_VALUE(Preview)
+	TF2PL_ENUM_REFLECT_VALUE(Nightly)
+TF2PL_ENUM_REFLECT_END()

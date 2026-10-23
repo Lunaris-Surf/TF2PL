@@ -2,9 +2,10 @@
 #include "Util/TextUtils.h"
 #include "Log.h"
 
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #include <filesystem>
+#include <iterator>
 #include <memory>
 
 #include "WindowsHelpers.h"
@@ -70,15 +71,64 @@ std::filesystem::path tf2_bot_detector::Shell::BrowseForFolderDialog()
 	}
 }
 
+std::filesystem::path tf2_bot_detector::Shell::BrowseForImageDialog()
+{
+	try
+	{
+		using Microsoft::WRL::ComPtr;
+		ComPtr<IFileDialog> dialog;
+		CHECK_HR(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IFileDialog), (LPVOID*)dialog.ReleaseAndGetAddressOf()));
+
+		{
+			FILEOPENDIALOGOPTIONS options;
+			CHECK_HR(dialog->GetOptions(&options));
+			options |= FOS_NOCHANGEDIR;
+			options |= FOS_FORCEFILESYSTEM;
+			options |= FOS_FILEMUSTEXIST;
+			CHECK_HR(dialog->SetOptions(options));
+		}
+
+		const COMDLG_FILTERSPEC types[] =
+		{
+			{ L"Images", L"*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.gif" },
+			{ L"All files", L"*.*" },
+		};
+		CHECK_HR(dialog->SetFileTypes(UINT(std::size(types)), types));
+
+		{
+			auto hr = dialog->Show(nullptr);
+			if (hr == HRESULT_FROM_WIN32(ERROR_CANCELLED))
+				return {};
+		}
+
+		ComPtr<IShellItem> psiResult;
+		CHECK_HR(dialog->GetResult(psiResult.ReleaseAndGetAddressOf()));
+
+		std::unique_ptr<std::remove_pointer_t<PWSTR>, CoTaskMemFreeFn> filePath;
+		{
+			PWSTR pszFilePath = nullptr;
+			CHECK_HR(psiResult->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath));
+			filePath.reset(pszFilePath);
+		}
+
+		return std::filesystem::path(filePath.get());
+	}
+	catch (const GetLastErrorException& e)
+	{
+		LogError(std::string(__FUNCTION__ "(): ") << e.what());
+		return {};
+	}
+}
+
 void tf2_bot_detector::Shell::ExploreTo(const std::filesystem::path& path)
 {
-	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "{}", path);
+	DebugLog(TF2PL_SOURCE_LOCATION_CURRENT(), "{}", path);
 	ShellExecuteW(nullptr, L"explore", path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 }
 
 void tf2_bot_detector::Shell::OpenURL(const char* url)
 {
-	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "{}", fmt::streamed(std::quoted(url)));
+	DebugLog(TF2PL_SOURCE_LOCATION_CURRENT(), "{}", fmt::streamed(std::quoted(url)));
 	ShellExecuteA(NULL, "open", url, nullptr, nullptr, SW_SHOWNORMAL);
 }
 

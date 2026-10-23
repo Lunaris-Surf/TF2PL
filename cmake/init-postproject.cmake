@@ -79,10 +79,11 @@ if (MSVC)
 	endif()
 
 	# TODO: Find a way to do this locally
+	# Let CMake supply the external-header warning level (/external:W0).
+	# Adding /external:W1 here conflicts with it and produces MSVC warning D9025.
 	add_compile_options(
 		/WX
 		/experimental:external   # enable /external command line switches, see https://devblogs.microsoft.com/cppblog/broken-warnings-theory/
-		/external:W1             # Warning level 1 on external headers
 		/external:anglebrackets  # Consider anything with #include <something> to be "external"
 
 		# /w34061 # enumerator 'identifier' in a switch of enum 'enumeration' is not explicitly handled by a case label

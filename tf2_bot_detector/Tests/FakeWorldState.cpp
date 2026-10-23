@@ -156,7 +156,7 @@ void FakeWorldState::AddConsoleOutputChunk(const std::string_view& chunk)
 	}
 }
 
-mh::task<> FakeWorldState::AddConsoleOutputLine(std::string line)
+tf2pl::task<> FakeWorldState::AddConsoleOutputLine(std::string line)
 {
 	m_ConsoleOutput.push_back(std::move(line));
 	co_return;
@@ -240,7 +240,7 @@ size_t FakeWorldState::GetApproxLobbyMemberCount() const
 		[](const std::shared_ptr<FakePlayer>& p) { return p->m_LobbyMember.has_value(); }));
 }
 
-mh::generator<const IPlayer&> FakeWorldState::GetLobbyMembers() const
+tf2pl::generator<const IPlayer&> FakeWorldState::GetLobbyMembers() const
 {
 	for (const auto& player : m_Players)
 	{
@@ -249,7 +249,7 @@ mh::generator<const IPlayer&> FakeWorldState::GetLobbyMembers() const
 	}
 }
 
-mh::generator<const IPlayer&> FakeWorldState::GetPlayers() const
+tf2pl::generator<const IPlayer&> FakeWorldState::GetPlayers() const
 {
 	for (const auto& player : m_Players)
 		co_yield *player;

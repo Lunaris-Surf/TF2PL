@@ -40,13 +40,13 @@
 #include "ConsoleLog/ConsoleLines/ServerStatusHostNameLine.h"
 
 
-#include <mh/algorithm/algorithm.hpp>
-#include <mh/concurrency/dispatcher.hpp>
-#include <mh/concurrency/main_thread.hpp>
-#include <mh/concurrency/thread_pool.hpp>
-#include <mh/concurrency/thread_sentinel.hpp>
-#include <mh/future.hpp>
-#include <mh/coroutine/future.hpp>
+#include <tf2pl/algorithm/algorithm.hpp>
+#include <tf2pl/concurrency/dispatcher.hpp>
+#include <tf2pl/concurrency/main_thread.hpp>
+#include <tf2pl/concurrency/thread_pool.hpp>
+#include <tf2pl/concurrency/thread_sentinel.hpp>
+#include <tf2pl/future.hpp>
+#include <tf2pl/coroutine/future.hpp>
 
 #undef GetCurrentTime
 #undef max
@@ -102,7 +102,7 @@ void WorldState::UpdateFriends()
 
 	if (m_FriendsFuture.is_ready())
 	{
-		const auto GenericException = [this](const mh::source_location& loc)
+		const auto GenericException = [this](const tf2pl::source_location& loc)
 		{
 			LogException(loc, "Failed to update our friends list");
 			m_FriendsFuture = {};
@@ -128,12 +128,12 @@ void WorldState::UpdateFriends()
 			}
 			else
 			{
-				GenericException(MH_SOURCE_LOCATION_CURRENT());
+				GenericException(TF2PL_SOURCE_LOCATION_CURRENT());
 			}
 		}
 		catch (...)
 		{
-			GenericException(MH_SOURCE_LOCATION_CURRENT());
+			GenericException(TF2PL_SOURCE_LOCATION_CURRENT());
 		}
 	}
 }
@@ -159,7 +159,7 @@ void WorldState::AddConsoleOutputChunk(const std::string_view& chunk)
 	}
 }
 
-mh::task<> WorldState::AddConsoleOutputLine(std::string line)
+tf2pl::task<> WorldState::AddConsoleOutputLine(std::string line)
 {
 	auto worldState = shared_from_this();
 
@@ -348,7 +348,7 @@ size_t WorldState::GetApproxLobbyMemberCount() const
 	return m_CurrentLobbyMembers.size() + m_PendingLobbyMembers.size();
 }
 
-mh::generator<const IPlayer&> WorldState::GetLobbyMembers() const
+tf2pl::generator<const IPlayer&> WorldState::GetLobbyMembers() const
 {
 	const auto GetPlayer = [&](const LobbyMember& member) -> const IPlayer*
 	{
@@ -392,7 +392,7 @@ mh::generator<const IPlayer&> WorldState::GetLobbyMembers() const
 	}
 }
 
-mh::generator<const IPlayer&> WorldState::GetPlayers() const
+tf2pl::generator<const IPlayer&> WorldState::GetPlayers() const
 {
 	for (const auto& pair : m_CurrentPlayerData)
 		co_yield *pair.second;

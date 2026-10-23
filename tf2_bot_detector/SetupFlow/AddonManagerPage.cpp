@@ -6,9 +6,9 @@
 #include "Util/JSONUtils.h"
 #include "Filesystem.h"
 
-#include <mh/algorithm/algorithm.hpp>
-#include <mh/error/ensure.hpp>
-#include <mh/io/filesystem_helpers.hpp>
+#include <tf2pl/algorithm/algorithm.hpp>
+#include <tf2pl/error/ensure.hpp>
+#include <tf2pl/io/filesystem_helpers.hpp>
 #include <nlohmann/json.hpp>
 
 #include <set>
@@ -51,8 +51,8 @@ namespace
 
 		SetupFlowPage GetPage() const override { return SetupFlowPage::AddonManager; }
 
-		mh::generator<std::filesystem::path> GetAllAvailableAddons() const override;
-		mh::generator<std::filesystem::path> GetAllEnabledAddons(const Settings& settings) const override;
+		tf2pl::generator<std::filesystem::path> GetAllAvailableAddons() const override;
+		tf2pl::generator<std::filesystem::path> GetAllEnabledAddons(const Settings& settings) const override;
 		bool IsAddonEnabled(const Settings& settings, const std::filesystem::path& addon) const override;
 		void SetAddonEnabled(Settings& settings, const std::filesystem::path& addon, bool enabled) override;
 
@@ -68,7 +68,7 @@ namespace
 		void ConnectAddons(const std::set<Addon>& addons) const;
 		void DisconnectAddons(const std::set<Addon>& addons) const;
 
-		void ShutdownAddons(MH_SOURCE_LOCATION_AUTO(location)) const;
+		void ShutdownAddons(TF2PL_SOURCE_LOCATION_AUTO(location)) const;
 	};
 
 	AddonManagerPage::AddonManagerPage()
@@ -82,7 +82,7 @@ namespace
 		mh_ensure(std::exchange(s_AddonManager, nullptr) == this);
 	}
 
-	void AddonManagerPage::ShutdownAddons(const mh::source_location& location) const try
+	void AddonManagerPage::ShutdownAddons(const tf2pl::source_location& location) const try
 	{
 		DisconnectAddons(LoadAddonsList());
 		RemoveAddonsList();
@@ -150,8 +150,8 @@ namespace
 					if (std::filesystem::exists(addon.m_InstallTarget))
 					{
 						const auto originalInstallTarget = addon.m_InstallTarget;
-						addon.m_InstallTarget = mh::replace_filename_keep_extension(baseInstallTarget,
-							fmt::format(FMT_STRING("{}_{}"), mh::filename_without_extension(baseInstallTarget).string(), i));
+						addon.m_InstallTarget = tf2pl::replace_filename_keep_extension(baseInstallTarget,
+							fmt::format(FMT_STRING("{}_{}"), tf2pl::filename_without_extension(baseInstallTarget).string(), i));
 
 						DebugLogWarning("{} already exists, trying {}...", originalInstallTarget, addon.m_InstallTarget);
 					}
@@ -307,7 +307,7 @@ namespace
 		throw;
 	}
 
-	mh::generator<std::filesystem::path> AddonManagerPage::GetAllAvailableAddons() const
+	tf2pl::generator<std::filesystem::path> AddonManagerPage::GetAllAvailableAddons() const
 	{
 		for (const std::filesystem::directory_entry& entry : IFilesystem::Get().IterateDir("tf2_addons", false))
 		{
@@ -318,25 +318,25 @@ namespace
 		}
 	}
 
-	mh::generator<std::filesystem::path> AddonManagerPage::GetAllEnabledAddons(const Settings& settings) const
+	tf2pl::generator<std::filesystem::path> AddonManagerPage::GetAllEnabledAddons(const Settings& settings) const
 	{
 		for (const std::filesystem::path& path : GetAllAvailableAddons())
 		{
-			if (!mh::contains(settings.m_Mods.m_DisabledList, path.filename().string()))
+			if (!tf2pl::contains(settings.m_Mods.m_DisabledList, path.filename().string()))
 				co_yield path;
 		}
 	}
 
 	bool AddonManagerPage::IsAddonEnabled(const Settings& settings, const std::filesystem::path& addon) const
 	{
-		return !mh::contains(settings.m_Mods.m_DisabledList, addon.filename().string());
+		return !tf2pl::contains(settings.m_Mods.m_DisabledList, addon.filename().string());
 	}
 
 	void AddonManagerPage::SetAddonEnabled(Settings& settings, const std::filesystem::path& addon, bool enabled)
 	{
 		const std::string filename = addon.filename().string();
 
-		mh::erase(settings.m_Mods.m_DisabledList, filename);
+		tf2pl::erase(settings.m_Mods.m_DisabledList, filename);
 
 		if (!enabled)
 			settings.m_Mods.m_DisabledList.push_back(filename);

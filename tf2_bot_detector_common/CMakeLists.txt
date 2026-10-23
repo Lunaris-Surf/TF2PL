@@ -23,8 +23,8 @@ target_include_directories(tf2_bot_detector_common PUBLIC "include")
 # Vendored mh utility headers (formerly the mh_stuff submodule) live under include/mh.
 # They are header-only here, so provide the macros the headers expect in non-compiled-library mode.
 target_compile_definitions(tf2_bot_detector_common PUBLIC
-	"MH_STUFF_API="
-	"MH_COMPILE_LIBRARY_INLINE=inline"
+	"TF2PL_API="
+	"TF2PL_COMPILE_LIBRARY_INLINE=inline"
 )
 
 find_package(fmt CONFIG REQUIRED)

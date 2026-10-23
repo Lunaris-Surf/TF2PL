@@ -6,10 +6,10 @@
 #include "PlayerListJSON.h"
 #include "Settings.h"
 
-#include <mh/text/case_insensitive_string.hpp>
-#include <mh/text/string_insertion.hpp>
-#include <mh/text/stringops.hpp>
-#include <mh/utility.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
+#include <tf2pl/text/string_insertion.hpp>
+#include <tf2pl/text/stringops.hpp>
+#include <tf2pl/utility.hpp>
 #include <nlohmann/json.hpp>
 
 #include <iomanip>
@@ -155,7 +155,7 @@ namespace tf2_bot_detector
 	}
 	void from_json(const nlohmann::json& j, AvatarMatch& d)
 	{
-		d.m_AvatarHash = mh::tolower(j.at("avatar_hash").get<std::string_view>());
+		d.m_AvatarHash = tf2pl::tolower(j.at("avatar_hash").get<std::string_view>());
 	}
 
 	void from_json(const nlohmann::json& j, TextMatch& d)
@@ -181,12 +181,12 @@ namespace tf2_bot_detector
 			if (found->is_array())
 				found->get_to(d.m_AvatarMatches);
 			else if (found->is_object())
-				d.m_AvatarMatches = { mh::copy(*found) };
+				d.m_AvatarMatches = { tf2pl::copy(*found) };
 			else
 			{
 				throw std::runtime_error(fmt::format(
 					"{}: Expected avatar_match to be an array or object, instead it was a {}",
-					MH_SOURCE_LOCATION_CURRENT(), mh::enum_fmt(found->type())));
+					TF2PL_SOURCE_LOCATION_CURRENT(), tf2pl::enum_fmt(found->type())));
 			}
 		}
 	}
@@ -238,7 +238,7 @@ bool ModerationRules::SaveFile() const
 	return true;
 }
 
-mh::generator<const ModerationRule&> tf2_bot_detector::ModerationRules::GetRules() const
+tf2pl::generator<const ModerationRule&> tf2_bot_detector::ModerationRules::GetRules() const
 {
 	if (auto list = m_CFGGroup.m_OfficialList.try_get())
 	{
@@ -300,7 +300,7 @@ bool TextMatch::Match(const std::string_view& text) const try
 				if (m_CaseSensitive)
 					return text == pattern;
 				else
-					return mh::case_insensitive_compare(text, pattern);
+					return tf2pl::case_insensitive_compare(text, pattern);
 			});
 	}
 	case TextMatchMode::Contains:
@@ -310,7 +310,7 @@ bool TextMatch::Match(const std::string_view& text) const try
 				if (m_CaseSensitive)
 					return text.find(pattern) != text.npos;
 				else
-					return mh::case_insensitive_view(text).find(mh::case_insensitive_view(pattern)) != text.npos;
+					return tf2pl::case_insensitive_view(text).find(tf2pl::case_insensitive_view(pattern)) != text.npos;
 			});
 		break;
 	}
@@ -321,7 +321,7 @@ bool TextMatch::Match(const std::string_view& text) const try
 				if (m_CaseSensitive)
 					return text.starts_with(pattern);
 				else
-					return mh::case_insensitive_view(text).starts_with(mh::case_insensitive_view(pattern));
+					return tf2pl::case_insensitive_view(text).starts_with(tf2pl::case_insensitive_view(pattern));
 			});
 	}
 	case TextMatchMode::EndsWith:
@@ -331,7 +331,7 @@ bool TextMatch::Match(const std::string_view& text) const try
 				if (m_CaseSensitive)
 					return text.ends_with(pattern);
 				else
-					return mh::case_insensitive_view(text).ends_with(mh::case_insensitive_view(pattern));
+					return tf2pl::case_insensitive_view(text).ends_with(tf2pl::case_insensitive_view(pattern));
 			});
 	}
 	case TextMatchMode::Regex:
@@ -368,7 +368,7 @@ bool TextMatch::Match(const std::string_view& text) const try
 					if (m_CaseSensitive)
 						return itStr == pattern;
 					else
-						return mh::case_insensitive_compare(itStr, pattern);
+						return tf2pl::case_insensitive_compare(itStr, pattern);
 				});
 
 			if (anyMatches)
@@ -379,7 +379,7 @@ bool TextMatch::Match(const std::string_view& text) const try
 	}
 	}
 
-	throw std::runtime_error(fmt::format("{}: Unknown value {}", std::source_location::current(), mh::enum_fmt(m_Mode)));
+	throw std::runtime_error(fmt::format("{}: Unknown value {}", std::source_location::current(), tf2pl::enum_fmt(m_Mode)));
 }
 catch (...)
 {
@@ -474,7 +474,7 @@ static constexpr bool MatchRules(TriggerMatchMode mode, TFuncs&&... funcs)
 		return !!(... || funcs());
 	else
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected mode {}", mh::enum_fmt(mode));
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Unexpected mode {}", tf2pl::enum_fmt(mode));
 		return false;
 	}
 }

@@ -7,16 +7,17 @@
 #include "Util/RegexUtils.h"
 #include "Log.h"
 #include "WorldState.h"
+#include "StreamerMode.h"
 
-#include <mh/algorithm/multi_compare.hpp>
-#include <mh/text/charconv_helper.hpp>
-#include <mh/text/fmtstr.hpp>
+#include <tf2pl/algorithm/multi_compare.hpp>
+#include <tf2pl/text/charconv_helper.hpp>
+#include <tf2pl/text/fmtstr.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <Util/ScopeGuards.h>
 
 #include <regex>
@@ -110,8 +111,9 @@ void KillNotificationLine::Print(const PrintArgs& args) const
 		chatColor[1] = chatColor[1] / 2;
 		chatColor[2] = chatColor[2] / 2;
 
-		ImGui::TextFmt(chatColor, "{} -> {} // {} {}", m_AttackerName.c_str(),
-			m_VictimName.c_str(), m_WeaponName.c_str(), m_WasCrit ? "(crit)" : "");
+		ImGui::TextFmt(chatColor, "{} -> {} // {} {}",
+			StreamerMode::DisplayName(args.m_Settings, m_Attacker, m_AttackerName),
+			StreamerMode::DisplayName(args.m_Settings, m_Victim, m_VictimName), m_WeaponName.c_str(), m_WasCrit ? "(crit)" : "");
 		ImGui::EndGroup();
 
 		const bool isHovered = ImGui::IsItemHovered();

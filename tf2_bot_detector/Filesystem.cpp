@@ -2,14 +2,14 @@
 #include "Log.h"
 #include "Platform/Platform.h"
 
-#include <mh/concurrency/thread_sentinel.hpp>
+#include <tf2pl/concurrency/thread_sentinel.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/string_insertion.hpp>
-#include <mh/utility.hpp>
+#include <tf2pl/text/string_insertion.hpp>
+#include <tf2pl/utility.hpp>
 
 #include <fstream>
 
@@ -22,7 +22,7 @@ namespace
 	public:
 		void Init() override;
 
-		mh::generator<std::filesystem::path> GetSearchPaths() const override;
+		tf2pl::generator<std::filesystem::path> GetSearchPaths() const override;
 
 		std::filesystem::path ResolvePath(const std::filesystem::path& path, PathUsage usage) const override;
 		std::string ReadFile(std::filesystem::path path) const override;
@@ -31,18 +31,18 @@ namespace
 		std::filesystem::path GetLocalAppDataDir() const override;
 		std::filesystem::path GetTempDir() const override;
 
-		mh::generator<std::filesystem::directory_entry> IterateDir(std::filesystem::path path, bool recursive,
+		tf2pl::generator<std::filesystem::directory_entry> IterateDir(std::filesystem::path path, bool recursive,
 			std::filesystem::directory_options options) const override;
 
 	private:
 		bool m_IsInit = false;
-		void EnsureInit(MH_SOURCE_LOCATION_AUTO(location)) const;
+		void EnsureInit(TF2PL_SOURCE_LOCATION_AUTO(location)) const;
 
 		static constexpr char NON_PORTABLE_MARKER[] = ".non_portable";
 		static constexpr char APPDATA_SUBFOLDER[] = "LunarisV";
 		std::vector<std::filesystem::path> m_SearchPaths;
 
-		mh::thread_sentinel m_Sentinel;
+		tf2pl::thread_sentinel m_Sentinel;
 
 		std::filesystem::path m_ExeDir;
 		std::filesystem::path m_WorkingDir;
@@ -126,7 +126,7 @@ void Filesystem::Init()
 	}
 }
 
-mh::generator<std::filesystem::path> Filesystem::GetSearchPaths() const
+tf2pl::generator<std::filesystem::path> Filesystem::GetSearchPaths() const
 {
 	for (auto searchPath : m_SearchPaths)
 		co_yield searchPath;
@@ -175,7 +175,7 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 		}
 	});
 
-	DebugLog("ResolvePath({}, {}) -> {}", path, mh::enum_fmt(usage), retVal);
+	DebugLog("ResolvePath({}, {}) -> {}", path, tf2pl::enum_fmt(usage), retVal);
 	return std::move(retVal);
 }
 
@@ -211,7 +211,7 @@ void Filesystem::WriteFile(std::filesystem::path path, const void* begin, const 
 	path = ResolvePath(path, usage);
 
 	// Create any missing directories
-	if (auto folderPath = mh::copy(path).remove_filename(); std::filesystem::create_directories(folderPath))
+	if (auto folderPath = tf2pl::copy(path).remove_filename(); std::filesystem::create_directories(folderPath))
 		DebugLog("Created one or more directories in the path {}", folderPath);
 
 	std::ofstream file;
@@ -241,7 +241,7 @@ std::filesystem::path Filesystem::GetTempDir() const
 	return m_ExeDir / "temp";
 }
 
-void Filesystem::EnsureInit(const mh::source_location& location) const
+void Filesystem::EnsureInit(const tf2pl::source_location& location) const
 {
 	if (!m_IsInit)
 	{
@@ -251,7 +251,7 @@ void Filesystem::EnsureInit(const mh::source_location& location) const
 }
 
 template<typename TIter>
-static mh::generator<std::filesystem::directory_entry> IterateDirImpl(
+static tf2pl::generator<std::filesystem::directory_entry> IterateDirImpl(
 	const std::vector<std::filesystem::path>& searchPaths, std::filesystem::path path, std::filesystem::directory_options options)
 {
 	for (std::filesystem::path searchPath : searchPaths)
@@ -266,7 +266,7 @@ static mh::generator<std::filesystem::directory_entry> IterateDirImpl(
 	}
 }
 
-mh::generator<std::filesystem::directory_entry> Filesystem::IterateDir(std::filesystem::path path, bool recursive,
+tf2pl::generator<std::filesystem::directory_entry> Filesystem::IterateDir(std::filesystem::path path, bool recursive,
 	std::filesystem::directory_options options) const
 {
 	assert(!path.is_absolute());

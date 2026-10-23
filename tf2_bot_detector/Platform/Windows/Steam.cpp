@@ -2,7 +2,7 @@
 #include "Util/TextUtils.h"
 #include "Log.h"
 
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #include <Windows.h>
 
@@ -23,7 +23,7 @@ std::filesystem::path tf2_bot_detector::Platform::GetCurrentSteamDir()
 
 	if (result)
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to retrieve {}\\SteamClientDll: error {}",
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to retrieve {}\\SteamClientDll: error {}",
 			STEAM_ACTIVE_PROCESS_KEY, result);
 		return {};
 	}
@@ -45,7 +45,7 @@ SteamID tf2_bot_detector::Platform::GetCurrentActiveSteamID()
 
 	if (result)
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to retrieve {}\\ActiveUser: error {}",
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to retrieve {}\\ActiveUser: error {}",
 			STEAM_ACTIVE_PROCESS_KEY, result);
 		return {};
 	}
@@ -59,7 +59,7 @@ SteamID tf2_bot_detector::Platform::GetCurrentActiveSteamID()
 
 	if (result)
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to retrieve {}\\Universe: error {}",
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to retrieve {}\\Universe: error {}",
 			STEAM_ACTIVE_PROCESS_KEY, result);
 		return {};
 	}
@@ -75,7 +75,7 @@ SteamID tf2_bot_detector::Platform::GetCurrentActiveSteamID()
 		universe = SteamAccountUniverse::Dev;
 	else
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown steam account universe {}", fmt::streamed(std::quoted(universeStr)));
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Unknown steam account universe {}", fmt::streamed(std::quoted(universeStr)));
 		return {};
 	}
 

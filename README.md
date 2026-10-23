@@ -20,7 +20,7 @@
 
 TF2PL — **Team Fortress 2 PlayerList** — keeps useful player context close while you play. It reads TF2's console output, enriches player records with supported public data, displays an at-a-glance dossier, and lets you maintain local or subscribed player lists with clear, color-coded marks.
 
-Version 2.0 expanded the project into a single place to launch TF2, inspect a server, mark players, manage lists, and export data for compatible tools. Version 3.0 rebuilds the interface in the LunarisV style, adds a DirectX 11 renderer with GPU selection, reads players through TF2's G15 interface, and cuts the overhead TF2PL adds while you play.
+Version 2.0 expanded the project into a single place to launch TF2, inspect a server, mark players, manage lists, and export data for compatible tools. Version 3.0 rebuilds the interface in the LunarisV style, adds a DirectX 11 renderer with GPU selection, reads players through TF2's G15 interface, and cuts the overhead TF2PL adds while you play. Version 4.0 rebuilds the foundations — a new networking stack and fmt 12 — and adds an optional browser-based interface and a full player-list manager. See the [4.0.0 release notes](docs/releases/v4.0.0.md).
 
 > [!IMPORTANT]
 > TF2PL assists human moderation. A mark is context, not proof by itself. Review evidence and follow the rules of the server or community you are playing on.
@@ -42,7 +42,10 @@ TF2PL is **not intended to replace TF2 Bot Detector**. It is a personal, expande
 
 - **TF2 launcher:** start the game through TF2PL with readable controls for common launch options. The recommended profile includes borderless windowed mode, disabled legacy input features, FakeIP, and display-resolution detection. Explicit width and height values are never overwritten.
 - **Live player dossiers:** hover a player to see identity, account age, TF2 playtime, inventory information, activity, and available ban data.
-- **Flexible player marking:** use built-in marks such as Cheater, Suspicious, Exploiter, Racist, Hostile, VAC Banned, Game Banned, Source Banned, and more, plus your own custom tags.
+- **Flexible player marking:** use built-in marks such as Cheater, Suspicious, Exploiter, Racist, Hostile, Zoophiles/ZooJokes, Untrusted List Users, VAC Banned, Game Banned, Source Banned, and more, plus your own custom tags.
+- **Player-list manager:** browse, search and filter every loaded list, add players by SteamID, and edit marks and reasons on your local list without editing JSON.
+- **Marked Friends:** see exactly which of a player's friends are marked, and in which lists.
+- **Native or web interface:** use the native window, or switch to a browser UI served only on your own machine (`127.0.0.1`). The in-game overlay is available in native mode.
 - **Custom tag colors:** every built-in and custom tag can have its own scoreboard color.
 - **Complete Steam identity sets:** records retain SteamID, SteamID3/SteamID32, and SteamID64, with SteamID64 as the primary identity.
 - **Two-format total export:** export a full TF2PL list and a TF2BD-compatible list. Marks unsupported by TF2BD are preserved in the proof field.
@@ -61,6 +64,22 @@ TF2PL is **not intended to replace TF2 Bot Detector**. It is a personal, expande
 > **Sterling and Shitlist are not supported by TF2PL.** The project considers these lists untrusted because they accept manipulated replays and false evidence and publish fake cheater listings. TF2PL removes these lists automatically and flags lists that carry their entries.
 
 ## Preview
+
+### WebUI
+
+<p align="center">
+  <img src="docs/images/web-ui.png" alt="TF2PL WebUI showing a sample lobby, live scoreboard, and player dossier" width="100%">
+</p>
+
+The browser interface brings the scoreboard, chat, player dossiers, and marking controls together on your own machine.
+
+### Native UI
+
+<p align="center">
+  <img src="docs/images/native-ui.png" alt="TF2PL native interface showing a sample lobby, chat, scoreboard, and player tooltip" width="100%">
+</p>
+
+The native window provides the same player intelligence alongside the in-game overlay. Both screenshots use Preview Mode's sample lobby.
 
 ### Game launcher
 
@@ -106,9 +125,11 @@ Right-click a player to copy identifiers, visit supported profile services, init
 
 ## Installation
 
+TF2PL 4.0 and later require Windows 10 or newer on Windows.
+
 1. Download the appropriate package from [GitHub Releases](https://github.com/Lunaris-Surf/TF2PL/releases).
 2. Extract the complete package to a writable folder. Do not run the executable from inside the archive.
-3. Open TF2PL and complete the first-run setup.
+3. Open `TF2PL.exe` (Windows) or `TF2PL-x86_64.AppImage` (Linux) and complete the first-run setup.
 4. Allow Steam integration and internet features only if you want to use them.
 5. Launch TF2 from TF2PL when prompted.
 
@@ -129,14 +150,14 @@ See [LUNARISV.md](LUNARISV.md) for schema details, tag IDs, rule examples, and v
 
 ## Versioning and releases
 
-The repository root [`VERSION`](VERSION) file is the single source of truth for the public release version. It contains a three-part semantic version such as `3.0.0`.
+The repository root [`VERSION`](VERSION) file is the single source of truth for the public release version. It contains a three-part semantic version such as `4.0.0`.
 
 For the absolute earliest builds, visit [GitHub Actions](https://github.com/Lunaris-Surf/TF2PL/actions) and download an artifact from a successful workflow run. These builds contain the newest changes but receive less testing and may be unstable. [GitHub Releases](https://github.com/Lunaris-Surf/TF2PL/releases) are reserved for comparatively stable builds intended for general use.
 
 - Change `VERSION` when preparing a release.
 - CMake reads its major, minor, and patch values automatically.
 - GitHub Actions appends its run number as the fourth build component.
-- Release tags should use the matching `vMAJOR.MINOR.PATCH` form, such as `v3.0.0`.
+- Release tags should use the matching `vMAJOR.MINOR.PATCH` form, such as `v4.0.0`.
 - The in-app updater checks releases from this repository.
 
 This keeps local builds, Windows resources, CI artifacts, and the updater aligned without copying a version number through several files.

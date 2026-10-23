@@ -19,11 +19,11 @@
 #include <fmt/ostream.h>
 #include <nlohmann/json.hpp>
 
-#include <mh/algorithm/algorithm_generic.hpp>
-#include <mh/algorithm/multi_compare.hpp>
-#include <mh/text/case_insensitive_string.hpp>
-#include <mh/text/fmtstr.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/algorithm/algorithm_generic.hpp>
+#include <tf2pl/algorithm/multi_compare.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
+#include <tf2pl/text/fmtstr.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #include <iomanip>
 #include <map>
@@ -312,7 +312,7 @@ void ModeratorLogic::ProcessBanMarks()
 				if (extra.m_SourceBanRulesProcessed.contains(key)) continue;
 				if (!rule.Match(player, {}, ban.m_BanReason)) continue;
 				OnRuleMatch(rule, player, fmt::format("[SteamHistory] server: {} | state: {:v} | reason: {}",
-					ban.m_Server, mh::enum_fmt(ban.m_BanState), ban.m_BanReason));
+					ban.m_Server, tf2pl::enum_fmt(ban.m_BanState), ban.m_BanReason));
 				extra.m_SourceBanRulesProcessed.insert(key);
 			}
 		}
@@ -431,7 +431,7 @@ void ModeratorLogic::OnLocalPlayerInitialized(IWorldState & world, bool initiali
 
 	// do our "onjoin" message
 	if (m_Settings->m_AutoChatWarningsConnectingParty && m_Settings->m_AutoChatWarningsConnectingPartyPrintSummary) {
-		mh::fmtstr<128> chatMsg;
+		tf2pl::fmtstr<128> chatMsg;
 
 		int markedPlayerCount = 0;
 		std::vector<std::string> players;
@@ -458,7 +458,7 @@ void ModeratorLogic::OnLocalPlayerInitialized(IWorldState & world, bool initiali
 				}
 
 				players.push_back(
-					mh::fmtstr<128>(
+					tf2pl::fmtstr<128>(
 						"{}: {} - {} ({})",
 						markedPlayerCount,
 						username,
@@ -667,10 +667,10 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<Cheater>& en
 		}
 	}
 
-	mh::for_each_multimap_group(cheaterDebugWarnings,
+	tf2pl::for_each_multimap_group(cheaterDebugWarnings,
 		[&](const std::string_view& msgBase, auto cheatersBegin, auto cheatersEnd)
 		{
-			mh::fmtstr<2048> msgFmt;
+			tf2pl::fmtstr<2048> msgFmt;
 			msgFmt.puts(msgBase);
 
 			for (auto it = cheatersBegin; it != cheatersEnd; ++it)
@@ -742,7 +742,7 @@ std::string ModeratorLogic::GenerateCheaterWarnMessage(const std::vector<std::st
 	// if that happens, probably do "name, (+2 more)"
 	assert(max_names_length_one >= 32);
 
-	mh::fmtstr<MAX_CHATMSG_LENGTH + 1> chatMsg;
+	tf2pl::fmtstr<MAX_CHATMSG_LENGTH + 1> chatMsg;
 
 	if (names.size() == 1)
 	{
@@ -831,7 +831,7 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<Cheater>& c
 	if (!needsWarning)
 		return;
 
-	mh::fmtstr<128> chatMsg;
+	tf2pl::fmtstr<128> chatMsg;
 	if (connectingEnemyCheaters.size() == 1)
 	{
 		if (m_Settings->m_UseCustomChatWarnings && !m_Settings->m_OneCheaterConnectingMessage.empty()) {
@@ -888,7 +888,7 @@ void ModeratorLogic::HandleConnectingMarkedPlayers(const std::vector<Cheater>& c
 		return;
 	}
 
-	mh::fmtstr<128> chatMsg;
+	tf2pl::fmtstr<128> chatMsg;
 
 	if (unwarnedCheaters.size() == 1)
 	{
@@ -1117,7 +1117,7 @@ bool ModeratorLogic::SetPlayerAttribute(const SteamID& player, std::string name,
 				switch (persistence)
 				{
 				case AttributePersistence::Any:
-					LogError("Invalid AttributePersistence {}", mh::enum_fmt(persistence));
+					LogError("Invalid AttributePersistence {}", tf2pl::enum_fmt(persistence));
 					[[fallthrough]];
 				case AttributePersistence::Saved:      return data.m_SavedAttributes;
 				case AttributePersistence::Transient:  return data.m_TransientAttributes;
@@ -1309,7 +1309,7 @@ bool ModeratorLogic::InitiateVotekick(const IPlayer& player, KickReason reason, 
 
 	if (m_ActionManager->QueueAction<KickAction>(userID.value(), reason))
 	{
-		std::string logMsg = fmt::format("InitiateVotekick on {}: {:v}", player, mh::enum_fmt(reason));
+		std::string logMsg = fmt::format("InitiateVotekick on {}: {:v}", player, tf2pl::enum_fmt(reason));
 		if (marks)
 			fmt::format_to(std::back_inserter(logMsg), ", in playerlist(s){}", *marks);
 

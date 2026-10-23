@@ -3,7 +3,7 @@
 #include "ISetupFlowPage.h"
 #include "Platform/Platform.h"
 
-#include <mh/algorithm/multi_compare.hpp>
+#include <tf2pl/algorithm/multi_compare.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -140,25 +140,25 @@ namespace
 		}
 		catch (const std::exception& e)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e);
+			LogException(TF2PL_SOURCE_LOCATION_CURRENT(), e);
 			m_ValidationMessage = fmt::format("Exception: {}: {}\n\nPlease report this issue if possible.",
 				typeid(e).name(), e.what());
 		}
 	};
 }
 
-MH_ENUM_REFLECT_BEGIN(PermissionsCheckPage::ValidationState)
-	MH_ENUM_REFLECT_VALUE(Unvalidated)
-	MH_ENUM_REFLECT_VALUE(ValidationSuccess)
-	MH_ENUM_REFLECT_VALUE(ValidationFailure)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(PermissionsCheckPage::ValidationState)
+	TF2PL_ENUM_REFLECT_VALUE(Unvalidated)
+	TF2PL_ENUM_REFLECT_VALUE(ValidationSuccess)
+	TF2PL_ENUM_REFLECT_VALUE(ValidationFailure)
+TF2PL_ENUM_REFLECT_END()
 
 auto PermissionsCheckPage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
 {
 	switch (m_ValidationState)
 	{
 	default:
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown {}", mh::enum_fmt(m_ValidationState));
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Unknown {}", tf2pl::enum_fmt(m_ValidationState));
 
 	case ValidationState::Unvalidated:
 	case ValidationState::ValidationFailure:

@@ -30,13 +30,13 @@ namespace tf2_bot_detector::Windows
 	};
 
 
-#define MH_STR(x) #x
+#define TF2PL_STR(x) #x
 
 #define CHECK_HR(x) \
 	if (auto hr_temp_____ = (x); FAILED(hr_temp_____)) \
 	{ \
 		auto lastError_____ = ::GetLastError(); \
-		throw ::tf2_bot_detector::Windows::GetLastErrorException(hr_temp_____, lastError_____, MH_STR(x)); \
+		throw ::tf2_bot_detector::Windows::GetLastErrorException(hr_temp_____, lastError_____, TF2PL_STR(x)); \
 	}
 
 #define IUNKNOWN_QI_TYPE(type) \

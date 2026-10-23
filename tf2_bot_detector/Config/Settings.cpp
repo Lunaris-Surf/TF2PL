@@ -10,9 +10,9 @@
 #include "Platform/Platform.h"
 #include "ReleaseChannel.h"
 
-#include <mh/text/case_insensitive_string.hpp>
-#include <mh/text/string_insertion.hpp>
-#include <mh/text/stringops.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
+#include <tf2pl/text/string_insertion.hpp>
+#include <tf2pl/text/stringops.hpp>
 #include <nlohmann/json.hpp>
 #include <srcon/async_client.h>
 
@@ -351,7 +351,7 @@ void tf2_bot_detector::to_json(nlohmann::json& j, const Font& d)
 
 void tf2_bot_detector::from_json(const nlohmann::json& j, Font& d)
 {
-	auto value = mh::tolower(j.get<std::string_view>());
+	auto value = tf2pl::tolower(j.get<std::string_view>());
 	if (value == "proggy_tiny_10px")
 		d = Font::ProggyTiny_10px;
 	else if (value == "proggy_tiny_20px")
@@ -367,7 +367,7 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, Font& d)
 	else if (value == "chakra_petch_16px")
 		d = Font::ChakraPetch_16px;
 	else
-		throw std::invalid_argument(fmt::format("{}: Unknown font {}", mh::source_location::current(), fmt::streamed(std::quoted(value))));
+		throw std::invalid_argument(fmt::format("{}: Unknown font {}", tf2pl::source_location::current(), fmt::streamed(std::quoted(value))));
 }
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const ReleaseChannel& d)
@@ -380,12 +380,12 @@ void tf2_bot_detector::to_json(nlohmann::json& j, const ReleaseChannel& d)
 	case ReleaseChannel::Nightly:   j = "nightly"; return;
 	}
 
-	throw std::invalid_argument(fmt::format("Unexpected value {}", mh::enum_fmt(d)));
+	throw std::invalid_argument(fmt::format("Unexpected value {}", tf2pl::enum_fmt(d)));
 }
 
 void tf2_bot_detector::from_json(const nlohmann::json& j, ReleaseChannel& d)
 {
-	auto value = mh::tolower(j.get<std::string_view>());
+	auto value = tf2pl::tolower(j.get<std::string_view>());
 	if (value == "releases"sv || value == "public"sv)
 		d = ReleaseChannel::Public;
 	else if (value == "previews"sv || value == "preview"sv)
@@ -451,7 +451,7 @@ Settings::Settings() try
 }
 catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT());
+	LogException(TF2PL_SOURCE_LOCATION_CURRENT());
 	throw;
 }
 
@@ -463,7 +463,7 @@ void Settings::LoadFile() try
 }
 catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT());
+	LogException(TF2PL_SOURCE_LOCATION_CURRENT());
 	throw;
 }
 
@@ -473,7 +473,7 @@ bool Settings::SaveFile() const try
 }
 catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to save settings");
+	LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to save settings");
 	return false;
 }
 
@@ -584,6 +584,14 @@ void Settings::Deserialize(const nlohmann::json& json)
 			if (m_WebUIPort < 1024)
 				m_WebUIPort = DEFAULTS.m_WebUIPort;
 			try_get_to_defaulted(*custom_values, m_WebUIOpenBrowser, "web_ui_open_browser", DEFAULTS.m_WebUIOpenBrowser);
+			if (auto streamer = custom_values.value().find("streamer_mode");
+				streamer != custom_values.value().end() && streamer->is_object())
+			{
+				try_get_to_defaulted(*streamer, m_StreamerMode.m_Enabled, "enabled", DEFAULTS.m_StreamerMode.m_Enabled);
+				try_get_to_defaulted(*streamer, m_StreamerMode.m_Name, "name", DEFAULTS.m_StreamerMode.m_Name);
+				try_get_to_defaulted(*streamer, m_StreamerMode.m_SteamID, "steamid", DEFAULTS.m_StreamerMode.m_SteamID);
+				try_get_to_defaulted(*streamer, m_StreamerMode.m_AvatarPath, "avatar_path", DEFAULTS.m_StreamerMode.m_AvatarPath);
+			}
 			try_get_to_defaulted(*custom_values, m_OverlayCorner, "overlay_corner", DEFAULTS.m_OverlayCorner);
 			try_get_to_defaulted(*custom_values, m_OverlayHotkeyKey, "overlay_hotkey_key", DEFAULTS.m_OverlayHotkeyKey);
 			try_get_to_defaulted(*custom_values, m_OverlayHotkeyModifiers, "overlay_hotkey_modifiers", DEFAULTS.m_OverlayHotkeyModifiers);
@@ -702,6 +710,14 @@ void Settings::Serialize(nlohmann::json& json) const
 						{ "ui_mode", m_UIMode == TF2BDUIMode::Web ? "web" : "native" },
 						{ "web_ui_port", m_WebUIPort },
 						{ "web_ui_open_browser", m_WebUIOpenBrowser },
+						{ "streamer_mode",
+							{
+								{ "enabled", m_StreamerMode.m_Enabled },
+								{ "name", m_StreamerMode.m_Name },
+								{ "steamid", m_StreamerMode.m_SteamID },
+								{ "avatar_path", m_StreamerMode.m_AvatarPath },
+							}
+						},
 						{ "overlay_corner", m_OverlayCorner },
 						{ "overlay_hotkey_key", m_OverlayHotkeyKey },
 						{ "overlay_hotkey_modifiers", m_OverlayHotkeyModifiers },
@@ -779,6 +795,6 @@ std::filesystem::path AutoDetectedSettings::GetSteamDir() const
 
 std::string GotoProfileSite::CreateProfileURL(const SteamID& id) const
 {
-	auto str = mh::find_and_replace(m_ProfileURL, "%SteamID64%"sv, std::string_view(std::to_string(id.ID64)));
-	return mh::find_and_replace(std::move(str), "%SteamID3%"sv, std::string_view(id.str()));
+	auto str = tf2pl::find_and_replace(m_ProfileURL, "%SteamID64%"sv, std::string_view(std::to_string(id.ID64)));
+	return tf2pl::find_and_replace(std::move(str), "%SteamID3%"sv, std::string_view(id.str()));
 }

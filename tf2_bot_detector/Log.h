@@ -1,8 +1,8 @@
 #pragma once
 
-#include <mh/coroutine/generator.hpp>
-#include <mh/source_location.hpp>
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/coroutine/generator.hpp>
+#include <tf2pl/source_location.hpp>
+#include <tf2pl/reflection/enum.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
@@ -107,7 +107,7 @@ namespace tf2_bot_detector
 
 		virtual const std::filesystem::path& GetFileName() const = 0;
 
-		virtual mh::generator<const LogMessage&> GetVisibleMsgs() const = 0;
+		virtual tf2pl::generator<const LogMessage&> GetVisibleMsgs() const = 0;
 		virtual void ClearVisibleMsgs() = 0;
 
 		virtual void LogConsoleOutput(const std::string_view& consoleOutput) = 0;
@@ -135,7 +135,7 @@ namespace tf2_bot_detector
 	{
 		void LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility, std::string str);
 		void LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
-			const mh::source_location& location, const std::string_view& str);
+			const tf2pl::source_location& location, const std::string_view& str);
 		NOINLINE void LogImplBase(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
 			const std::string_view& fmtStr, const fmt::format_args& args);
 		NOINLINE void LogImplBase(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
@@ -178,7 +178,7 @@ namespace tf2_bot_detector
 
 #define LOG_DEFINITION_HELPER_LOGS(name, defaultColor, severity, visibility) \
 	template<typename... TArgs> \
-	inline auto name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	inline auto name(const LogMessageColor& color, const tf2pl::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
 		detail::log_h::LogImpl(color, (severity), (visibility), location, fmtStr, args...); \
 	} \
@@ -188,7 +188,7 @@ namespace tf2_bot_detector
 		name(color, fmtStr.m_Location, fmtStr.m_Value, args...); \
 	} \
 	template<typename... TArgs> \
-	inline auto name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	inline auto name(const tf2pl::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
 		name((defaultColor), location, fmtStr, args...); \
 	} \
@@ -197,10 +197,10 @@ namespace tf2_bot_detector
 	{ \
 		name(fmtStr.m_Location, fmtStr.m_Value, args...); \
 	} \
-	void name(const LogMessageColor& color, const std::string_view& msg, MH_SOURCE_LOCATION_AUTO(location)); \
-	void name(const std::string_view& msg, MH_SOURCE_LOCATION_AUTO(location)); \
-	void name(const LogMessageColor& color, MH_SOURCE_LOCATION_AUTO(location)); \
-	void name(MH_SOURCE_LOCATION_AUTO(location));
+	void name(const LogMessageColor& color, const std::string_view& msg, TF2PL_SOURCE_LOCATION_AUTO(location)); \
+	void name(const std::string_view& msg, TF2PL_SOURCE_LOCATION_AUTO(location)); \
+	void name(const LogMessageColor& color, TF2PL_SOURCE_LOCATION_AUTO(location)); \
+	void name(TF2PL_SOURCE_LOCATION_AUTO(location));
 
 	LOG_DEFINITION_HELPER_LOGS(Log, LogColors::DEFAULT, LogSeverity::Info, LogVisibility::Default);
 	LOG_DEFINITION_HELPER_LOGS(DebugLog, LogColors::DEFAULT_DEBUG, LogSeverity::Info, LogVisibility::Debug);
@@ -209,12 +209,12 @@ namespace tf2_bot_detector
 	LOG_DEFINITION_HELPER_LOGS(LogError, LogColors::ERROR, LogSeverity::Error, LogVisibility::Default);
 
 
-	void LogException(const mh::source_location& location, const std::exception_ptr& e,
+	void LogException(const tf2pl::source_location& location, const std::exception_ptr& e,
 		LogSeverity severity, LogVisibility visibility, const std::string_view& msg = {});
 
 #define LOG_DEFINITION_HELPER_DEBUG(name, attr, severity, visibility) \
 	template<typename... TArgs> \
-	attr void name(const mh::source_location& location, const std::exception_ptr& e, \
+	attr void name(const tf2pl::source_location& location, const std::exception_ptr& e, \
 		const std::string_view& fmtStr = {}, const TArgs&... args) \
 	{ \
 		LogException(location, e, severity, visibility, fmt::format(fmt::runtime(fmtStr), args...)); /* NOTE: we're losing compile-time evaluation on fmtStr, but I can't be arsed to bother. */ \
@@ -226,7 +226,7 @@ namespace tf2_bot_detector
 	} \
 	\
 	template<typename... TArgs> \
-	attr void name(const mh::source_location& location, const std::exception& e, \
+	attr void name(const tf2pl::source_location& location, const std::exception& e, \
 		const std::string_view& fmtStr = {}, const TArgs&... args) \
 	{ \
 		name(location, std::make_exception_ptr(e), fmtStr, args...); \
@@ -238,7 +238,7 @@ namespace tf2_bot_detector
 	} \
 	\
 	template<typename... TArgs> \
-	attr void name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	attr void name(const tf2pl::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
 		name(location, std::current_exception(), fmtStr, args...); \
 	} \
@@ -247,8 +247,8 @@ namespace tf2_bot_detector
 	{ \
 		name(fmtStr.m_Location, fmtStr.m_Value, args...); \
 	} \
-	attr void name(MH_SOURCE_LOCATION_AUTO(location)); \
-	attr void name(const std::exception& e, MH_SOURCE_LOCATION_AUTO(location));
+	attr void name(TF2PL_SOURCE_LOCATION_AUTO(location)); \
+	attr void name(const std::exception& e, TF2PL_SOURCE_LOCATION_AUTO(location));
 
 	LOG_DEFINITION_HELPER_DEBUG(DebugLogException, , LogSeverity::Error, LogVisibility::Debug);
 	LOG_DEFINITION_HELPER_DEBUG(LogException, , LogSeverity::Error, LogVisibility::Default);
@@ -257,9 +257,9 @@ namespace tf2_bot_detector
 #undef NOINLINE
 #pragma pop_macro("NOINLINE")
 
-	[[noreturn]] void LogFatalError(const mh::source_location& location, const std::string_view& msg);
+	[[noreturn]] void LogFatalError(const tf2pl::source_location& location, const std::string_view& msg);
 	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>>
-	[[noreturn]] void LogFatalError(const mh::source_location& location,
+	[[noreturn]] void LogFatalError(const tf2pl::source_location& location,
 			const std::string_view& fmtStr, const TArgs&... args)
 	{
 		/* NOTE: we're losing compile-time evaluation on fmtStr, but I can't be arsed to bother. */

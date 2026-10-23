@@ -2,8 +2,8 @@
 #include "Log.h"
 #include "WindowsHelpers.h"
 
-#include <mh/memory/unique_object.hpp>
-#include <mh/text/fmtstr.hpp>
+#include <tf2pl/memory/unique_object.hpp>
+#include <tf2pl/text/fmtstr.hpp>
 
 #include <Windows.h>
 #include <winsock2.h>
@@ -58,7 +58,7 @@ tf2_bot_detector::Platform::Arch tf2_bot_detector::Platform::GetArch()
 		switch (sysInfo.wProcessorArchitecture)
 		{
 		default:
-			LogError(MH_SOURCE_LOCATION_CURRENT(),
+			LogError(TF2PL_SOURCE_LOCATION_CURRENT(),
 				"Failed to identify processor architecture: wProcessorArchitecture = {}",
 				sysInfo.wProcessorArchitecture);
 
@@ -82,7 +82,7 @@ bool tf2_bot_detector::Platform::IsPortAvailable(uint16_t port)
 {
 	EnsureWSAInit();
 
-	const mh::fmtstr<32> portStr("{}", port);
+	const tf2pl::fmtstr<32> portStr("{}", port);
 	addrinfo hints{};
 	hints.ai_family = AF_INET;
 	//hints.ai_socktype = SOCK_STREAM
@@ -126,7 +126,7 @@ bool tf2_bot_detector::Platform::IsPortAvailable(uint16_t port)
 			}
 		}
 	};
-	mh::unique_object<SOCKET, FreeSocketHelper> listenSocket;
+	tf2pl::unique_object<SOCKET, FreeSocketHelper> listenSocket;
 	listenSocket.reset(socket(addrResult->ai_family, addrResult->ai_socktype, addrResult->ai_protocol));
 
 	if (auto result = bind(listenSocket.value(), addrResult->ai_addr, (int)addrResult->ai_addrlen); result != 0)

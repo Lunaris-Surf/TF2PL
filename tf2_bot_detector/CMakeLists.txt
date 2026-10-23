@@ -22,7 +22,7 @@ if (WIN32)
 	target_compile_definitions(tf2_bot_detector PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 
 	target_include_directories(tf2_bot_detector_launcher PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-	# It pulls in app/mh headers that require fmt + the MH_* defines + C++20;
+	# It pulls in app/tf2pl headers that require fmt + the TF2PL_* defines + C++20;
 	# tf2_bot_detector::common supplies all three.
 	target_link_libraries(tf2_bot_detector_launcher PRIVATE tf2_bot_detector tf2_bot_detector::common)
 	# 4.0: the release binary is TF2PL.exe (the dll keeps its tf2_bot_detector name)
@@ -285,6 +285,14 @@ target_sources(tf2_bot_detector PRIVATE
 	"WorldEventListener.h"
 	"WorldState.cpp"
 	"WorldState.h"
+
+	# 4.1: streamer mode and preview mode (the preview's sample lobby is the tests' fake world)
+	"PreviewMode.cpp"
+	"PreviewMode.h"
+	"StreamerMode.cpp"
+	"StreamerMode.h"
+	"Tests/FakeWorldState.cpp"
+	"Tests/FakeWorldState.h"
 )
 
 target_precompile_headers(tf2_bot_detector
@@ -393,6 +401,15 @@ if (TF2BD_ENABLE_DISCORD_INTEGRATION)
 endif()
 
 # Optional web UI: WebServer/web/index.html is embedded into the binary at build time.
+# Keep hosts-file elevation in a tiny standalone executable, without app DLLs.
+add_executable(tf2pl_host_setup "WebServer/HostSetup.cpp")
+set_target_properties(tf2pl_host_setup PROPERTIES OUTPUT_NAME "TF2PLHostSetup")
+target_compile_features(tf2pl_host_setup PRIVATE cxx_std_17)
+if (UNIX AND NOT APPLE)
+	target_link_options(tf2pl_host_setup PRIVATE -static-libgcc -static-libstdc++)
+endif()
+add_dependencies(tf2_bot_detector tf2pl_host_setup)
+
 set(TF2BD_WEB_INDEX "${CMAKE_CURRENT_SOURCE_DIR}/WebServer/web/index.html")
 set(TF2BD_WEB_ASSETS "${CMAKE_CURRENT_BINARY_DIR}/WebUIAssets.inl")
 add_custom_command(
@@ -406,6 +423,10 @@ add_custom_command(
 target_sources(tf2_bot_detector PRIVATE
 	"WebServer/WebUI.cpp"
 	"WebServer/WebUI.h"
+	"WebServer/WebUIData.cpp"
+	"WebServer/WebUIData.h"
+	"WebServer/HostAlias.cpp"
+	"WebServer/HostAlias.h"
 	"WebServer/web/index.html"
 	"${TF2BD_WEB_ASSETS}"
 )
@@ -445,13 +466,12 @@ if (TF2BD_ENABLE_TESTS)
 	target_include_directories(tf2_bot_detector PRIVATE "Tests/compat")
 	target_sources(tf2_bot_detector PRIVATE
 		"Tests/Catch2.cpp"
-		"Tests/FakeWorldState.cpp"
-		"Tests/FakeWorldState.h"
 		"Tests/FakeWorldStateTests.cpp"
 		"Tests/ConsoleLineTests.cpp"
 		"Tests/FormattingTests.cpp"
 		"Tests/HumanDurationTests.cpp"
 		"Tests/PlayerRuleTests.cpp"
+		"Tests/HostAliasTests.cpp"
 		"Tests/Tests.h"
 	)
 

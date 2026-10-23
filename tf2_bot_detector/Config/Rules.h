@@ -2,8 +2,8 @@
 #include "ConfigHelpers.h"
 #include "PlayerListJSON.h"
 
-#include <mh/coroutine/generator.hpp>
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/coroutine/generator.hpp>
+#include <tf2pl/reflection/enum.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <filesystem>
@@ -97,7 +97,7 @@ namespace tf2_bot_detector
 		bool LoadFiles();
 		bool SaveFile() const;
 
-		mh::generator<const ModerationRule&> GetRules() const;
+		tf2pl::generator<const ModerationRule&> GetRules() const;
 		size_t GetRuleCount() const { return m_CFGGroup.size(); }
 
 	private:
@@ -125,16 +125,16 @@ namespace tf2_bot_detector
 	};
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::TriggerMatchMode)
-	MH_ENUM_REFLECT_VALUE(MatchAll)
-	MH_ENUM_REFLECT_VALUE(MatchAny)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::TriggerMatchMode)
+	TF2PL_ENUM_REFLECT_VALUE(MatchAll)
+	TF2PL_ENUM_REFLECT_VALUE(MatchAny)
+TF2PL_ENUM_REFLECT_END()
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::TextMatchMode)
-	MH_ENUM_REFLECT_VALUE(Equal)
-	MH_ENUM_REFLECT_VALUE(Contains)
-	MH_ENUM_REFLECT_VALUE(StartsWith)
-	MH_ENUM_REFLECT_VALUE(EndsWith)
-	MH_ENUM_REFLECT_VALUE(Regex)
-	MH_ENUM_REFLECT_VALUE(Word)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::TextMatchMode)
+	TF2PL_ENUM_REFLECT_VALUE(Equal)
+	TF2PL_ENUM_REFLECT_VALUE(Contains)
+	TF2PL_ENUM_REFLECT_VALUE(StartsWith)
+	TF2PL_ENUM_REFLECT_VALUE(EndsWith)
+	TF2PL_ENUM_REFLECT_VALUE(Regex)
+	TF2PL_ENUM_REFLECT_VALUE(Word)
+TF2PL_ENUM_REFLECT_END()

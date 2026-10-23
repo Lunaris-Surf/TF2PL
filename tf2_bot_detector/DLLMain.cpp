@@ -6,7 +6,7 @@
 #include "Log.h"
 #include "Filesystem.h"
 
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #include "UI/MainWindow.h"
 #include "UI/SettingsWindow.h"

@@ -2,14 +2,14 @@
 #include "Util/TextUtils.h"
 #include "Log.h"
 
-#include <mh/coroutine/future.hpp>
-#include <mh/memory/cached_variable.hpp>
-#include <mh/error/ensure.hpp>
-#include <mh/text/case_insensitive_string.hpp>
-#include <mh/text/codecvt.hpp>
-#include <mh/text/formatters/error_code.hpp>
-#include <mh/text/insertion_conversion.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/coroutine/future.hpp>
+#include <tf2pl/memory/cached_variable.hpp>
+#include <tf2pl/error/ensure.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
+#include <tf2pl/text/codecvt.hpp>
+#include <tf2pl/text/formatters/error_code.hpp>
+#include <tf2pl/text/insertion_conversion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #ifdef _WIN32
 // https://developercommunity.visualstudio.com/t/Access-violation-in-_Thrd_yield-after-up/10664660
@@ -157,7 +157,7 @@ namespace
 			return WBEM_S_NO_ERROR;
 		}
 
-		mh::task<std::vector<std::string>> GetTask() const
+		tf2pl::task<std::vector<std::string>> GetTask() const
 		{
 			return m_Promise.get_task();
 		}
@@ -172,12 +172,12 @@ namespace
 		mutable std::mutex m_ArgsMutex;
 		std::vector<std::string> m_Args;
 
-		mh::promise<std::vector<std::string>> m_Promise;
+		tf2pl::promise<std::vector<std::string>> m_Promise;
 	};
 }
 
 // https://docs.microsoft.com/en-us/windows/win32/wmisdk/example--getting-wmi-data-from-the-local-computer
-mh::task<std::vector<std::string>> tf2_bot_detector::Processes::GetTF2CommandLineArgsAsync()
+tf2pl::task<std::vector<std::string>> tf2_bot_detector::Processes::GetTF2CommandLineArgsAsync()
 {
 	try
 	{
@@ -236,7 +236,7 @@ mh::task<std::vector<std::string>> tf2_bot_detector::Processes::GetTF2CommandLin
 
 bool tf2_bot_detector::Processes::IsSteamRunning()
 {
-	static mh::cached_variable m_CachedValue(std::chrono::seconds(1), []() { return IsProcessRunning("Steam.exe"); });
+	static tf2pl::cached_variable m_CachedValue(std::chrono::seconds(1), []() { return IsProcessRunning("Steam.exe"); });
 	return m_CachedValue.get();
 }
 
@@ -271,7 +271,7 @@ bool tf2_bot_detector::Processes::IsProcessRunning(const std::string_view& proce
 
 	do
 	{
-		if (mh::case_insensitive_compare(std::string_view(entry.szExeFile), processName))
+		if (tf2pl::case_insensitive_compare(std::string_view(entry.szExeFile), processName))
 		{
 			processHandles.insert_or_assign(processName.data(), OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ProcessID));
 			return true;
@@ -298,7 +298,7 @@ void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable
 {
 	DebugLog("ShellExecute({}, {}) (elevated = {})", executable, args, elevated);
 
-	const auto cmdLineWide = mh::change_encoding<wchar_t>(args);
+	const auto cmdLineWide = tf2pl::change_encoding<wchar_t>(args);
 
 	const auto result = ShellExecuteW(
 		NULL,
@@ -334,7 +334,7 @@ void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable
 		}
 		auto exception = std::runtime_error(fmt::format("ShellExecuteW returned {}", errorCode));
 
-		LogException(MH_SOURCE_LOCATION_CURRENT(), exception);
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(), exception);
 		throw exception;
 	}
 }

@@ -6,9 +6,10 @@
 #include "Util/PathUtils.h"
 #include "Platform/Platform.h"
 #include "Application.h"
+#include "StreamerMode.h"
 
-#include <mh/algorithm/algorithm.hpp>
-#include <mh/error/ensure.hpp>
+#include <tf2pl/algorithm/algorithm.hpp>
+#include <tf2pl/error/ensure.hpp>
 
 #include <string>
 #include <string_view>
@@ -23,6 +24,7 @@ SettingsWindow::SettingsWindow(Settings& settings, MainWindow& mainWindow) :
 
 void SettingsWindow::OnDraw()
 {
+	OnDrawStreamerModeSettings();
 	OnDrawASOSettings();
 	OnDrawCompatibilitySettings();
 	OnDrawLoggingSettings();
@@ -42,6 +44,52 @@ void SettingsWindow::OnDraw()
 
 	if (CloseAppOnTFCloseCheckbox(m_Settings.m_ShouldCloseWhenTFCloses))
 		m_Settings.SaveFile();
+}
+
+void SettingsWindow::OnDrawStreamerModeSettings()
+{
+	if (!ImGui::TreeNode("Streamer mode"))
+		return;
+
+	auto& streamer = m_Settings.m_StreamerMode;
+	if (ImGui::Checkbox("Enable streamer mode", &streamer.m_Enabled))
+		m_Settings.SaveFile();
+	ImGui::SetHoverTooltip("While on, TF2PL shows this profile instead of your own name, avatar and SteamID everywhere it draws "
+		"you (scoreboard, dossier, chat, kill feed, overlay, web UI), and hides your profile links.");
+
+	ImGui::TextDisabled("Leave a field empty for the anonymous default.");
+
+	if (ImGui::InputTextWithHint("Shown name", std::string(StreamerMode::DEFAULT_NAME).c_str(), &streamer.m_Name))
+		m_Settings.SaveFile();
+	if (ImGui::InputTextWithHint("Shown SteamID", std::string(StreamerMode::HIDDEN_STEAMID).c_str(), &streamer.m_SteamID))
+		m_Settings.SaveFile();
+	ImGui::SetHoverTooltip("Any text, e.g. a fake SteamID. Copying your SteamID and the Go To profile links stay disabled for you.");
+
+	if (ImGui::InputTextWithHint("Avatar image", "blank avatar", &streamer.m_AvatarPath))
+		m_Settings.SaveFile();
+	ImGui::SameLine();
+	if (ImGui::Button("Browse...##StreamerAvatar"))
+	{
+		if (auto path = Platform::Shell::BrowseForImageDialog(); !path.empty())
+		{
+			const auto u8 = path.u8string();
+			streamer.m_AvatarPath.assign(u8.begin(), u8.end());
+			m_Settings.SaveFile();
+		}
+	}
+	if (!streamer.m_AvatarPath.empty())
+	{
+		ImGui::SameLine();
+		if (ImGui::Button("Clear##StreamerAvatar"))
+		{
+			streamer.m_AvatarPath.clear();
+			m_Settings.SaveFile();
+		}
+	}
+	ImGui::SetHoverTooltip("A png/jpg/bmp/tga/gif shown as your avatar. Square images look best.");
+
+	ImGui::NewLine();
+	ImGui::TreePop();
 }
 
 void SettingsWindow::OnDrawOverlaySettings()
@@ -559,7 +607,7 @@ void SettingsWindow::OnDrawServiceIntegrationSettings()
 					case SteamAPIMode::Direct:    return "Enabled";
 					}
 
-					LogError("Unknown value {}", mh::enum_fmt(mode));
+					LogError("Unknown value {}", tf2pl::enum_fmt(mode));
 					return "Disabled";
 				};
 
@@ -678,7 +726,7 @@ void SettingsWindow::OnDrawUISettings()
 			switch (f)
 			{
 			default:
-				LogError("Unknown font {}", mh::enum_fmt(f));
+				LogError("Unknown font {}", tf2pl::enum_fmt(f));
 				[[fallthrough]];
 			case Font::ProggyClean_13px: return "Proggy Clean, 13px";
 			case Font::ProggyClean_26px: return "Proggy Clean, 26px";
@@ -739,6 +787,15 @@ void tf2_bot_detector::SettingsWindow::OnDrawMiscSettings()
 	{
 		if (ImGui::Checkbox("Show kill logs on chat", &m_Settings.m_KillLogsInChat))
 			m_Settings.SaveFile();
+
+		{
+			auto& app = TF2BDApplication::GetApplication();
+			bool preview = app.IsPreviewRequested();
+			if (ImGui::Checkbox("Preview mode (sample lobby, no TF2 needed)", &preview))
+				app.SetPreviewMode(preview);
+			ImGui::SetHoverTooltip("Shows the whole interface with a sample lobby so you can explore or showcase TF2PL without TF2 running. "
+				"Nothing is sent to the game and sample marks aren't saved. Not saved between launches.");
+		}
 
 		// PASTED: see TF2CommandLinePage.cpp
 		// i love tech tebt

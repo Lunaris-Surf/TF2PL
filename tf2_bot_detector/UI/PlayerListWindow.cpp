@@ -10,12 +10,14 @@
 #include "UI/AppStyle.h"
 #include "UI/ImGui_TF2BotDetector.h"
 #include "UI/LunarisUI.h"
+#include "PreviewMode.h"
+#include "StreamerMode.h"
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <imgui.h>
 #include <imgui_stdlib.h>
-#include <mh/text/case_insensitive_string.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -205,6 +207,9 @@ void PlayerListWindow::ApplyFilters()
 
 std::string PlayerListWindow::FindBestName(const SteamID& id) const
 {
+	if (StreamerMode::IsMasked(m_Application.GetSettings(), id))
+		return StreamerMode::GetName(m_Application.GetSettings());
+
 	if (auto player = m_Application.GetWorld().FindPlayer(id))
 		return player->GetNameSafe();
 
@@ -442,7 +447,9 @@ void PlayerListWindow::DrawTable(float height)
 
 			ImGui::TableNextColumn();
 			const bool selected = m_Selected && *m_Selected == row.m_SteamID;
-			const std::string label = row.m_LastName.empty() ? "<unknown name>"s : row.m_LastName;
+			const bool masked = StreamerMode::IsMasked(m_Application.GetSettings(), row.m_SteamID);
+			const std::string label = masked ? StreamerMode::GetName(m_Application.GetSettings()) :
+				(row.m_LastName.empty() ? "<unknown name>"s : row.m_LastName);
 			if (ImGui::Selectable(label.c_str(), selected, ImGuiSelectableFlags_SpanAllColumns))
 			{
 				m_Selected = row.m_SteamID;
@@ -453,7 +460,7 @@ void PlayerListWindow::DrawTable(float height)
 			ImGui::TableNextColumn();
 			if (LunarisUI::Fonts().m_Mono)
 				ImGui::PushFont(LunarisUI::Fonts().m_Mono);
-			ImGui::TextUnformatted(row.m_SteamID.str().c_str());
+			ImGui::TextUnformatted(StreamerMode::DisplaySteamID(m_Application.GetSettings(), row.m_SteamID).c_str());
 			if (LunarisUI::Fonts().m_Mono)
 				ImGui::PopFont();
 
@@ -487,24 +494,46 @@ void PlayerListWindow::DrawDetails()
 	ImGui::TextUnformatted(name.empty() ? "<unknown name>" : name.c_str());
 	if (LunarisUI::Fonts().m_Mono)
 		ImGui::PushFont(LunarisUI::Fonts().m_Mono);
-	ImGui::TextColored(Muted, "%s   %llu", id.str().c_str(), (unsigned long long)id.GetSteamID64());
+	const bool masked = StreamerMode::IsMasked(m_Application.GetSettings(), id);
+	if (masked)
+		ImGui::TextColored(Muted, "%s", StreamerMode::GetSteamIDText(m_Application.GetSettings()).c_str());
+	else
+		ImGui::TextColored(Muted, "%s   %llu", id.str().c_str(), (unsigned long long)id.GetSteamID64());
 	if (LunarisUI::Fonts().m_Mono)
 		ImGui::PopFont();
 
+	ImGui::BeginDisabled(masked);
 	if (LunarisUI::SkewButton("Copy SteamID64##Details", LunarisUI::ButtonStyle::Ghost))
 		ImGui::SetClipboardText(std::to_string(id.GetSteamID64()).c_str());
+	ImGui::EndDisabled();
 	ImGui::SameLine();
 	DrawPlayerContextGoToMenu(m_Application.GetSettings(), id);
 
 	if (m_Application.GetWorld().FindPlayer(id))
 		ImGui::TextColored(Green, "In your current game");
 
+	auto* preview = m_Application.GetPreview();
+	const bool samplePlayer = preview && preview->OwnsPlayer(id);
+	if (samplePlayer)
+		ImGui::TextColored(Orange, "Preview mode sample player: marks here are kept in memory and never saved.");
+
 	ImGui::Spacing();
 	LunarisUI::MicroLabel("Marks by list");
 
 	auto* playerList = m_Application.GetModLogic().GetPlayerList();
 	bool anyMarks = false;
-	if (playerList)
+	if (samplePlayer)
+	{
+		for (const auto& mark : m_Application.GetModLogic().GetPlayerAttributes(id))
+		{
+			anyMarks = true;
+			ImGui::TextColored(Muted, "%s", mark.m_FileName.c_str());
+			ImGui::Indent();
+			ImGui::TextColored(Orange, "%s", DescribeAttributes(mark.m_Attributes).c_str());
+			ImGui::Unindent();
+		}
+	}
+	else if (playerList)
 	{
 		for (const auto& [fileName, data] : playerList->FindPlayerData(id))
 		{
@@ -560,7 +589,7 @@ void PlayerListWindow::DrawEditor(const SteamID& id, const std::string& name)
 	ImGui::SetNextItemWidth(-1);
 	ImGui::InputTextWithHint("##reason", "Reason / proof (saved with the next change)", &m_Reason);
 
-	const auto editable = playerList->GetEditablePlayerAttributes(id);
+	const auto editable = m_Application.GetEditablePlayerAttributes(id); // in-memory for preview sample players
 	bool changed = false;
 
 	if (ImGui::BeginTable("##editmarks", 2))
@@ -575,7 +604,7 @@ void PlayerListWindow::DrawEditor(const SteamID& id, const std::string& name)
 				if (modLogic.SetPlayerAttribute(id, name, attr, AttributePersistence::Saved, value, m_Reason))
 				{
 					Log("Player lists: {} {} {:v} | {}", name.empty() ? id.str() : name, value ? "marked" : "unmarked",
-						mh::enum_fmt(attr), m_Reason);
+						tf2pl::enum_fmt(attr), m_Reason);
 					changed = true;
 				}
 			}
@@ -612,7 +641,8 @@ void PlayerListWindow::DrawEditor(const SteamID& id, const std::string& name)
 		ImGui::TextColored(Red, "1-64 lowercase letters, digits, - or _; start with a letter.");
 
 	ImGui::Spacing();
-	const bool inWritableList = !editable.empty();
+	auto* preview = m_Application.GetPreview();
+	const bool inWritableList = !editable.empty() && !(preview && preview->OwnsPlayer(id));
 	ImGui::BeginDisabled(!inWritableList);
 	if (!m_ConfirmRemove)
 	{
@@ -658,7 +688,7 @@ void MarkedFriendsWindow::Open(const SteamID& id, std::string name)
 {
 	m_Open = true;
 	m_Target = id;
-	m_TargetName = std::move(name);
+	m_TargetName = StreamerMode::DisplayName(m_Application.GetSettings(), id, name);
 	m_FriendsSnapshot.clear();
 	m_FriendCount = 0;
 	m_Rows.clear();
@@ -713,7 +743,7 @@ void MarkedFriendsWindow::Recompute()
 		if (const IPlayer* inGame = world.FindPlayer(friendID))
 		{
 			row.m_InGame = true;
-			row.m_Name = inGame->GetNameSafe();
+			row.m_Name = StreamerMode::DisplayName(m_Application.GetSettings(), friendID, inGame->GetNameSafe());
 		}
 		else if (auto* playerList = modLogic.GetPlayerList())
 		{
@@ -752,9 +782,10 @@ void MarkedFriendsWindow::Draw()
 	const bool visible = LunarisUI::BeginWindow("Marked Friends##MarkedFriendsWindow", "MARKED FRIENDS", &m_Open);
 	if (visible)
 	{
-		ImGui::TextUnformatted(m_TargetName.empty() ? m_Target.str().c_str() : m_TargetName.c_str());
+		const std::string targetID = StreamerMode::DisplaySteamID(m_Application.GetSettings(), m_Target);
+		ImGui::TextUnformatted(m_TargetName.empty() ? targetID.c_str() : m_TargetName.c_str());
 		ImGui::SameLine();
-		ImGui::TextColored(Muted, "%s", m_Target.str().c_str());
+		ImGui::TextColored(Muted, "%s", targetID.c_str());
 		ImGui::SameLine();
 		if (LunarisUI::SkewButton("Refresh##MarkedFriends"))
 			Recompute();
@@ -812,7 +843,7 @@ void MarkedFriendsWindow::Draw()
 				}
 
 				ImGui::TableNextColumn();
-				ImGui::TextUnformatted(row.m_SteamID.str().c_str());
+				ImGui::TextUnformatted(StreamerMode::DisplaySteamID(m_Application.GetSettings(), row.m_SteamID).c_str());
 
 				PlayerAttributesList combined;
 				std::string sources;

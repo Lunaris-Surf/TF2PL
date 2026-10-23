@@ -1,7 +1,7 @@
 #pragma once
 
-#include <mh/error/status.hpp>
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/error/status.hpp>
+#include <tf2pl/reflection/enum.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <array>
@@ -122,15 +122,15 @@ namespace tf2_bot_detector
 		uint32_t m_MaxValue{};
 	};
 	ChatWrappers RandomizeChatWrappers(const std::filesystem::path& tfdir,
-		mh::status_reader<ChatWrappersProgress>* progress = nullptr);
+		tf2pl::status_reader<ChatWrappersProgress>* progress = nullptr);
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::ChatCategory)
-	MH_ENUM_REFLECT_VALUE(All)
-	MH_ENUM_REFLECT_VALUE(AllDead)
-	MH_ENUM_REFLECT_VALUE(Team)
-	MH_ENUM_REFLECT_VALUE(TeamDead)
-	MH_ENUM_REFLECT_VALUE(Spec)
-	MH_ENUM_REFLECT_VALUE(SpecTeam)
-	MH_ENUM_REFLECT_VALUE(Coach)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::ChatCategory)
+	TF2PL_ENUM_REFLECT_VALUE(All)
+	TF2PL_ENUM_REFLECT_VALUE(AllDead)
+	TF2PL_ENUM_REFLECT_VALUE(Team)
+	TF2PL_ENUM_REFLECT_VALUE(TeamDead)
+	TF2PL_ENUM_REFLECT_VALUE(Spec)
+	TF2PL_ENUM_REFLECT_VALUE(SpecTeam)
+	TF2PL_ENUM_REFLECT_VALUE(Coach)
+TF2PL_ENUM_REFLECT_END()

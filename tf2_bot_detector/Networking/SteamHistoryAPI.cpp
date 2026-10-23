@@ -21,7 +21,7 @@
 /// <param name="steamIDs"></param>
 /// <param name="client"></param>
 /// <returns></returns>
-mh::task<tf2_bot_detector::SteamHistoryAPI::PlayerSourceBansResponse>
+tf2pl::task<tf2_bot_detector::SteamHistoryAPI::PlayerSourceBansResponse>
 	tf2_bot_detector::SteamHistoryAPI::GetPlayerSourceBansAsync(
 		const std::string& apiKey,
 		const std::vector<SteamID>& steamIDs,

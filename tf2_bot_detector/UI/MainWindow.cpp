@@ -24,6 +24,9 @@
 #include "WebServer/WebUI.h"
 #include "Application.h"
 #include "PlayerListExport.h"
+#include "PreviewMode.h"
+#include "StreamerMode.h"
+#include "Bitmap.h"
 
 #include "ConsoleLog/ConsoleLines/LobbyChangedLine.h"
 #include "ConsoleLog/ConsoleLines/EdictUsageLine.h"
@@ -34,12 +37,12 @@
 #include <imgui_internal.h> // menu bar layout (ImGuiWindow::DC)
 #include <libzippp/libzippp.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include <mh/math/interpolation.hpp>
-#include <mh/text/case_insensitive_string.hpp>
-#include <mh/text/formatters/error_code.hpp>
-#include <mh/text/fmtstr.hpp>
-#include <mh/text/string_insertion.hpp>
-#include <mh/text/stringops.hpp>
+#include <tf2pl/math/interpolation.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
+#include <tf2pl/text/formatters/error_code.hpp>
+#include <tf2pl/text/fmtstr.hpp>
+#include <tf2pl/text/string_insertion.hpp>
+#include <tf2pl/text/stringops.hpp>
 #include <srcon/async_client.h>
 
 #include <cassert>
@@ -253,7 +256,7 @@ ImFont* MainWindow::GetFontPointer(Font f) const
 	case Font::ChakraPetch_16px:
 		return m_ChakraPetch16Font ? m_ChakraPetch16Font : defaultFont;
 	default:
-		LogError("Unknown font {}", mh::enum_fmt(f));
+		LogError("Unknown font {}", tf2pl::enum_fmt(f));
 	case Font::ProggyClean_13px:
 		return defaultFont;
 	}
@@ -343,8 +346,9 @@ void MainWindow::OnDrawChat()
 
 			ImGui::PushTextWrapPos();
 
-			const IConsoleLine::PrintArgs args{ m_Settings, *m_Application->m_WorldState, *this };
-			for (auto it = m_Application->GetMainState()->m_PrintingLines.rbegin(); it != m_Application->GetMainState()->m_PrintingLines.rend(); ++it)
+			const auto& lines = m_Application->GetDisplayedConsoleLines(); // sample chat in preview mode
+			const IConsoleLine::PrintArgs args{ m_Settings, m_Application->GetWorld(), *this };
+			for (auto it = lines.rbegin(); it != lines.rend(); ++it)
 			{
 				assert(*it);
 				(*it)->Print(args);
@@ -549,7 +553,7 @@ void MainWindow::PrintDebugInfo()
 	);
 }
 
-void MainWindow::GenerateDebugReport() try
+void tf2_bot_detector::GenerateDebugReport() try
 {
 	Log("Generating debug_report.zip...");
 	const auto dbgReportLocation = IFilesystem::Get().ResolvePath("debug_report.zip", PathUsage::WriteLocal);
@@ -585,7 +589,7 @@ void MainWindow::GenerateDebugReport() try
 }
 catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to generate debug_report.zip");
+	LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to generate debug_report.zip");
 }
 
 void MainWindow::OnDrawServerStats()
@@ -602,14 +606,14 @@ void MainWindow::OnDrawServerStats()
 		auto& lastSample = m_Application->m_EdictUsageSamples.back();
 		const float percent = float(lastSample.m_UsedEdicts) / lastSample.m_MaxEdicts;
 		ImGui::ProgressBar(percent, { -1, 0 },
-			mh::pfstr<64>("%i (%1.0f%%)", lastSample.m_UsedEdicts, percent * 100).c_str());
+			tf2pl::pfstr<64>("%i (%1.0f%%)", lastSample.m_UsedEdicts, percent * 100).c_str());
 
 		ImGui::SetHoverTooltip("{} of {} ({:1.1f}%)", lastSample.m_UsedEdicts, lastSample.m_MaxEdicts, percent * 100);
 	}
 
 	if (!m_Application->m_ServerPingSamples.empty())
 	{
-		ImGui::PlotLines(mh::fmtstr<64>("Average ping: {}", m_Application->m_ServerPingSamples.back().m_Ping).c_str(),
+		ImGui::PlotLines(tf2pl::fmtstr<64>("Average ping: {}", m_Application->m_ServerPingSamples.back().m_Ping).c_str(),
 			[&](int idx)
 			{
 				return m_Application->m_ServerPingSamples[idx].m_Ping;
@@ -640,6 +644,8 @@ void MainWindow::OnDraw()
 			ds.m_UpdateManager = m_Application->m_UpdateManager.get();
 			ds.m_Settings = &m_Settings;
 
+			OnDrawPreviewOffer();
+
 			ImGui::BeginChild("SetupScroll", { 0, 0 });
 			// returns whether it drew a page; we already checked ShouldDraw() above
 			(void)m_Application->m_SetupFlow.OnDraw(m_Settings, ds);
@@ -654,6 +660,7 @@ void MainWindow::OnDraw()
 
 	const auto& mainWindowState = m_Settings.m_UIState.m_MainWindow;
 
+	OnDrawPreviewBanner();
 	OnDrawStatusStrip();
 	OnDrawControlChips();
 	OnDrawStats(); // debug builds only
@@ -713,7 +720,7 @@ void MainWindow::OnDrawStats()
 		ImGui::Value("Time (Compensated)", to_seconds<float>(m_Application->GetCurrentTimestampCompensated() - m_Application->m_OpenTime));
 
 		auto leader = m_Application->GetModLogic().GetBotLeader();
-		ImGui::Value("Bot Leader", leader ? mh::fmtstr<128>("{}", *leader).view() : ""sv);
+		ImGui::Value("Bot Leader", leader ? tf2pl::fmtstr<128>("{}", *leader).view() : ""sv);
 
 		ImGui::TextFmt("Is vote in progress:");
 		ImGui::SameLine();
@@ -830,7 +837,7 @@ void MainWindow::OnDrawExportWindow()
 
 			ImGui::Spacing();
 			ImGui::TextFmt("{}", progress.m_Message);
-			ImGui::ProgressBar(frac, { 0, 0 }, mh::pfstr<64>("%zu / %zu", progress.m_Completed, progress.m_Total).c_str());
+			ImGui::ProgressBar(frac, { 0, 0 }, tf2pl::pfstr<64>("%zu / %zu", progress.m_Completed, progress.m_Total).c_str());
 		}
 		else if (hasExporter)
 		{
@@ -1013,8 +1020,9 @@ void MainWindow::OnDrawHeaderBar()
 			const bool setup = m_Application->m_SetupFlow.ShouldDraw();
 			dl->AddLine({ wp.x + x, wp.y + 14 }, { wp.x + x, wp.y + barH - 14 }, U32(Line));
 			LunarisUI::AddSpacedText(dl, LunarisUI::Fonts().m_Label, { wp.x + x + 14, wp.y + 10 }, Muted, "SCREEN", 3);
-			LunarisUI::AddSpacedText(dl, LunarisUI::Fonts().m_Display, { wp.x + x + 14, wp.y + 25 }, Ink,
-				setup ? "SETUP" : "SCOREBOARD", 1);
+			const bool preview = !setup && m_Application->IsPreviewMode();
+			LunarisUI::AddSpacedText(dl, LunarisUI::Fonts().m_Display, { wp.x + x + 14, wp.y + 25 }, preview ? Orange : Ink,
+				setup ? "SETUP" : (preview ? "PREVIEW" : "SCOREBOARD"), 1);
 			x += 14 + 150;
 		}
 
@@ -1076,7 +1084,7 @@ void MainWindow::OnDrawStatusStrip()
 	if (const auto parseProgress = m_Application->GetMainState()->m_Parser.GetParseProgress(); parseProgress < 0.95f)
 	{
 		ImGui::SameLine(0, 16);
-		ImGui::ProgressBar(parseProgress, { 140, 0 }, mh::pfstr<64>("parsing %1.0f%%", parseProgress * 100).c_str());
+		ImGui::ProgressBar(parseProgress, { 140, 0 }, tf2pl::pfstr<64>("parsing %1.0f%%", parseProgress * 100).c_str());
 	}
 
 	// counters on the right
@@ -1135,6 +1143,15 @@ void MainWindow::OnDrawControlChips()
 
 			LunarisUI::ToggleChip("Show commands", &m_Settings.m_Unsaved.m_DebugShowCommands, false);
 			ImGui::SetHoverTooltip("Prints out all game commands to the log.");
+			ImGui::SameLine(0, 6);
+
+			Chip("Streamer mode", m_Settings.m_StreamerMode.m_Enabled, false,
+				"Shows your custom streamer profile instead of your own name, avatar and SteamID, and hides your profile links. Set it up in Settings > Streamer mode.");
+
+			bool preview = m_Application->IsPreviewRequested();
+			if (LunarisUI::ToggleChip("Preview", &preview, false))
+				m_Application->SetPreviewMode(preview);
+			ImGui::SetHoverTooltip("Preview mode shows a sample lobby so you can explore (or show off) TF2PL without TF2. Nothing is sent to the game and sample marks aren't saved.");
 		});
 
 	ImGui::Dummy({ 1, 4 });
@@ -1206,6 +1223,9 @@ void MainWindow::OnDrawMenuBar()
 			if (ImGui::MenuItem("Player Lists..."))
 				OpenPlayerListWindow();
 
+			if (bool preview = m_Application->IsPreviewRequested(); ImGui::MenuItem("Preview Mode", nullptr, preview))
+				m_Application->SetPreviewMode(!preview);
+
 			if (ImGui::MenuItem("Total Export (All Playerlists)..." ))
 			{
 				m_ExportWindowOpen = true;
@@ -1255,11 +1275,8 @@ void MainWindow::OnDrawMenuBar()
 	{
 		ImGui::Separator();
 
-		if (ImGui::MenuItem("FakeState"))
-		{
-			// TODO: fake a in-game state so i dont have to launch tf2 every time i want to debug this
-			//  though i don't think i have the effort to do this tbf
-		}
+		if (ImGui::MenuItem("FakeState (Preview Mode)", nullptr, m_Application->IsPreviewRequested()))
+			m_Application->SetPreviewMode(!m_Application->IsPreviewRequested());
 
 		if (ImGui::MenuItem("Crash"))
 		{
@@ -1302,7 +1319,7 @@ void MainWindow::OnDrawMenuBar()
 
 		ImGui::Separator();
 
-		static const mh::fmtstr<128> VERSION_STRING_LABEL("Version: {}", VERSION);
+		static const tf2pl::fmtstr<128> VERSION_STRING_LABEL("Version: {}", VERSION);
 		ImGui::MenuItem(VERSION_STRING_LABEL.c_str(), nullptr, false, false);
 
 		ImGui::Separator();
@@ -1385,50 +1402,16 @@ void MainWindow::OnDrawUntrustedListWarning()
 	using namespace LunarisPalette;
 	constexpr const char POPUP[] = "Untrusted player list";
 
-	// Collect anything new from the list loader (it can run more than once, e.g. Reload Playerlists).
-	if (UntrustedLists::HasReport())
-	{
-		auto report = UntrustedLists::TakeReport();
-
-		const auto IsAcknowledged = [&](const std::filesystem::path& path)
-		{
-			const auto name = path.filename().string();
-			return std::find(m_Settings.m_AcknowledgedUntrustedLists.begin(),
-				m_Settings.m_AcknowledgedUntrustedLists.end(), name) != m_Settings.m_AcknowledgedUntrustedLists.end();
-		};
-		std::erase_if(report.m_Contaminated, IsAcknowledged);
-		std::erase_if(report.m_PossiblyContaminatedExports, IsAcknowledged);
-
-		const auto Merge = [](std::vector<std::filesystem::path>& into, const std::vector<std::filesystem::path>& from)
-		{
-			for (const auto& p : from)
-				if (std::find(into.begin(), into.end(), p) == into.end())
-					into.push_back(p);
-		};
-		// blacklisted findings are never filtered by acknowledgements
-		Merge(m_UntrustedListReport.m_BlacklistedDeleted, report.m_BlacklistedDeleted);
-		Merge(m_UntrustedListReport.m_BlacklistedDisabled, report.m_BlacklistedDisabled);
-		Merge(m_UntrustedListReport.m_BlacklistedKept, report.m_BlacklistedKept);
-		Merge(m_UntrustedListReport.m_Deleted, report.m_Deleted);
-		Merge(m_UntrustedListReport.m_Contaminated, report.m_Contaminated);
-		Merge(m_UntrustedListReport.m_PossiblyContaminatedExports, report.m_PossiblyContaminatedExports);
-
-		if (!m_UntrustedListReport.empty())
-			m_UntrustedListPopupPending = true;
-	}
-
-	if (m_UntrustedListPopupPending && !ImGui::IsPopupOpen(POPUP))
-	{
+	// the app collects findings from the list loader; the web UI can dismiss them too
+	const auto& report = m_Application->GetUntrustedListReport();
+	if (!report.empty() && !ImGui::IsPopupOpen(POPUP))
 		ImGui::OpenPopup(POPUP);
-		m_UntrustedListPopupPending = false;
-	}
 
 	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, { 0.5f, 0.5f });
 	ImGui::SetNextWindowSizeConstraints({ 520, 0 }, { 760, FLT_MAX });
 	if (!ImGui::BeginPopupModal(POPUP, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 		return;
 
-	const auto& report = m_UntrustedListReport;
 	const auto FileList = [](const std::vector<std::filesystem::path>& files)
 	{
 		if (LunarisUI::Fonts().m_Mono)
@@ -1494,7 +1477,8 @@ void MainWindow::OnDrawUntrustedListWarning()
 	LunarisUI::Rule();
 
 	const bool hasKeptLists = !report.m_Contaminated.empty() || !report.m_PossiblyContaminatedExports.empty();
-	bool close = false;
+	bool close = report.empty(); // dismissed from the web UI
+	bool acknowledge = false;
 	if (LunarisUI::SkewButton("Understood##UntrustedOK", LunarisUI::ButtonStyle::Primary))
 		close = true;
 
@@ -1503,17 +1487,7 @@ void MainWindow::OnDrawUntrustedListWarning()
 		ImGui::SameLine(0, 10);
 		if (LunarisUI::SkewButton("Don't warn about these again##UntrustedAck", LunarisUI::ButtonStyle::Ghost))
 		{
-			for (const auto* files : { &report.m_Contaminated, &report.m_PossiblyContaminatedExports })
-			{
-				for (const auto& file : *files)
-				{
-					const auto name = file.filename().string();
-					auto& acked = m_Settings.m_AcknowledgedUntrustedLists;
-					if (std::find(acked.begin(), acked.end(), name) == acked.end())
-						acked.push_back(name);
-				}
-			}
-			m_Settings.SaveFile();
+			acknowledge = true;
 			close = true;
 		}
 		ImGui::SetHoverTooltip("Only applies to untrusted lists. Blacklisted lists (Vorobey's HackerPolice, ShadeFall) are always warned about.");
@@ -1521,8 +1495,12 @@ void MainWindow::OnDrawUntrustedListWarning()
 
 	if (close)
 	{
-		m_UntrustedListReport = {};
+		// report refers to the app's copy, so dismiss it only once the popup is done with it
 		ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
+		if (!report.empty())
+			m_Application->DismissUntrustedListReport(acknowledge);
+		return;
 	}
 
 	ImGui::EndPopup();
@@ -1628,7 +1606,7 @@ void MainWindow::DrawPassiveOverlayPane()
 		if (markedPlayers.size() >= 8)
 			continue;
 
-		std::string playerName = player.GetNameSafe();
+		std::string playerName = StreamerMode::DisplayName(m_Settings, player.GetSteamID(), player.GetNameSafe());
 		if (playerName.empty())
 			playerName = "SteamID64: " + std::to_string(player.GetSteamID().ID64);
 		MarkedPlayer row{ std::move(playerName), {} };
@@ -1720,16 +1698,16 @@ bool MainWindow::IsSleepingEnabled() const
 	return m_Settings.m_SleepWhenUnfocused;
 }
 
-mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGetAvatarTexture(IPlayer& player)
+tf2pl::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGetAvatarTexture(IPlayer& player)
 {
-	using StateTask_t = mh::task<mh::expected<std::shared_ptr<ITexture>, std::error_condition>>;
+	using StateTask_t = tf2pl::task<tf2pl::expected<std::shared_ptr<ITexture>, std::error_condition>>;
 
 	struct PlayerAvatarData
 	{
 		StateTask_t m_State;
 
-		static StateTask_t LoadAvatarAsync(mh::task<Bitmap> avatarBitmapTask,
-			mh::dispatcher updateDispatcher, std::shared_ptr<ITextureManager> textureManager)
+		static StateTask_t LoadAvatarAsync(tf2pl::task<Bitmap> avatarBitmapTask,
+			tf2pl::dispatcher updateDispatcher, std::shared_ptr<ITextureManager> textureManager)
 		{
 			const Bitmap* avatarBitmap = nullptr;
 
@@ -1739,7 +1717,7 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 			}
 			catch (...)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to load avatar bitmap");
+				LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to load avatar bitmap");
 				co_return ErrorCode::UnknownError;
 			}
 
@@ -1752,11 +1730,19 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 			}
 			catch (...)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to create avatar bitmap");
+				LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to create avatar bitmap");
 				co_return ErrorCode::UnknownError;
 			}
 		}
 	};
+
+	// streamer mode: your custom avatar (or none), never the real one
+	if (StreamerMode::IsMasked(m_Settings, player.GetSteamID()))
+		return GetStreamerAvatarTexture();
+
+	// sample players have no real avatars to download
+	if (m_Application->IsPreviewMode())
+		return std::errc::not_supported;
 
 	auto& avatarData = player.GetOrCreateData<PlayerAvatarData>().m_State;
 
@@ -1780,4 +1766,86 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 		return *data;
 	else
 		return std::errc::operation_in_progress;
+}
+
+tf2pl::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::GetStreamerAvatarTexture()
+{
+	const std::string& path = m_Settings.m_StreamerMode.m_AvatarPath;
+	if (path != m_StreamerAvatarPath)
+	{
+		m_StreamerAvatarPath = path;
+		m_StreamerAvatar.reset();
+		m_StreamerAvatarFailed = false;
+	}
+
+	if (path.empty())
+		return std::errc::no_such_file_or_directory; // blank avatar
+	if (m_StreamerAvatarFailed)
+		return std::errc::invalid_argument;
+
+	if (!m_StreamerAvatar)
+	{
+		try
+		{
+			// settings strings are UTF-8
+			const Bitmap bitmap(std::filesystem::path(std::u8string(path.begin(), path.end())), 4);
+			m_StreamerAvatar = m_TextureManager->CreateTexture(bitmap);
+		}
+		catch (...)
+		{
+			LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Streamer mode: couldn't load the custom avatar {}", path);
+			m_StreamerAvatarFailed = true;
+			return std::errc::invalid_argument;
+		}
+	}
+
+	return m_StreamerAvatar;
+}
+
+void MainWindow::OnDrawPreviewOffer()
+{
+	using namespace LunarisPalette;
+
+	if (!m_Application->CanStartPreview())
+		return;
+
+	LunarisUI::MicroLabel("No TF2? Take a look around", Orange);
+	ImGui::PushTextWrapPos(0);
+	ImGui::TextColored(Muted, "Preview mode opens the full TF2PL interface with a sample lobby. Nothing is sent to TF2 and sample marks aren't saved.");
+	ImGui::PopTextWrapPos();
+	if (LunarisUI::SkewButton("Preview mode##SetupPreview", LunarisUI::ButtonStyle::Secondary))
+		m_Application->SetPreviewMode(true);
+	LunarisUI::Rule();
+}
+
+void MainWindow::OnDrawPreviewBanner()
+{
+	using namespace LunarisPalette;
+
+	if (!m_Application->IsPreviewMode())
+		return;
+
+	const float windowX = ImGui::GetWindowPos().x;
+	ImGui::SetCursorPosX(30);
+	const ImVec2 p = ImGui::GetCursorScreenPos();
+	const float w = ImGui::GetContentRegionAvail().x - 18;
+	const float h = ImGui::GetFrameHeight() + 10;
+
+	ImDrawList* dl = ImGui::GetWindowDrawList();
+	dl->AddRectFilled(p, { p.x + w, p.y + h }, U32(Orange, 0.16f));
+	dl->AddRect(p, { p.x + w, p.y + h }, U32(Orange, 0.6f));
+
+	ImGui::SetCursorScreenPos({ p.x + 12, p.y + 5 });
+	ImGui::AlignTextToFramePadding();
+	ImGui::TextColored(OrangeHi, "PREVIEW MODE");
+	ImGui::SameLine(0, 12);
+	ImGui::TextColored(Ink, "Sample lobby - game actions are off and sample marks aren't saved.");
+
+	constexpr float buttonWidth = 130;
+	ImGui::SameLine();
+	ImGui::SetCursorScreenPos({ std::max(ImGui::GetCursorScreenPos().x + 12, p.x + w - buttonWidth - 8), p.y + 5 });
+	if (LunarisUI::SkewButton("Exit preview##PreviewBanner", LunarisUI::ButtonStyle::Primary, { buttonWidth, 0 }))
+		m_Application->SetPreviewMode(false);
+
+	ImGui::SetCursorScreenPos({ windowX, p.y + h + 8 });
 }

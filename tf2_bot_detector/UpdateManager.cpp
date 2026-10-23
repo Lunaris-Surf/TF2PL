@@ -10,14 +10,14 @@
 #include "Filesystem.h"
 
 #include <libzippp/libzippp.h>
-#include <mh/algorithm/multi_compare.hpp>
-#include <mh/future.hpp>
-#include <mh/error/exception_details.hpp>
-#include <mh/raii/scope_exit.hpp>
-#include <mh/text/fmtstr.hpp>
-#include <mh/types/disable_copy_move.hpp>
-#include <mh/utility.hpp>
-#include <mh/variant.hpp>
+#include <tf2pl/algorithm/multi_compare.hpp>
+#include <tf2pl/future.hpp>
+#include <tf2pl/error/exception_details.hpp>
+#include <tf2pl/raii/scope_exit.hpp>
+#include <tf2pl/text/fmtstr.hpp>
+#include <tf2pl/types/disable_copy_move.hpp>
+#include <tf2pl/utility.hpp>
+#include <tf2pl/variant.hpp>
 #include <nlohmann/json.hpp>
 
 #include <compare>
@@ -35,20 +35,20 @@ namespace tf2_bot_detector
 {
 	void to_json(nlohmann::json& j, const Platform::OS& d)
 	{
-		j = mh::find_enum_value_name(d);
+		j = tf2pl::find_enum_value_name(d);
 	}
 	void from_json(const nlohmann::json& j, Platform::OS& d)
 	{
-		mh::find_enum_value(j.get<std::string_view>(), d);
+		tf2pl::find_enum_value(j.get<std::string_view>(), d);
 	}
 
 	void to_json(nlohmann::json& j, const Platform::Arch& d)
 	{
-		j = mh::find_enum_value_name(d);
+		j = tf2pl::find_enum_value_name(d);
 	}
 	void from_json(const nlohmann::json& j, Platform::Arch& d)
 	{
-		mh::find_enum_value(j.get<std::string_view>(), d);
+		tf2pl::find_enum_value(j.get<std::string_view>(), d);
 	}
 
 	void to_json(nlohmann::json& j, const BuildInfo& d)
@@ -70,6 +70,12 @@ namespace tf2_bot_detector
 
 namespace
 {
+	bool HasAvailableUpdate(UpdateStatus status, const BuildInfo& buildInfo)
+	{
+		return status == UpdateStatus::UpdateAvailable && buildInfo.m_Version > VERSION &&
+			!buildInfo.m_GitHubURL.empty();
+	}
+
 	class UpdateManager final : public IUpdateManager
 	{
 		struct AvailableUpdate final : IAvailableUpdate
@@ -83,7 +89,7 @@ namespace
 		UpdateManager(const Settings& settings);
 
 		void Update() override;
-		mh::status_reader<UpdateStatus> GetUpdateStatus() const override { return m_State.GetUpdateStatus(); }
+		tf2pl::status_reader<UpdateStatus> GetUpdateStatus() const override { return m_State.GetUpdateStatus(); }
 		const AvailableUpdate* GetAvailableUpdate() const override;
 
 		void QueueUpdateCheck() override { m_IsUpdateQueued = true; }
@@ -120,7 +126,7 @@ namespace
 			const UpdateCheckState_t& GetUpdateCheckVariant() const { return m_UpdateCheckVariant; }
 
 			template<typename T, typename... TArgs>
-			auto Emplace(const mh::source_location& location, UpdateStatus status, const std::string_view& msg, TArgs... args) ->
+			auto Emplace(const tf2pl::source_location& location, UpdateStatus status, const std::string_view& msg, TArgs... args) ->
 				decltype(std::declval<State_t>().emplace<T>(std::move(args)...), void())
 			{
 				SetUpdateStatus(location, status, std::move(msg));
@@ -129,36 +135,36 @@ namespace
 			}
 
 			template<typename T>
-			auto Set(const mh::source_location& location, UpdateStatus status, const std::string_view& msg, T value) ->
+			auto Set(const tf2pl::source_location& location, UpdateStatus status, const std::string_view& msg, T value) ->
 				decltype(Emplace<T>(location, status, msg, std::move(value)), void())
 			{
 				Emplace<T>(location, status, msg, std::move(value));
 			}
 
-			void Clear(const mh::source_location& location, UpdateStatus status, const std::string_view& msg)
+			void Clear(const tf2pl::source_location& location, UpdateStatus status, const std::string_view& msg)
 			{
 				Emplace<std::monostate>(location, status, msg);
 			}
-			void ClearUpdateCheck(const mh::source_location& location, UpdateStatus status, const std::string_view& msg)
+			void ClearUpdateCheck(const tf2pl::source_location& location, UpdateStatus status, const std::string_view& msg)
 			{
 				SetUpdateStatus(location, status, msg);
-				DebugLog(MH_SOURCE_LOCATION_CURRENT()); // <- ??
+				DebugLog(TF2PL_SOURCE_LOCATION_CURRENT()); // <- ??
 				m_UpdateCheckVariant.emplace<0>();
 			}
 
 			template<typename T>
-			void SetUpdateCheck(const mh::source_location& location, UpdateStatus status, const std::string_view& msg, T value)
+			void SetUpdateCheck(const tf2pl::source_location& location, UpdateStatus status, const std::string_view& msg, T value)
 			{
 				SetUpdateStatus(location, status, msg);
 				DebugLog(__FUNCSIG__);
 				m_UpdateCheckVariant.emplace<T>(std::forward<T>(value));
 			}
 
-			void SetUpdateStatus(const mh::source_location& location, UpdateStatus status,
+			void SetUpdateStatus(const tf2pl::source_location& location, UpdateStatus status,
 				const std::string_view& msg);
-			mh::status_reader<UpdateStatus> GetUpdateStatus() const { return m_UpdateStatus; }
+			tf2pl::status_reader<UpdateStatus> GetUpdateStatus() const { return m_UpdateStatus; }
 
-			template<typename TFutureResult> bool Update(const mh::source_location& location,
+			template<typename TFutureResult> bool Update(const tf2pl::source_location& location,
 				UpdateStatus success, const std::string_view& successMsg,
 				UpdateStatus failure, const std::string_view& failureMsg)
 			{
@@ -168,13 +174,13 @@ namespace
 
 		private:
 			template<typename TFutureResult, typename TVariant>
-			bool UpdateVariant(TVariant& variant, const mh::source_location& location,
+			bool UpdateVariant(TVariant& variant, const tf2pl::source_location& location,
 				UpdateStatus success, const std::string_view& successMsg,
 				UpdateStatus failure, const std::string_view& failureMsg);
 
 			UpdateCheckState_t m_UpdateCheckVariant;
 			State_t m_Variant;
-			mh::status_source<UpdateStatus> m_UpdateStatus;
+			tf2pl::status_source<UpdateStatus> m_UpdateStatus;
 
 		} m_State;
 
@@ -190,12 +196,12 @@ namespace
 	{
 
 		assert(m_IsUpdateQueued);
-		m_State.SetUpdateStatus(MH_SOURCE_LOCATION_CURRENT(),
+		m_State.SetUpdateStatus(TF2PL_SOURCE_LOCATION_CURRENT(),
 			UpdateStatus::CheckQueued, "Initializing update check...");
 	}
 
 	template<typename TFutureResult, typename TVariant>
-	bool UpdateManager::StateManager::UpdateVariant(TVariant& variant, const mh::source_location& location,
+	bool UpdateManager::StateManager::UpdateVariant(TVariant& variant, const tf2pl::source_location& location,
 		UpdateStatus success, const std::string_view& successMsg,
 		UpdateStatus failure, const std::string_view& failureMsg)
 	{
@@ -203,19 +209,19 @@ namespace
 		{
 			try
 			{
-				if (mh::is_future_ready(*future))
+				if (tf2pl::is_future_ready(*future))
 				{
 					auto value = future->get().value();
-					SetUpdateStatus(MH_SOURCE_LOCATION_CURRENT(), success, std::string(successMsg));
-					DebugLog(MH_SOURCE_LOCATION_CURRENT());
+					SetUpdateStatus(TF2PL_SOURCE_LOCATION_CURRENT(), success, std::string(successMsg));
+					DebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 					variant.template emplace<TFutureResult>(std::move(value));
 				}
 			}
 			catch (...)
 			{
-				const mh::exception_details details(std::current_exception());
-				LogException(MH_SOURCE_LOCATION_CURRENT(), __FUNCSIG__);
-				SetUpdateStatus(MH_SOURCE_LOCATION_CURRENT(), failure, fmt::format("{}:\n\t- {}\n\t- {}", failureMsg, details.type_name(), details.m_Message));
+				const tf2pl::exception_details details(std::current_exception());
+				LogException(TF2PL_SOURCE_LOCATION_CURRENT(), __FUNCSIG__);
+				SetUpdateStatus(TF2PL_SOURCE_LOCATION_CURRENT(), failure, fmt::format("{}:\n\t- {}\n\t- {}", failureMsg, details.type_name(), details.m_Message));
 				variant.template emplace<std::monostate>();
 			}
 
@@ -238,7 +244,7 @@ namespace
 					auto sharedClient = client->shared_from_this();
 
 					m_State.SetUpdateCheck(
-						MH_SOURCE_LOCATION_CURRENT(),
+						TF2PL_SOURCE_LOCATION_CURRENT(),
 						UpdateStatus::Checking,
 						"Checking for updates...",
 						std::async([sharedClient, releaseChannel]() -> BuildInfo
@@ -265,13 +271,13 @@ namespace
 							}));
 				}
 				else {
-					m_State.Emplace<std::monostate>(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateCheckDisabled,
+					m_State.Emplace<std::monostate>(TF2PL_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateCheckDisabled,
 						"Update checks disabled by user.");
 				}
 			}
 			else
 			{
-				m_State.Emplace<std::monostate>(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::InternetAccessDisabled,
+				m_State.Emplace<std::monostate>(TF2PL_SOURCE_LOCATION_CURRENT(), UpdateStatus::InternetAccessDisabled,
 					"Update check skipped because internet connectivity was disabled by the user.");
 			}
 
@@ -285,21 +291,21 @@ namespace
 				auto client = m_Settings.GetHTTPClient();
 				if (client)
 				{
-					if (mh::is_future_ready(*future))
+					if (tf2pl::is_future_ready(*future))
 					{
 						AvailableUpdate update(*this, future->get());
 
 						if (update.m_BuildInfo.m_Version <= VERSION)
 						{
-							m_State.SetUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpToDate,
-								fmt::format("Up to date (v{} {:v})", VERSION, mh::enum_fmt(
+							m_State.SetUpdateCheck(TF2PL_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpToDate,
+								fmt::format("Up to date (v{} {:v})", VERSION, tf2pl::enum_fmt(
 									m_Settings.m_ReleaseChannel.value_or(ReleaseChannel::Public))),
 								std::move(update));
 						}
 						else
 						{
-							m_State.SetUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateAvailable,
-								fmt::format("Update available (v{} {:v})", update.m_BuildInfo.m_Version, mh::enum_fmt(
+							m_State.SetUpdateCheck(TF2PL_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateAvailable,
+								fmt::format("Update available (v{} {:v})", update.m_BuildInfo.m_Version, tf2pl::enum_fmt(
 									m_Settings.m_ReleaseChannel.value_or(ReleaseChannel::Public))),
 								std::move(update));
 						}
@@ -307,13 +313,13 @@ namespace
 				}
 				else
 				{
-					m_State.ClearUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::CheckFailed,
+					m_State.ClearUpdateCheck(TF2PL_SOURCE_LOCATION_CURRENT(), UpdateStatus::CheckFailed,
 						"Update check failed: HTTPClient unavailable");
 				}
 			}
 			catch (const std::exception& e)
 			{
-				m_State.ClearUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::CheckFailed,
+				m_State.ClearUpdateCheck(TF2PL_SOURCE_LOCATION_CURRENT(), UpdateStatus::CheckFailed,
 					fmt::format("Update check failed:\n\t- {}\n\t- {}", typeid(e).name(), e.what()));
 			}
 		}
@@ -321,7 +327,9 @@ namespace
 
 	auto UpdateManager::GetAvailableUpdate() const -> const AvailableUpdate*
 	{
-		return std::get_if<AvailableUpdate>(&m_State.GetUpdateCheckVariant());
+		const auto* update = std::get_if<AvailableUpdate>(&m_State.GetUpdateCheckVariant());
+		return update && HasAvailableUpdate(m_State.GetUpdateStatus().get().m_Status, update->m_BuildInfo)
+			? update : nullptr;
 	}
 
 	/// <summary>
@@ -336,7 +344,7 @@ namespace
 		if (!future->valid())
 			return true; // future is empty
 
-		if (mh::is_future_ready(*future))
+		if (tf2pl::is_future_ready(*future))
 			return true; // future is ready
 
 		return false;
@@ -356,10 +364,10 @@ namespace
 	}
 
 	void UpdateManager::StateManager::SetUpdateStatus(
-		const mh::source_location& location, UpdateStatus status, const std::string_view& msg)
+		const tf2pl::source_location& location, UpdateStatus status, const std::string_view& msg)
 	{
 		if (m_UpdateStatus.set(status, msg))
-			DebugLog(location, "{}: {}", mh::enum_fmt(status), msg);
+			DebugLog(location, "{}: {}", tf2pl::enum_fmt(status), msg);
 	}
 }
 
@@ -367,3 +375,29 @@ std::unique_ptr<IUpdateManager> tf2_bot_detector::IUpdateManager::Create(const S
 {
 	return std::make_unique<UpdateManager>(settings);
 }
+
+#ifdef TF2BD_ENABLE_TESTS
+#include <catch2/catch_test_macros.hpp>
+
+TEST_CASE("Only newer, actionable update results are advertised", "[TF2PL][updates]")
+{
+	BuildInfo build;
+	REQUIRE_FALSE(HasAvailableUpdate(UpdateStatus::UpToDate, build));
+	REQUIRE_FALSE(HasAvailableUpdate(UpdateStatus::UpdateAvailable, build));
+
+	build.m_GitHubURL = "https://github.com/Lunaris-Surf/TF2PL/releases/tag/test";
+	build.m_Version = VERSION;
+	REQUIRE_FALSE(HasAvailableUpdate(UpdateStatus::UpdateAvailable, build));
+	build.m_Version = Version{};
+	REQUIRE_FALSE(HasAvailableUpdate(UpdateStatus::UpdateAvailable, build));
+
+	build.m_Version = Version(VERSION.m_Major, VERSION.m_Minor,
+		static_cast<Version::value_type>(VERSION.m_Patch + 1));
+	REQUIRE(HasAvailableUpdate(UpdateStatus::UpdateAvailable, build));
+	for (auto status : { UpdateStatus::UpToDate, UpdateStatus::Checking, UpdateStatus::CheckFailed,
+		UpdateStatus::UpdateCheckDisabled, UpdateStatus::InternetAccessDisabled })
+		REQUIRE_FALSE(HasAvailableUpdate(status, build));
+	build.m_GitHubURL.clear();
+	REQUIRE_FALSE(HasAvailableUpdate(UpdateStatus::UpdateAvailable, build));
+}
+#endif

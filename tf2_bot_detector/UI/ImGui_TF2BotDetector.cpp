@@ -1,4 +1,6 @@
 #include "ImGui_TF2BotDetector.h"
+#include "Application.h"
+#include "StreamerMode.h"
 #include "Util/PathUtils.h"
 #include "Clock.h"
 #include "Networking/NetworkHelpers.h"
@@ -11,8 +13,8 @@
 
 #include <imgui_internal.h>
 #include <Util/ScopeGuards.h>
-#include <mh/memory/cached_variable.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/memory/cached_variable.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #include <cstdarg>
 #include <memory>
@@ -232,12 +234,12 @@ static bool OverrideControl(const std::string_view& overrideLabel, T& overrideVa
 	ImGui::EnabledSwitch(isAutodetectedValueValid, [&](bool enabled)
 		{
 			if (bool checked = (overrideEnabled == OverrideEnabled::Enabled || !enabled);
-				ImGui::Checkbox(mh::fmtstr<512>("Override {}", visibleLabel).c_str(), &checked))
+				ImGui::Checkbox(tf2pl::fmtstr<512>("Override {}", visibleLabel).c_str(), &checked))
 			{
 				overrideEnabled = checked ? OverrideEnabled::Enabled : OverrideEnabled::Disabled;
 			}
 
-		}, mh::fmtstr<512>("Failed to autodetect value for {}", visibleLabel).c_str());
+		}, tf2pl::fmtstr<512>("Failed to autodetect value for {}", visibleLabel).c_str());
 
 	ScopeGuards::Indent indent;
 	bool retVal = false;
@@ -460,7 +462,7 @@ static bool InputTextIPv4(std::string& addr, bool requireValid)
 
 bool tf2_bot_detector::InputTextLocalIPOverride(const std::string_view& label_id, std::string& ip, bool requireValid)
 {
-	static mh::cached_variable s_AutodetectedValue(1s, &Networking::GetLocalIP);
+	static tf2pl::cached_variable s_AutodetectedValue(1s, &Networking::GetLocalIP);
 
 	static const auto IsValid = [](std::string value) -> bool
 	{
@@ -609,17 +611,23 @@ bool tf2_bot_detector::CloseAppOnTFCloseCheckbox(bool& value)
 
 void tf2_bot_detector::DrawPlayerContextCopyMenu(const char* name, const SteamID& steamID)
 {
+	// streamer mode: show (and copy) your custom profile instead of the real one
+	const Settings& settings = TF2BDApplication::GetApplication().GetSettings();
+	const bool masked = StreamerMode::IsMasked(settings, steamID);
+	const std::string shownName = masked ? StreamerMode::GetName(settings) : std::string(name);
+	const std::string shownID = StreamerMode::DisplaySteamID(settings, steamID);
+
 	// Just so we can be 100% sure of who we clicked on
-	ImGui::MenuItem(name, nullptr, nullptr, false);
-	ImGui::MenuItem(steamID.str().c_str(), nullptr, nullptr, false);
+	ImGui::MenuItem(shownName.c_str(), nullptr, nullptr, false);
+	ImGui::MenuItem(shownID.c_str(), nullptr, nullptr, false);
 	ImGui::Separator();
 
 	if (ImGui::BeginMenu("Copy"))
 	{
 		if (ImGui::MenuItem("In-game Name"))
-			ImGui::SetClipboardText(name);
+			ImGui::SetClipboardText(shownName.c_str());
 
-		if (ImGui::MenuItem("Steam ID", nullptr, false, steamID.IsValid()))
+		if (ImGui::MenuItem("Steam ID", nullptr, false, steamID.IsValid() && !masked))
 			ImGui::SetClipboardText(steamID.str().c_str());
 
 		ImGui::EndMenu();
@@ -628,6 +636,12 @@ void tf2_bot_detector::DrawPlayerContextCopyMenu(const char* name, const SteamID
 
 bool tf2_bot_detector::DrawPlayerContextGoToMenu(const Settings& settings, const SteamID& steamID)
 {
+	if (StreamerMode::IsMasked(settings, steamID))
+	{
+		ImGui::MenuItem("Go To (hidden in streamer mode)", nullptr, nullptr, false);
+		return true;
+	}
+
 	if (ImGui::BeginMenu("Go To", steamID.IsValid()))
 	{
 		if (!settings.m_GotoProfileSites.empty())

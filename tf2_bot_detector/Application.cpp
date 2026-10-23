@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "WebServer/WebUI.h"
+#include "PreviewMode.h"
 #include "DB/TempDB.h"
 
 // pasted without looking
@@ -29,15 +30,15 @@
 
 #include <Util/ScopeGuards.h>
 #include <libzippp/libzippp.h>
-#include <mh/math/interpolation.hpp>
-#include <mh/text/case_insensitive_string.hpp>
-#include <mh/text/formatters/error_code.hpp>
-#include <mh/text/fmtstr.hpp>
-#include <mh/text/string_insertion.hpp>
-#include <mh/text/stringops.hpp>
+#include <tf2pl/math/interpolation.hpp>
+#include <tf2pl/text/case_insensitive_string.hpp>
+#include <tf2pl/text/formatters/error_code.hpp>
+#include <tf2pl/text/fmtstr.hpp>
+#include <tf2pl/text/string_insertion.hpp>
+#include <tf2pl/text/stringops.hpp>
 #include <srcon/async_client.h>
 
-#include <mh/error/ensure.hpp>
+#include <tf2pl/error/ensure.hpp>
 
 #include <cassert>
 #include <chrono>
@@ -54,16 +55,16 @@ static TF2BDApplication* s_Application;
 
 namespace tf2_bot_detector
 {
-	mh::dispatcher& GetDispatcher()
+	tf2pl::dispatcher& GetDispatcher()
 	{
-		static mh::dispatcher s_Dispatcher;
+		static tf2pl::dispatcher s_Dispatcher;
 		return s_Dispatcher;
 	}
 }
 
 TF2BDApplication::TF2BDApplication() :
 	m_WorldState(IWorldState::Create(m_Settings)),
-	m_ActionManager(RCONActionManager::Create(m_Settings, GetWorld())),
+	m_ActionManager(RCONActionManager::Create(m_Settings, *m_WorldState)),
 	m_UpdateManager(IUpdateManager::Create(m_Settings))
 {
 	assert(!s_Application);
@@ -74,8 +75,8 @@ TF2BDApplication::TF2BDApplication() :
 	// moved from mainwindow
 	ILogManager::GetInstance().CleanupLogFiles();
 
-	GetWorld().AddConsoleLineListener(this);
-	GetWorld().AddWorldEventListener(this);
+	m_WorldState->AddConsoleLineListener(this);
+	m_WorldState->AddWorldEventListener(this);
 
 	m_OpenTime = clock_t::now();
 
@@ -146,7 +147,7 @@ void TF2BDApplication::OnConsoleLineUnparsed(IWorldState& world, const std::stri
 
 void TF2BDApplication::OnConsoleLogChunkParsed(IWorldState& world, bool consoleLinesUpdated)
 {
-	assert(&world == &GetWorld());
+	assert(&world == m_WorldState.get());
 
 	if (consoleLinesUpdated)
 		UpdateServerPing(GetCurrentTimestampCompensated());
@@ -162,7 +163,7 @@ float TF2BDApplication::TimeSine(float interval, float min, float max) const
 {
 	const auto elapsed = (clock_t::now() - m_OpenTime) % std::chrono::duration_cast<clock_t::duration>(std::chrono::duration<float>(interval));
 	const auto progress = std::chrono::duration<float>(elapsed).count() / interval;
-	return mh::remap(std::sin(progress * 6.28318530717958647693f), -1.0f, 1.0f, min, max);
+	return tf2pl::remap(std::sin(progress * 6.28318530717958647693f), -1.0f, 1.0f, min, max);
 }
 
 time_point_t TF2BDApplication::GetCurrentTimestampCompensated() const
@@ -178,7 +179,7 @@ void TF2BDApplication::UpdateServerPing(time_point_t timestamp)
 	float totalPing = 0;
 	uint16_t samples = 0;
 
-	for (IPlayer& player : GetWorld().GetPlayers())
+	for (IPlayer& player : m_WorldState->GetPlayers())
 	{
 		if (player.GetLastStatusUpdateTime() < (timestamp - 20s))
 			continue;
@@ -202,14 +203,17 @@ void tf2_bot_detector::TF2BDApplication::Update()
 
 	GetDispatcher().run_for(10ms);
 
-	GetWorld().Update();
+	m_WorldState->Update();
 	m_UpdateManager->Update();
+	CollectUntrustedListReport();
 
 	if (m_Settings.m_Unsaved.m_RCONClient)
 		m_Settings.m_Unsaved.m_RCONClient->set_logging(m_Settings.m_Logging.m_RCONPackets);
 
+	m_SetupFlow.SetPreviewBypass(m_PreviewRequested);
 	if (m_SetupFlow.OnUpdate(m_Settings))
 	{
+		m_Preview.reset(); // uses m_MainState's moderator logic
 		m_MainState.reset();
 	}
 	else
@@ -217,8 +221,21 @@ void tf2_bot_detector::TF2BDApplication::Update()
 		if (!m_MainState)
 			m_MainState.emplace(*this);
 
-		m_MainState->m_Parser.Update();
-		GetModLogic().Update();
+		if (m_PreviewRequested && !m_Preview)
+			m_Preview = std::make_unique<PreviewSession>(*m_MainState->m_ModeratorLogic, m_Settings);
+		else if (!m_PreviewRequested && m_Preview)
+			m_Preview.reset();
+
+		if (m_Preview)
+		{
+			// the game side stays idle while previewing: nothing new is parsed and nothing is acted on
+			m_Preview->Update();
+		}
+		else
+		{
+			m_MainState->m_Parser.Update();
+			m_MainState->m_ModeratorLogic->Update();
+		}
 
 		m_MainState->OnUpdateDiscord();
 	}
@@ -258,11 +275,11 @@ float TF2BDApplication::PlayerExtraData::GetAveragePing() const
 
 TF2BDApplication::PostSetupFlowState::PostSetupFlowState(TF2BDApplication& app) :
 	m_Parent(&app),
-	m_ModeratorLogic(IModeratorLogic::Create(app.GetWorld(), app.m_Settings, app.GetActionManager())),
-	m_Parser(app.GetWorld(), app.m_Settings, app.m_Settings.GetTFDir() / "console.log")
+	m_ModeratorLogic(IModeratorLogic::Create(*app.m_WorldState, app.m_Settings, app.GetActionManager())),
+	m_Parser(*app.m_WorldState, app.m_Settings, app.m_Settings.GetTFDir() / "console.log")
 {
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-	m_DRPManager = IDRPManager::Create(app.m_Settings, app.GetWorld());
+	m_DRPManager = IDRPManager::Create(app.m_Settings, *app.m_WorldState);
 #endif
 }
 
@@ -272,7 +289,7 @@ void TF2BDApplication::PostSetupFlowState::OnUpdateDiscord()
 	const auto curTime = clock_t::now();
 	if (!m_DRPManager && m_Parent->m_Settings.m_Discord.m_EnableRichPresence)
 	{
-		m_DRPManager = IDRPManager::Create(m_Parent->m_Settings, m_Parent->GetWorld());
+		m_DRPManager = IDRPManager::Create(m_Parent->m_Settings, *m_Parent->m_WorldState);
 	}
 	else if (m_DRPManager && !m_Parent->m_Settings.m_Discord.m_EnableRichPresence)
 	{
@@ -284,13 +301,13 @@ void TF2BDApplication::PostSetupFlowState::OnUpdateDiscord()
 #endif
 }
 
-mh::generator<IPlayer&> TF2BDApplication::PostSetupFlowState::GeneratePlayerPrintData()
+tf2pl::generator<IPlayer&> TF2BDApplication::PostSetupFlowState::GeneratePlayerPrintData()
 {
 	IPlayer* printData[33]{};
 	auto begin = std::begin(printData);
 	auto end = std::end(printData);
 	assert(begin <= end);
-	auto& world = m_Parent->m_WorldState;
+	IWorldState* world = &m_Parent->GetWorld(); // the sample lobby in preview mode
 	assert(static_cast<size_t>(end - begin) >= world->GetApproxLobbyMemberCount());
 
 	std::fill(begin, end, nullptr);
@@ -358,6 +375,127 @@ mh::generator<IPlayer&> TF2BDApplication::PostSetupFlowState::GeneratePlayerPrin
 }
 
 
+IModeratorLogic& TF2BDApplication::GetModLogic()
+{
+	if (m_Preview)
+		return m_Preview->GetModLogic();
+	return *m_MainState.value().m_ModeratorLogic;
+}
+
+const IModeratorLogic& TF2BDApplication::GetModLogic() const
+{
+	if (m_Preview)
+		return m_Preview->GetModLogic();
+	return *m_MainState.value().m_ModeratorLogic;
+}
+
+IWorldState& TF2BDApplication::GetWorld()
+{
+	if (m_Preview)
+		return m_Preview->GetWorld();
+	return *m_WorldState;
+}
+
+const IWorldState& TF2BDApplication::GetWorld() const
+{
+	if (m_Preview)
+		return m_Preview->GetWorld();
+	return *m_WorldState;
+}
+
+void TF2BDApplication::SetPreviewMode(bool enabled)
+{
+	if (m_PreviewRequested == enabled)
+		return;
+
+	m_PreviewRequested = enabled;
+	Log(enabled ? "Starting preview mode..." : "Leaving preview mode...");
+	QueueUpdate();
+}
+
+bool TF2BDApplication::CanStartPreview() const
+{
+	return m_SetupFlow.CanPreviewBypass(m_Settings);
+}
+
+PlayerAttributesList TF2BDApplication::GetEditablePlayerAttributes(const SteamID& id)
+{
+	if (m_Preview && m_Preview->OwnsPlayer(id))
+		return m_Preview->GetEditableAttributes(id);
+
+	if (!m_MainState)
+		return {};
+
+	if (auto* playerList = m_MainState->m_ModeratorLogic->GetPlayerList())
+		return playerList->GetEditablePlayerAttributes(id);
+
+	return {};
+}
+
+const std::list<std::shared_ptr<const IConsoleLine>>& TF2BDApplication::GetDisplayedConsoleLines() const
+{
+	static const std::list<std::shared_ptr<const IConsoleLine>> s_Empty;
+	if (m_Preview)
+		return m_Preview->GetConsoleLines();
+	if (m_MainState)
+		return m_MainState->m_PrintingLines;
+	return s_Empty;
+}
+
+void TF2BDApplication::CollectUntrustedListReport()
+{
+	// the list loader can screen more than once (e.g. Reload Playerlists); merge anything new
+	if (!UntrustedLists::HasReport())
+		return;
+
+	auto report = UntrustedLists::TakeReport();
+
+	const auto IsAcknowledged = [&](const std::filesystem::path& path)
+	{
+		const auto name = path.filename().string();
+		const auto& acked = m_Settings.m_AcknowledgedUntrustedLists;
+		return std::find(acked.begin(), acked.end(), name) != acked.end();
+	};
+	std::erase_if(report.m_Contaminated, IsAcknowledged);
+	std::erase_if(report.m_PossiblyContaminatedExports, IsAcknowledged);
+
+	const auto Merge = [](std::vector<std::filesystem::path>& into, const std::vector<std::filesystem::path>& from)
+	{
+		for (const auto& p : from)
+			if (std::find(into.begin(), into.end(), p) == into.end())
+				into.push_back(p);
+	};
+
+	// blacklisted findings are never filtered by acknowledgements
+	auto& pending = m_UntrustedListReport;
+	Merge(pending.m_BlacklistedDeleted, report.m_BlacklistedDeleted);
+	Merge(pending.m_BlacklistedDisabled, report.m_BlacklistedDisabled);
+	Merge(pending.m_BlacklistedKept, report.m_BlacklistedKept);
+	Merge(pending.m_Deleted, report.m_Deleted);
+	Merge(pending.m_Contaminated, report.m_Contaminated);
+	Merge(pending.m_PossiblyContaminatedExports, report.m_PossiblyContaminatedExports);
+}
+
+void TF2BDApplication::DismissUntrustedListReport(bool acknowledge)
+{
+	if (acknowledge)
+	{
+		auto& acked = m_Settings.m_AcknowledgedUntrustedLists;
+		for (const auto* files : { &m_UntrustedListReport.m_Contaminated, &m_UntrustedListReport.m_PossiblyContaminatedExports })
+		{
+			for (const auto& file : *files)
+			{
+				const auto name = file.filename().string();
+				if (std::find(acked.begin(), acked.end(), name) == acked.end())
+					acked.push_back(name);
+			}
+		}
+		m_Settings.SaveFile();
+	}
+
+	m_UntrustedListReport = {};
+}
+
 bool TF2BDApplication::IsSleepingEnabled() const
 {
 	return m_Settings.m_SleepWhenUnfocused;
@@ -379,5 +517,6 @@ void TF2BDApplication::QueueUpdate()
 /// <returns></returns>
 bool TF2BDApplication::ShouldUpdate()
 {
-	return !this->IsSleepingEnabled() || b_ShouldUpdate;
+	// an open web UI page keeps the app awake, so it stays as live as the native window
+	return !this->IsSleepingEnabled() || b_ShouldUpdate || (m_WebUI && m_WebUI->GetLiveClientCount() > 0);
 }

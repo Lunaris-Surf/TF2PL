@@ -7,8 +7,8 @@
 #include "WorldState.h"
 #include "GameData/G15Dump.h"
 
-#include <mh/text/insertion_conversion.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/insertion_conversion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <srcon/async_client.h>
 
 #include <filesystem>

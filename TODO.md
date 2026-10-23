@@ -1,5 +1,34 @@
 # TODO
 
+Living task list. Historical context for the mh_stuff work lives in `migration.md`; release notes are in
+`docs/releases/`.
+
+## Open
+
+### Housekeeping (manual, before tagging 4.1.0)
+- [ ] `git rm -r tf2_bot_detector_common/include/mh` (superseded by `include/tf2pl/`).
+- [ ] `git rm submodules/mh_stuff` (also drops its `.gitmodules` entry). Nothing builds against it.
+- [ ] `git update-index --chmod=+x packaging/linux/build-in-sniper.sh`.
+- [ ] `ccpp.yml`: `runs-on: windows-latest`; update the exe copy/SmartScreen step for `TF2PL.exe`.
+- [ ] `build-linux.yml`: install `autoconf autoconf-archive automake libtool patchelf`; point the
+      binary/AppImage paths at `TF2PL`; drop the stale `libmh-stuff.so` staging copy if still present.
+- [ ] Re-upload `docs/images/github-social-preview.jpg` as the repository social preview.
+
+### Linux
+- [ ] Test the AppImage on a few distros (older glibc especially).
+- [ ] Discord on Linux: the static build excludes discord (`platform: "!static"`). When shipping it,
+      confirm `discord_game_sdk.so` gets bundled (the `ldd` loop already would) and works.
+
+### 4.1
+- [ ] Streamer mode: a custom profile (name, avatar, SteamID) replaces your own on the overlay and
+      web UI; SteamID and profile links hidden; defaults "Anonymous" + blank avatar.
+- [ ] Preview mode: browse everything without TF2 running, using the `FakeWorldState` sample lobby;
+      game actions disabled.
+- [x] **De-`mh`-ified** (landed after 4.0.0 was tagged): `mh::` → `tf2pl::`, `<mh/...>` → `<tf2pl/...>`,
+      `MH_*` → `TF2PL_*`. 229 files; every header compiles standalone.
+- [ ] Web UI: realtime updates (SSE, app keeps updating while unfocused in web mode), themed
+      dropdowns/scrollbars/checkboxes, and full parity with the native UI including Settings
+      (overlay and GPU/renderer settings stay native-only).
 Living task list. Historical context for the mh_stuff work lives in `migration.md`.
 
 ## Drop cpprestsdk (replace HTTP transport)
@@ -138,6 +167,21 @@ for both reads and writes; no read/write split, no XDG, no separate data dir.
 - [ ] Move CI Windows runner back to `windows-latest` after cpprestsdk is dropped (currently
       pinned to `windows-2022` to dodge the VS 2026 `stdext` removal).
 
+## Done for 4.0
+
+- [x] **Dropped cpprestsdk** for cpp-httplib (OpenSSL + zlib + brotli). Per-host `httplib::Client`
+      cache, blocking calls offloaded to the thread pool, 15 s connect / 30 s read timeouts,
+      `pplawait.h` and the Linux/Windows await split removed.
+- [x] **fmt 12.1** on a current vcpkg baseline; `_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING` removed.
+- [x] Removed the `mh::stuff` / `mh_vendored` shim from the root `CMakeLists.txt`.
+- [x] Deleted the dead custom `fmt::formatter<mh::source_location>`.
+- [x] Tests on Catch2 v3, plus `Tests/FakeWorldState` (in-memory `IWorldState` + sample lobby).
+- [x] Player-list manager window and Marked Friends window.
+- [x] Optional web UI (`127.0.0.1` only, Host check, per-run token; native stays the default).
+- [x] New marks `ulistuser` / `zoophile-zoojokes`; Vorobey and ShadeFall moved to the blacklisted tier.
+- [x] Fixed the first-launch crash from `discord_rich_presence.json`.
+- [x] Release binary renamed to `TF2PL.exe` with a new icon; masthead and social preview updated.
+- [x] AppImage: hi-res 256 px icon, sniper (Steam Runtime 3.0) build script, CMake `appimage` target.
 ## Carried over from migration.md (still open)
 
 - [ ] **Finish dropping the `mh::stuff` shim.** SourceRCON no longer uses mh

@@ -8,15 +8,15 @@
 #include "Log.h"
 #include "WorldState.h"
 
-#include <mh/algorithm/multi_compare.hpp>
-#include <mh/text/charconv_helper.hpp>
-#include <mh/text/fmtstr.hpp>
+#include <tf2pl/algorithm/multi_compare.hpp>
+#include <tf2pl/text/charconv_helper.hpp>
+#include <tf2pl/text/fmtstr.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <Util/ScopeGuards.h>
 
 #include <regex>
@@ -54,7 +54,7 @@ std::shared_ptr<IConsoleLine> SVCUserMessageLine::TryParse(const ConsoleLineTryP
 bool SVCUserMessageLine::IsSpecial(UserMessageType type)
 {
 #ifdef _DEBUG
-	return mh::any_eq(type,
+	return tf2pl::any_eq(type,
 		UserMessageType::CallVoteFailed,
 		UserMessageType::VoteFailed,
 		UserMessageType::VotePass,
@@ -73,7 +73,7 @@ bool SVCUserMessageLine::ShouldPrint() const
 void SVCUserMessageLine::Print(const PrintArgs& args) const
 {
 	if (IsSpecial(m_MsgType))
-		ImGui::TextFmt({ 0, 1, 1, 1 }, "{}", mh::enum_fmt(m_MsgType));
+		ImGui::TextFmt({ 0, 1, 1, 1 }, "{}", tf2pl::enum_fmt(m_MsgType));
 	else
 		ImGui::TextFmt("Msg from {}: svc_UserMessage: type {}, bytes {}", m_Address, int(m_MsgType), m_MsgBytes);
 }

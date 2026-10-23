@@ -4,9 +4,9 @@
 #include "UI/ImGui_TF2BotDetector.h"
 #include "ChatWrappersGeneratorPage.h"
 
-#include <mh/future.hpp>
-#include <mh/text/string_insertion.hpp>
-#include <mh/text/stringops.hpp>
+#include <tf2pl/future.hpp>
+#include <tf2pl/text/string_insertion.hpp>
+#include <tf2pl/text/stringops.hpp>
 #include <srcon/async_client.h>
 
 using namespace std::string_literals;
@@ -38,18 +38,18 @@ auto ChatWrappersVerifyPage::OnDraw(const DrawState& ds) -> OnDrawResult
 			m_NextValidationTime = curTime + VALIDATION_INTERVAL;
 		}
 	}
-	else if (mh::is_future_ready(m_Validation))
+	else if (tf2pl::is_future_ready(m_Validation))
 	{
 		try
 		{
 			auto val = m_Validation.get();
-			val = mh::trim(std::move(val));
+			val = tf2pl::trim(std::move(val));
 
 			const auto developerPrefix = "execing "s << ChatWrappersGeneratorPage::VERIFY_CFG_FILE_NAME;
 			if (val.starts_with(developerPrefix))
 			{
 				val.erase(0, developerPrefix.size());
-				val = mh::trim(std::move(val));
+				val = tf2pl::trim(std::move(val));
 			}
 
 			if (val != m_ExpectedToken)
@@ -77,7 +77,7 @@ auto ChatWrappersVerifyPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	if (AutoLaunchTF2Checkbox(ds.m_Settings->m_AutoLaunchTF2))
 		ds.m_Settings->SaveFile();
 
-	if (mh::is_future_ready(m_Validation))
+	if (tf2pl::is_future_ready(m_Validation))
 		return OnDrawResult::EndDrawing;
 
 	return OnDrawResult::ContinueDrawing;

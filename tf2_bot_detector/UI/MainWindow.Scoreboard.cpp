@@ -10,14 +10,16 @@
 #include "Networking/LogsTFAPI.h"
 #include "TextureManager.h"
 #include "GenericErrors.h"
+#include "PreviewMode.h"
+#include "StreamerMode.h"
 
 #include "Networking/HTTPHelpers.h"
 
 #include <Util/ScopeGuards.h>
 #include <Util/StorageHelper.h>
-#include <mh/math/interpolation.hpp>
-#include <mh/text/fmtstr.hpp>
-#include <mh/text/formatters/error_code.hpp>
+#include <tf2pl/math/interpolation.hpp>
+#include <tf2pl/text/fmtstr.hpp>
+#include <tf2pl/text/formatters/error_code.hpp>
 
 #include <string_view>
 #include <set>
@@ -218,7 +220,8 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 	if (!m_Settings.m_LazyLoadAPIData)
 		TryGetAvatarTexture(player);
 
-	const auto& playerName = player.GetNameSafe();
+	const bool masked = StreamerMode::IsMasked(m_Settings, player.GetSteamID());
+	const std::string playerName = masked ? StreamerMode::GetName(m_Settings) : player.GetNameSafe();
 	ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
 	ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
 
@@ -228,7 +231,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 	else if (player.GetSteamID() == m_Settings.GetLocalSteamID())
 		textColor = { ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG };
 
-	mh::fmtstr<32> buf;
+	tf2pl::fmtstr<32> buf;
 	if (!player.GetUserID().has_value())
 		buf = "?";
 	else
@@ -286,9 +289,9 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 		else
 			ImGui::TextFmt("<Unknown>");
 
-		// If their steamcommunity name doesn't match their ingame name
+		// If their steamcommunity name doesn't match their ingame name (never shown for you in streamer mode)
 		if (auto summary = player.GetPlayerSummary();
-			summary && !playerName.empty() && summary->m_Nickname != playerName)
+			!masked && summary && !playerName.empty() && summary->m_Nickname != playerName)
 		{
 			ImGui::SameLine();
 			ImGui::TextFmt({ 1, 0, 0, 1 }, "({})", summary->m_Nickname);
@@ -505,7 +508,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 
 	// Steam ID column
 	{
-		const auto str = player.GetSteamID().str();
+		const auto str = StreamerMode::DisplaySteamID(m_Settings, player.GetSteamID());
 		ImGui::TextFmt(str);
 	}
 
@@ -522,9 +525,9 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 	{
 		ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 });
 
-		const auto name = player.GetNameSafe().c_str();
 		const auto steamID = player.GetSteamID();
 
+		// (streamer mode masks your name/SteamID in here)
 		tf2_bot_detector::DrawPlayerContextCopyMenu(player.GetNameUnsafe().c_str(), steamID);
 
 		tf2_bot_detector::DrawPlayerContextGoToMenu(m_Settings, steamID);
@@ -532,7 +535,8 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 		const auto& world = m_Application->GetWorld();
 		auto& modLogic = m_Application->GetModLogic();
 
-		if (ImGui::BeginMenu("Votekick",
+		if (ImGui::BeginMenu(m_Application->IsPreviewMode() ? "Votekick (off in preview mode)" : "Votekick",
+			!m_Application->IsPreviewMode() &&
 			(world.GetTeamShareResult(steamID, m_Settings.GetLocalSteamID()) == TeamShareResult::SameTeams) && world.FindUserID(steamID)))
 		{
 			if (ImGui::MenuItem("Cheating"))
@@ -573,7 +577,7 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 
 void MainWindow::DrawPlayerTooltip(IPlayer& player)
 {
-	DrawPlayerTooltip(player, m_Application->m_WorldState->GetTeamShareResult(player), m_Application->GetModLogic().GetPlayerAttributes(player));
+	DrawPlayerTooltip(player, m_Application->GetWorld().GetTeamShareResult(player), m_Application->GetModLogic().GetPlayerAttributes(player));
 }
 
 void MainWindow::DrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult,
@@ -594,7 +598,7 @@ namespace ImGui
 {
 	struct Span
 	{
-		using fmtstr_type = mh::fmtstr<256>;
+		using fmtstr_type = tf2pl::fmtstr<256>;
 		using string_type = std::string;
 
 		template<typename... TArgs>
@@ -625,7 +629,7 @@ namespace ImGui
 			else if (auto str = std::get_if<string_type>(&m_Value))
 				return *str;
 
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected variant index {}", m_Value.index());
+			LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Unexpected variant index {}", m_Value.index());
 			return __FUNCTION__ + std::string(": UNEXPECTED VARIANT INDEX");
 		}
 
@@ -835,7 +839,7 @@ static void PrintPlayerSourceBans(const IPlayer& player)
 					ImGui::SameLineNoPad();
 
 					const ImVec4 banStateColor = ban.m_BanState >= tf2_bot_detector::SteamHistoryAPI::Current ? COLOR_YELLOW : ImVec4{ 1, 1, 1, 1 };
-					ImGui::TextFmt(banStateColor, "{:v} ", mh::enum_fmt(ban.m_BanState));
+					ImGui::TextFmt(banStateColor, "{:v} ", tf2pl::enum_fmt(ban.m_BanState));
 					ImGui::SameLineNoPad();
 
 					ImGui::TextFmt("[{} ago]", HumanDuration(tfbd_clock_t::now() - ban.m_BanTimestamp));
@@ -944,7 +948,7 @@ static void PrintPlayerMarkedFriendsCount(IPlayer& player, const IModeratorLogic
 
 						ImGui::TextFmt(COLOR_YELLOW, "    {} ", count);
 						ImGui::SameLineNoPad();
-						ImGui::TextFmt(COLOR_YELLOW, "{:v}", mh::enum_fmt(attrib));
+						ImGui::TextFmt(COLOR_YELLOW, "{:v}", tf2pl::enum_fmt(attrib));
 					}
 				}
 			});
@@ -1011,12 +1015,24 @@ void MainWindow::DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShar
 	///////////////////
 	// Draw the text //
 	///////////////////
+	const bool masked = StreamerMode::IsMasked(m_Settings, player.GetSteamID());
+
 	ImGui::TextFmt("  In-game Name : ");
 	ImGui::SameLineNoPad();
-	if (auto name = player.GetNameUnsafe(); !name.empty())
+	if (masked)
+		ImGui::TextFmt("\"{}\"", StreamerMode::GetName(m_Settings));
+	else if (auto name = player.GetNameUnsafe(); !name.empty())
 		ImGui::TextFmt("\"{}\"", name);
 	else
 		ImGui::TextFmt(COLOR_UNAVAILABLE, "Unknown");
+
+	if (masked)
+	{
+		// your Steam profile (real name, vanity URL, playtime...) stays off screen while streaming
+		ImGui::TextFmt("       SteamID : {}", StreamerMode::GetSteamIDText(m_Settings));
+		ImGui::TextFmt(COLOR_UNAVAILABLE, "Streamer mode: your profile details are hidden.");
+		return;
+	}
 
 	PrintPlayerSummary(player);
 	PrintPlayerBans(player);
@@ -1045,6 +1061,17 @@ void MainWindow::DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShar
 	{
 		ImGui::NewLine();
 		ImGui::TextFmt("Player {} marked in playerlist(s):", player);
+
+		// sample players' marks only exist in memory
+		if (auto* preview = m_Application->GetPreview(); preview && preview->OwnsPlayer(player.GetSteamID()))
+		{
+			for (const auto& mark : playerAttribs)
+			{
+				ImGui::Indent(18.0f);
+				ImGui::TextFmt("- {} ({}):", fmt::streamed(std::quoted(mark.m_FileName)), mark.m_Attributes);
+				ImGui::Unindent(18.0f);
+			}
+		}
 
 		for (auto& [fileName, data] : m_Application->GetModLogic().GetPlayerList()->FindPlayerData(player.GetSteamID())) {
 			ImGui::Indent(18.0f);
@@ -1104,7 +1131,7 @@ void MainWindow::DrawPlayerContextMarkMenu(const SteamID& steamid, const std::st
 		IModeratorLogic& modLogic = m_Application->GetModLogic();
 
 		ImGui::InputTextWithHint("", "Reason", &reasons, ImGuiInputTextFlags_CallbackAlways);
-		const auto editable = modLogic.GetPlayerList()->GetEditablePlayerAttributes(steamid);
+		const auto editable = m_Application->GetEditablePlayerAttributes(steamid); // sample players in preview mode
 
 		for (int i = 0; i < (int)PlayerAttribute::COUNT; i++)
 		{
@@ -1114,7 +1141,7 @@ void MainWindow::DrawPlayerContextMarkMenu(const SteamID& steamid, const std::st
 			if (ImGui::MenuItem(to_string(attr).c_str(), nullptr, existingMarked))
 			{
 				if (modLogic.SetPlayerAttribute(steamid, playername, attr, AttributePersistence::Saved, !existingMarked, reasons)) {
-					Log("Manually marked {}{} {:v} | {}", playername, (existingMarked ? " NOT" : ""), mh::enum_fmt(attr), reasons);
+					Log("Manually marked {}{} {:v} | {}", playername, (existingMarked ? " NOT" : ""), tf2pl::enum_fmt(attr), reasons);
 					reasons = "";
 				}
 			}
@@ -1219,7 +1246,7 @@ void MainWindow::OnDrawTeamStats()
 		stats->m_Kills += player.GetScores().m_Kills;
 		stats->m_Deaths += player.GetScores().m_Deaths;
 
-		if (!m_Application->GetModLogic().GetPlayerList()->GetPlayerAttributes(player).empty()) {
+		if (!m_Application->GetModLogic().GetPlayerAttributes(player).empty()) {
 			stats->m_MarkedCount++;
 
 			if (player.GetConnectionState() == PlayerStatusState::Active) {
@@ -1229,7 +1256,7 @@ void MainWindow::OnDrawTeamStats()
 	}
 
 	const auto& themeCols = m_Settings.m_Theme.m_Colors;
-	auto friendlyBG = mh::lerp(themeCols.m_ScoreboardFriendlyTeamBG[3],
+	auto friendlyBG = tf2pl::lerp(themeCols.m_ScoreboardFriendlyTeamBG[3],
 		ImGui::GetStyle().Colors[ImGuiCol_WindowBg], (ImVec4)themeCols.m_ScoreboardFriendlyTeamBG);
 	friendlyBG.w = 1;
 	const auto enemyBG = themeCols.m_ScoreboardEnemyTeamBG;
@@ -1245,7 +1272,7 @@ void MainWindow::OnDrawTeamStats()
 		const float playersFraction = statsArray[0].m_PlayerCount / float(totalPlayers);
 
 		ImGui::ProgressBar(playersFraction, { -FLT_MIN, 0 },
-			mh::fmtstr<128>("Team Players: {} | {}", statsArray[0].m_PlayerCount, statsArray[1].m_PlayerCount).c_str());
+			tf2pl::fmtstr<128>("Team Players: {} | {}", statsArray[0].m_PlayerCount, statsArray[1].m_PlayerCount).c_str());
 	}
 
 	if (const auto totalKills = statsArray[0].m_Kills + statsArray[1].m_Kills; totalKills > 0)
@@ -1253,7 +1280,7 @@ void MainWindow::OnDrawTeamStats()
 		const float killsFraction = statsArray[0].m_Kills / float(totalKills);
 
 		ImGui::ProgressBar(killsFraction, { -FLT_MIN, 0 },
-			mh::fmtstr<128>("Team Kills: {} | {}", statsArray[0].m_Kills, statsArray[1].m_Kills).c_str());
+			tf2pl::fmtstr<128>("Team Kills: {} | {}", statsArray[0].m_Kills, statsArray[1].m_Kills).c_str());
 	}
 
 	if (totalPlayers > 0)
@@ -1273,12 +1300,12 @@ void MainWindow::OnDrawTeamStats()
 		if (totalMarkedActive > 0 && totalMarkedActive != totalMarked)
 		{
 			ImGui::ProgressBar(markedRate, { -FLT_MIN, 0 },
-				mh::fmtstr<128>("MarkedVS (Total): {} ({}) vs {} ({})", totalUnmarked, totalUnmarkedActive, totalMarked, totalMarkedActive).c_str());
+				tf2pl::fmtstr<128>("MarkedVS (Total): {} ({}) vs {} ({})", totalUnmarked, totalUnmarkedActive, totalMarked, totalMarkedActive).c_str());
 		}
 		else
 		{
 			ImGui::ProgressBar(markedRate, { -FLT_MIN, 0 },
-				mh::fmtstr<128>("MarkedVS (Total): {} vs {}", totalUnmarked, totalMarked).c_str());
+				tf2pl::fmtstr<128>("MarkedVS (Total): {} vs {}", totalUnmarked, totalMarked).c_str());
 		}
 
 		if (statsArray[0].m_MarkedCount > 0)
@@ -1290,7 +1317,7 @@ void MainWindow::OnDrawTeamStats()
 			const auto teamUnmarkedActive = statsArray[0].m_PlayerCountActive - statsArray[0].m_MarkedCountActive;
 			const float teamMarkedRate = teamUnmarked / static_cast<float>(statsArray[0].m_PlayerCount);
 
-			mh::fmtstr<128> teamMessage;
+			tf2pl::fmtstr<128> teamMessage;
 
 			if (statsArray[0].m_MarkedCount != statsArray[0].m_MarkedCountActive)
 			{
@@ -1313,7 +1340,7 @@ void MainWindow::OnDrawTeamStats()
 			const auto enemyUnmarkedActive = statsArray[1].m_PlayerCountActive - statsArray[1].m_MarkedCountActive;
 			float enemyMarkedRate = enemyUnmarked / static_cast<float>(statsArray[1].m_PlayerCount);
 
-			mh::fmtstr<128> enemyMessage;
+			tf2pl::fmtstr<128> enemyMessage;
 
 			if (statsArray[1].m_MarkedCount != statsArray[1].m_MarkedCountActive)
 			{
@@ -1334,7 +1361,7 @@ void MainWindow::OnDrawTeamStats()
 		const float timeFraction = float(statsArray[0].m_AccountAgeSum.count() / double(totalTime.count()));
 
 		ImGui::ProgressBar(timeFraction, { -FLT_MIN, 0 },
-			mh::fmtstr<128>("Team Account Age: {} | {}",
+			tf2pl::fmtstr<128>("Team Account Age: {} | {}",
 				HumanDuration(statsArray[0].m_AccountAgeSum), HumanDuration(statsArray[1].m_AccountAgeSum)).c_str());
 	}
 #endif

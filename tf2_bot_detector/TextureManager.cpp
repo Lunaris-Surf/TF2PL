@@ -3,7 +3,7 @@
 
 #include "ITF2BotDetectorRenderer.h"
 
-#include <mh/concurrency/thread_sentinel.hpp>
+#include <tf2pl/concurrency/thread_sentinel.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -74,7 +74,7 @@ namespace
 
 	private:
 		std::vector<std::shared_ptr<Texture>> m_Textures;
-		mh::thread_sentinel m_Sentinel;
+		tf2pl::thread_sentinel m_Sentinel;
 	};
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mh/error/error_code_exception.hpp>
+#include <tf2pl/error/error_code_exception.hpp>
 #include <nlohmann/json.hpp>
 #include <fmt/ostream.h>
 
@@ -67,9 +67,9 @@ namespace tf2_bot_detector
 
 	std::error_condition make_error_condition(HTTPResponseCode e);
 
-	class http_error : public mh::error_condition_exception
+	class http_error : public tf2pl::error_condition_exception
 	{
-		using super = mh::error_condition_exception;
+		using super = tf2pl::error_condition_exception;
 	public:
 		using super::super;
 	};

@@ -5,7 +5,7 @@
 #endif
 
 #include <SQLiteCpp/SQLiteCpp.h>
-#include <mh/types/enum_class_bit_ops.hpp>
+#include <tf2pl/types/enum_class_bit_ops.hpp>
 
 #include <concepts>
 #include <cstdint>
@@ -49,7 +49,7 @@ namespace tf2_bot_detector::DB
 		None = 0,
 		IfNotExists = (1 << 0),
 	};
-	MH_ENABLE_ENUM_CLASS_BIT_OPS(CreateTableFlags);
+	TF2PL_ENABLE_ENUM_CLASS_BIT_OPS(CreateTableFlags);
 
 	enum class ColumnFlags
 	{
@@ -60,7 +60,7 @@ namespace tf2_bot_detector::DB
 
 		PrimaryKeyDefaults = PrimaryKey | NotNull | Unique,
 	};
-	MH_ENABLE_ENUM_CLASS_BIT_OPS(ColumnFlags);
+	TF2PL_ENABLE_ENUM_CLASS_BIT_OPS(ColumnFlags);
 
 	struct BlobData
 	{

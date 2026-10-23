@@ -5,7 +5,7 @@
 #include "Version.h"
 #include "UpdateManager.h"
 
-#include <mh/error/ensure.hpp>
+#include <tf2pl/error/ensure.hpp>
 
 using namespace tf2_bot_detector;
 
@@ -78,7 +78,7 @@ auto NetworkSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 		case SteamAPIMode::Direct:    return "Enabled";
 		}
 
-		LogError("Unknown value {}", mh::enum_fmt(mode));
+		LogError("Unknown value {}", tf2pl::enum_fmt(mode));
 		return "Disabled";
 	};
 
@@ -151,7 +151,7 @@ void NetworkSettingsPage::Commit(const CommitState& cs)
 
 	if (!oldClient && cs.m_Settings.GetHTTPClient())
 	{
-		DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Re-checking for updates, user has chosen to allow internet connectivity");
+		DebugLog(TF2PL_SOURCE_LOCATION_CURRENT(), "Re-checking for updates, user has chosen to allow internet connectivity");
 
 		// Trigger an update check, user has enabled
 		if (mh_ensure(cs.m_UpdateManager))

@@ -26,7 +26,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <mh/types/disable_copy_move.hpp>
+#include <tf2pl/types/disable_copy_move.hpp>
 
 #include <string_view>
 #include <imgui.h>
@@ -35,7 +35,7 @@ namespace ImGuiDesktop
 {
 	inline namespace ScopeGuards
 	{
-		struct ID final : mh::disable_copy_move
+		struct ID final : tf2pl::disable_copy_move
 		{
 		public:
 			explicit ID(int int_id);
@@ -45,7 +45,7 @@ namespace ImGuiDesktop
 			~ID();
 		};
 
-		struct StyleColor : mh::disable_copy
+		struct StyleColor : tf2pl::disable_copy
 		{
 			StyleColor() : m_Enabled(false) {}
 			StyleColor(ImGuiCol_ color, const ImVec4& value, bool enabled = true);
@@ -63,7 +63,7 @@ namespace ImGuiDesktop
 			TextColor(const ImVec4& color, bool enabled = true);
 		};
 
-		struct GlobalAlpha final : mh::disable_copy_move
+		struct GlobalAlpha final : tf2pl::disable_copy_move
 		{
 			explicit GlobalAlpha(float newAlpha);
 			~GlobalAlpha();
@@ -72,7 +72,7 @@ namespace ImGuiDesktop
 			float m_OldAlpha;
 		};
 
-		struct Indent final : mh::disable_copy_move
+		struct Indent final : tf2pl::disable_copy_move
 		{
 			explicit Indent(unsigned count = 1);
 			~Indent();
@@ -81,7 +81,7 @@ namespace ImGuiDesktop
 			unsigned m_Count;
 		};
 
-		struct Context final : mh::disable_copy_move
+		struct Context final : tf2pl::disable_copy_move
 		{
 			explicit Context(ImGuiContext* newContext);
 			~Context();

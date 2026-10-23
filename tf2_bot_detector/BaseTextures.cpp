@@ -4,7 +4,7 @@
 #include "Log.h"
 #include "TextureManager.h"
 
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 
 #include <filesystem>
 #include <string>
@@ -67,7 +67,7 @@ std::shared_ptr<ITexture> BaseTextures::TryLoadTexture(std::filesystem::path fil
 	}
 	catch (const std::exception& e)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to load {}", file);
+		LogException(TF2PL_SOURCE_LOCATION_CURRENT(), e, "Failed to load {}", file);
 	}
 
 	return nullptr;

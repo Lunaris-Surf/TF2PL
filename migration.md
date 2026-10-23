@@ -95,8 +95,7 @@ on fmt-8 behaviors that fmt 9.0/10 removed. The fixes:
 
 ## Follow-ups
 
-> Remaining open items now tracked in `TODO.md` (alongside the cpprestsdk drop). Listed here
-> too for historical continuity.
+All follow-ups are complete: the build-system items shipped in 4.0, and the de-`mh` rename lands in 4.1.
 
 - [~] **Drop the `mh::stuff` shim entirely.** SourceRCON's *only* mh usage was
   `mh::locked_value<srcon_addr>` in `src/async_client.cpp` — **done** in fork commit `f0275ed`

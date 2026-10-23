@@ -14,8 +14,8 @@
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/formatters/error_code.hpp>
-#include <mh/future.hpp>
+#include <tf2pl/text/formatters/error_code.hpp>
+#include <tf2pl/future.hpp>
 
 #include <regex>
 
@@ -185,13 +185,13 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 				else
 				{
 					if (nameBegin == searchBuf.npos)
-						LogError("Failed to find name begin sequence in chat message of type {}", mh::enum_fmt(category));
+						LogError("Failed to find name begin sequence in chat message of type {}", tf2pl::enum_fmt(category));
 					if (nameEnd == searchBuf.npos)
-						LogError("Failed to find name end sequence in chat message of type {}", mh::enum_fmt(category));
+						LogError("Failed to find name end sequence in chat message of type {}", tf2pl::enum_fmt(category));
 					if (msgBegin == searchBuf.npos)
-						LogError("Failed to find message begin sequence in chat message of type {}", mh::enum_fmt(category));
+						LogError("Failed to find message begin sequence in chat message of type {}", tf2pl::enum_fmt(category));
 					if (msgEnd == searchBuf.npos)
-						LogError("Failed to find message end sequence in chat message of type {}", mh::enum_fmt(category));
+						LogError("Failed to find message end sequence in chat message of type {}", tf2pl::enum_fmt(category));
 				}
 
 				parseEnd += type.m_Full.m_Start.m_Narrow.size() + found + type.m_Full.m_End.m_Narrow.size();

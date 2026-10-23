@@ -5,7 +5,7 @@
 using namespace std::chrono_literals;
 using namespace tf2_bot_detector;
 
-TEST_CASE("mh::formatter<PlayerAttributesList>", "[TF2PL][formatting]")
+TEST_CASE("tf2pl::formatter<PlayerAttributesList>", "[TF2PL][formatting]")
 {
 	PlayerAttributesList list;
 
@@ -13,7 +13,7 @@ TEST_CASE("mh::formatter<PlayerAttributesList>", "[TF2PL][formatting]")
 	REQUIRE(fmt::format("Attribs: {}", list) == "Attribs: PlayerAttribute::Cheater");
 }
 
-TEST_CASE("mh::formatter<PlayerMarks>", "[TF2PL][formatting]")
+TEST_CASE("tf2pl::formatter<PlayerMarks>", "[TF2PL][formatting]")
 {
 	PlayerMarks marks;
 	marks.m_Marks.push_back(PlayerMarks::Mark({ PlayerAttribute::Suspicious, PlayerAttribute::Racist }, "cfg/playerlist.json"));

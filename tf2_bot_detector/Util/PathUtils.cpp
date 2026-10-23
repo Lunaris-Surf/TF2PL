@@ -2,7 +2,7 @@
 #include "Log.h"
 #include "Platform/Platform.h"
 
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <vdf_parser.hpp>
 
 #include <iomanip>
@@ -84,7 +84,7 @@ using namespace tf2_bot_detector;
 DirectoryValidatorResult tf2_bot_detector::ValidateTFDir(std::filesystem::path path)
 {
 	if (path.empty())
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "\"path\" was empty!");
+		LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "\"path\" was empty!");
 
 	DirectoryValidatorResult result(std::move(path));
 
@@ -169,7 +169,7 @@ DirectoryValidatorResult tf2_bot_detector::ValidateSteamDir(std::filesystem::pat
 	return result;
 }
 
-mh::generator<std::filesystem::path> tf2_bot_detector::GetSteamLibraryFolders(const std::filesystem::path& steamDir)
+tf2pl::generator<std::filesystem::path> tf2_bot_detector::GetSteamLibraryFolders(const std::filesystem::path& steamDir)
 {
 	const auto baseSteamAppsDir = steamDir / "steamapps";
 	if (std::filesystem::exists(baseSteamAppsDir))
@@ -179,14 +179,14 @@ mh::generator<std::filesystem::path> tf2_bot_detector::GetSteamLibraryFolders(co
 		const auto libraryFoldersFilename = baseSteamAppsDir / "libraryfolders.vdf";
 		if (!std::filesystem::exists(libraryFoldersFilename))
 		{
-			DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "{} does not exist", libraryFoldersFilename);
+			DebugLogWarning(TF2PL_SOURCE_LOCATION_CURRENT(), "{} does not exist", libraryFoldersFilename);
 			co_return;
 		}
 
 		std::ifstream file(libraryFoldersFilename);
 		if (!file.good())
 		{
-			DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "Failed to read {}", libraryFoldersFilename);
+			DebugLogWarning(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to read {}", libraryFoldersFilename);
 			co_return;
 		}
 
@@ -212,7 +212,7 @@ std::filesystem::path tf2_bot_detector::FindTFDir(const std::filesystem::path& s
 		return tfDir;
 	}
 
-	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Failed to find tf directory from {}", steamDir);
+	DebugLog(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to find tf directory from {}", steamDir);
 	return {};
 }
 
@@ -249,5 +249,5 @@ void tf2_bot_detector::DeleteOldFiles(const std::filesystem::path& path, duratio
 }
 catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT());
+	LogException(TF2PL_SOURCE_LOCATION_CURRENT());
 }

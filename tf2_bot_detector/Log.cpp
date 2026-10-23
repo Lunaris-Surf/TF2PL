@@ -3,17 +3,17 @@
 #include "Filesystem.h"
 
 #include <imgui.h>
-#include <mh/compiler.hpp>
-#include <mh/error/exception_details.hpp>
-#include <mh/text/codecvt.hpp>
-#include <mh/text/fmtstr.hpp>
+#include <tf2pl/compiler.hpp>
+#include <tf2pl/error/exception_details.hpp>
+#include <tf2pl/text/codecvt.hpp>
+#include <tf2pl/text/fmtstr.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/string_insertion.hpp>
-#include <mh/text/stringops.hpp>
+#include <tf2pl/text/string_insertion.hpp>
+#include <tf2pl/text/stringops.hpp>
 #include <SDL2/SDL_messagebox.h>
 
 #ifdef _WIN32
@@ -80,7 +80,7 @@ namespace
 		void LogToStream(std::string msg, std::ostream& output, time_point_t timestamp = tfbd_clock_t::now(), bool skipScrub = false) const;
 
 		const std::filesystem::path& GetFileName() const override { return m_FileName; }
-		mh::generator<const LogMessage&> GetVisibleMsgs() const override;
+		tf2pl::generator<const LogMessage&> GetVisibleMsgs() const override;
 		void ClearVisibleMsgs() override;
 
 		std::ostream& GetLogStream();
@@ -96,7 +96,7 @@ namespace
 		void LogChat(const std::string_view& chatMessage) override;
 	private:
 		bool m_IsInit = false;
-		void EnsureInit(MH_SOURCE_LOCATION_AUTO(location)) const;
+		void EnsureInit(TF2PL_SOURCE_LOCATION_AUTO(location)) const;
 
 		std::filesystem::path m_FileName;
 		std::optional<std::stringstream> m_TempLogs = std::stringstream();   // Logs before we have been initialized
@@ -151,7 +151,7 @@ void LogManager::Init()
 		std::lock_guard lock(m_LogMutex);
 
 		const auto t = ToTM(tfbd_clock_t::now());
-		const mh::fmtstr<128> timestampStr("{:%Y-%m-%d_%H-%M-%S}", t);
+		const tf2pl::fmtstr<128> timestampStr("{:%Y-%m-%d_%H-%M-%S}", t);
 
 		// Pick file name for main log file
 		{
@@ -166,7 +166,7 @@ void LogManager::Init()
 			}
 			else
 			{
-				m_FileName = logPath / mh::fmtstr<128>("{}.log", timestampStr).view();
+				m_FileName = logPath / tf2pl::fmtstr<128>("{}.log", timestampStr).view();
 			}
 		}
 
@@ -200,7 +200,7 @@ void LogManager::Init()
 			}
 			else
 			{
-				auto logPath = logDir / mh::fmtstr<128>("console_{}.log", timestampStr).view();
+				auto logPath = logDir / tf2pl::fmtstr<128>("console_{}.log", timestampStr).view();
 				m_ConsoleLogFileName = logPath;
 				m_ConsoleLogFile = std::ofstream(logPath, std::ofstream::ate | std::ofstream::binary);
 				if (!m_ConsoleLogFile.good())
@@ -221,7 +221,7 @@ void LogManager::Init()
 			else
 			{
 				// doing chat_(blah) is repetitive, but it's how is formatted on console so i cry about it (for consistancy sake)
-				auto logPath = logDir / mh::fmtstr<128>("chat_{}.log", timestampStr).view();
+				auto logPath = logDir / tf2pl::fmtstr<128>("chat_{}.log", timestampStr).view();
 				m_ChatLogFileName = logPath;
 				m_ChatLogFile = std::ofstream(logPath, std::ofstream::ate | std::ofstream::binary);
 				if (!m_ChatLogFile.good())
@@ -294,7 +294,7 @@ void LogManager::ReplaceSecrets(std::string& msg) const
 	}
 }
 
-void tf2_bot_detector::LogFatalError(const mh::source_location& location, const std::string_view& msg)
+void tf2_bot_detector::LogFatalError(const tf2pl::source_location& location, const std::string_view& msg)
 {
 	LogError(location, msg);
 
@@ -312,10 +312,10 @@ Error source function: {})"
 	std::exit(1);
 }
 
-void tf2_bot_detector::LogException(const mh::source_location& location, const std::exception_ptr& e,
+void tf2_bot_detector::LogException(const tf2pl::source_location& location, const std::exception_ptr& e,
 	LogSeverity severity, LogVisibility visibility, const std::string_view& msg)
 {
-	const mh::exception_details details(e);
+	const tf2pl::exception_details details(e);
 
 	LogMessageColor color = LogColors::EXCEPTION;
 	if (visibility == LogVisibility::Debug)
@@ -393,7 +393,7 @@ void LogManager::Log(std::string msg, const LogMessageColor& color,
 
 	LogToStream(msg, GetLogStream(), timestamp, true);
 
-	if (!(visibility == LogVisibility::Debug && !mh::is_debug))
+	if (!(visibility == LogVisibility::Debug && !tf2pl::is_debug))
 	{
 		m_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 
@@ -405,7 +405,7 @@ void LogManager::Log(std::string msg, const LogMessageColor& color,
 	}
 }
 
-mh::generator<const LogMessage&> LogManager::GetVisibleMsgs() const
+tf2pl::generator<const LogMessage&> LogManager::GetVisibleMsgs() const
 {
 	EnsureInit();
 
@@ -476,7 +476,7 @@ void LogManager::CleanupEmptyLogs() try
 }
 catch (const std::filesystem::filesystem_error& e)
 {
-	LogError(MH_SOURCE_LOCATION_CURRENT(), e.what());
+	LogError(TF2PL_SOURCE_LOCATION_CURRENT(), e.what());
 }
 
 void LogManager::CleanupLogFiles() try
@@ -496,10 +496,10 @@ void LogManager::CleanupLogFiles() try
 }
 catch (const std::filesystem::filesystem_error& e)
 {
-	LogError(MH_SOURCE_LOCATION_CURRENT(), e.what());
+	LogError(TF2PL_SOURCE_LOCATION_CURRENT(), e.what());
 }
 
-void LogManager::EnsureInit(const mh::source_location& location) const
+void LogManager::EnsureInit(const tf2pl::source_location& location) const
 {
 	if (!m_IsInit)
 	{
@@ -514,19 +514,19 @@ LogMessageColor::LogMessageColor(const ImVec4& vec) :
 }
 
 #define LOG_DEFINITION_HELPER(name, defaultColor, severity, visibility) \
-	void name(const mh::source_location& location) \
+	void name(const tf2pl::source_location& location) \
 	{ \
 		name((defaultColor), location); \
 	} \
-	void name(const LogMessageColor& color, const std::string_view& msg, const mh::source_location& location) \
+	void name(const LogMessageColor& color, const std::string_view& msg, const tf2pl::source_location& location) \
 	{ \
 		name(color, location, msg); \
 	} \
-	void name(const std::string_view& msg, const mh::source_location& location) \
+	void name(const std::string_view& msg, const tf2pl::source_location& location) \
 	{ \
 		name(location, msg); \
 	} \
-	void name(const LogMessageColor& color, const mh::source_location& location) \
+	void name(const LogMessageColor& color, const tf2pl::source_location& location) \
 	{ \
 		name(color, location, std::string_view{}); \
 	} \
@@ -534,16 +534,16 @@ LogMessageColor::LogMessageColor(const ImVec4& vec) :
 namespace tf2_bot_detector
 {
 	// LOG_DEFINITION_HELPER(Log, LogColors::DEFAULT, LogSeverity::Info, LogVisibility::Default);
-	void Log(const mh::source_location& location) {
+	void Log(const tf2pl::source_location& location) {
 		Log(LogColors::DEFAULT, location);
 	}
-	void Log(const LogMessageColor& color, const std::string_view& msg, const mh::source_location& location) {
+	void Log(const LogMessageColor& color, const std::string_view& msg, const tf2pl::source_location& location) {
 		Log(color, location, msg);
 	}
-	void Log(const std::string_view& msg, const mh::source_location& location) {
+	void Log(const std::string_view& msg, const tf2pl::source_location& location) {
 		Log(location, msg);
 	}
-	void Log(const LogMessageColor& color, const mh::source_location& location) {
+	void Log(const LogMessageColor& color, const tf2pl::source_location& location) {
 		Log(color, location, std::string_view{});
 	}
 	LOG_DEFINITION_HELPER(DebugLog, LogColors::DEFAULT_DEBUG, LogSeverity::Info, LogVisibility::Debug);
@@ -554,11 +554,11 @@ namespace tf2_bot_detector
 #undef LOG_DEFINITION_HELPER
 
 #define LOG_DEFINITION_HELPER(name, severity, visibility) \
-	void name(const mh::source_location& location) \
+	void name(const tf2pl::source_location& location) \
 	{ \
 		name(location, std::string_view{}); \
 	} \
-	void name(const std::exception& e, const mh::source_location& location) \
+	void name(const std::exception& e, const tf2pl::source_location& location) \
 	{ \
 		name(location, e, std::string_view{}); \
 	}

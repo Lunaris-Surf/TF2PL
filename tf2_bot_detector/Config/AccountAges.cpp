@@ -4,10 +4,10 @@
 #include "Application.h"
 #include "DB/TempDB.h"
 
-#include <mh/concurrency/thread_sentinel.hpp>
-#include <mh/error/not_implemented_error.hpp>
-#include <mh/math/interpolation.hpp>
-#include <mh/source_location.hpp>
+#include <tf2pl/concurrency/thread_sentinel.hpp>
+#include <tf2pl/error/not_implemented_error.hpp>
+#include <tf2pl/math/interpolation.hpp>
+#include <tf2pl/source_location.hpp>
 #include <nlohmann/json.hpp>
 
 #include <cassert>
@@ -31,7 +31,7 @@ namespace
 		std::optional<time_point_t> EstimateAccountCreationTime(const SteamID& id) const override;
 
 	private:
-		[[nodiscard]] bool CheckSteamIDValid(const SteamID& id, MH_SOURCE_LOCATION_AUTO(location)) const;
+		[[nodiscard]] bool CheckSteamIDValid(const SteamID& id, TF2PL_SOURCE_LOCATION_AUTO(location)) const;
 	};
 }
 
@@ -40,7 +40,7 @@ std::shared_ptr<IAccountAges> tf2_bot_detector::IAccountAges::Create()
 	return std::make_shared<AccountAges>();
 }
 
-bool AccountAges::CheckSteamIDValid(const SteamID& id, const mh::source_location& location) const
+bool AccountAges::CheckSteamIDValid(const SteamID& id, const tf2pl::source_location& location) const
 {
 	if (id.Type != SteamAccountType::Individual)
 	{
@@ -80,7 +80,7 @@ std::optional<time_point_t> AccountAges::EstimateAccountCreationTime(const Steam
 		return lower->m_CreationTime;  // they're the same picture
 
 	// Interpolate the time between the nearest lower and upper steam ID
-	const auto interpValue = mh::remap(id.GetAccountID(),
+	const auto interpValue = tf2pl::remap(id.GetAccountID(),
 		lower->m_SteamID.GetAccountID(), upper->m_SteamID.GetAccountID(),
 		lower->m_CreationTime.time_since_epoch().count(), upper->m_CreationTime.time_since_epoch().count());
 

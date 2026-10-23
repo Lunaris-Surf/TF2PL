@@ -153,6 +153,17 @@ namespace tf2_bot_detector
 		uint16_t m_WebUIPort = 27069;          // 127.0.0.1 only
 		bool m_WebUIOpenBrowser = true;        // open the page in the default browser when the web UI starts
 		bool IsWebUIMode() const { return m_UIMode == TF2BDUIMode::Web; }
+		/// <summary>
+		/// Streamer mode: your own player is shown with this profile instead of your real one (see StreamerMode.h).
+		/// </summary>
+		struct StreamerModeSettings
+		{
+			bool m_Enabled = false;
+			std::string m_Name;       // empty = "Anonymous"
+			std::string m_SteamID;    // text shown instead of your SteamID; empty = "Hidden"
+			std::string m_AvatarPath; // image file (png/jpg) shown instead of your avatar; empty = blank
+		} m_StreamerMode;
+
 		int m_OverlayCorner = 1;
 		int m_OverlayHotkeyKey = 0x09; // Tab
 		int m_OverlayHotkeyModifiers = 1; // Ctrl = 1, Alt = 2, Shift = 4
@@ -385,17 +396,17 @@ namespace tf2_bot_detector
 	};
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::Font)
-	MH_ENUM_REFLECT_VALUE(ProggyTiny_10px)
-	MH_ENUM_REFLECT_VALUE(ProggyClean_13px)
-	MH_ENUM_REFLECT_VALUE(ProggyTiny_20px)
-	MH_ENUM_REFLECT_VALUE(ProggyClean_26px)
-	MH_ENUM_REFLECT_VALUE(UniFont_14px)
-	MH_ENUM_REFLECT_VALUE(UniFont_24px)
-	MH_ENUM_REFLECT_VALUE(ChakraPetch_16px)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::Font)
+	TF2PL_ENUM_REFLECT_VALUE(ProggyTiny_10px)
+	TF2PL_ENUM_REFLECT_VALUE(ProggyClean_13px)
+	TF2PL_ENUM_REFLECT_VALUE(ProggyTiny_20px)
+	TF2PL_ENUM_REFLECT_VALUE(ProggyClean_26px)
+	TF2PL_ENUM_REFLECT_VALUE(UniFont_14px)
+	TF2PL_ENUM_REFLECT_VALUE(UniFont_24px)
+	TF2PL_ENUM_REFLECT_VALUE(ChakraPetch_16px)
+TF2PL_ENUM_REFLECT_END()
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::SteamAPIMode)
-	MH_ENUM_REFLECT_VALUE(Disabled)
-	MH_ENUM_REFLECT_VALUE(Direct)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::SteamAPIMode)
+	TF2PL_ENUM_REFLECT_VALUE(Disabled)
+	TF2PL_ENUM_REFLECT_VALUE(Direct)
+TF2PL_ENUM_REFLECT_END()

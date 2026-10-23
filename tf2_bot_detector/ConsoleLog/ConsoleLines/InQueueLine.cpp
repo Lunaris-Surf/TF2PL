@@ -8,15 +8,15 @@
 #include "Log.h"
 #include "WorldState.h"
 
-#include <mh/algorithm/multi_compare.hpp>
-#include <mh/text/charconv_helper.hpp>
-#include <mh/text/fmtstr.hpp>
+#include <tf2pl/algorithm/multi_compare.hpp>
+#include <tf2pl/text/charconv_helper.hpp>
+#include <tf2pl/text/fmtstr.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <Util/ScopeGuards.h>
 
 #include <regex>
@@ -61,7 +61,7 @@ std::shared_ptr<IConsoleLine> InQueueLine::TryParse(const ConsoleLineTryParseArg
 			startTime = clock_t::from_time_t(std::mktime(&startTimeFull));
 			if (startTime.time_since_epoch().count() < 0)
 			{
-				LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to parse "s << std::quoted(result[2].str()) << " as a timestamp");
+				LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to parse "s << std::quoted(result[2].str()) << " as a timestamp");
 				return nullptr;
 			}
 		}

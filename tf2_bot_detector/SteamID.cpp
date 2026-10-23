@@ -84,7 +84,7 @@ SteamID::SteamID(const std::string_view& str)
 	if (std::all_of(str.begin(), str.end(), [](char c) { return std::isdigit(c) || std::isspace(c); }))
 	{
 		uint64_t result;
-		if (auto parseResult = mh::from_chars(str, result); !parseResult)
+		if (auto parseResult = tf2pl::from_chars(str, result); !parseResult)
 			throw std::invalid_argument(fmt::format("Out-of-range SteamID64: {}", str));
 
 		ID64 = result;

@@ -2,7 +2,7 @@
 
 #include "Log.h"
 
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/reflection/enum.hpp>
 #include <nlohmann/json.hpp>
 
 #include <optional>
@@ -89,12 +89,12 @@ namespace tf2_bot_detector
 			}
 			else if constexpr (detail::JSON_TRY_GET_TO_LOGGING)
 			{
-				DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Failed to find {}", fmt::streamed(std::quoted(name)));
+				DebugLog(TF2PL_SOURCE_LOCATION_CURRENT(), "Failed to find {}", fmt::streamed(std::quoted(name)));
 			}
 		}
 		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), "Exception when getting {}", fmt::streamed(std::quoted(name)));
+			LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Exception when getting {}", fmt::streamed(std::quoted(name)));
 		}
 
 		defaultValFunc(value);
@@ -210,7 +210,7 @@ namespace tf2_bot_detector
 		}
 		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), "Exception when getting {}", fmt::streamed(std::quoted(name)));
+			LogException(TF2PL_SOURCE_LOCATION_CURRENT(), "Exception when getting {}", fmt::streamed(std::quoted(name)));
 		}
 
 		value.reset();
@@ -218,15 +218,15 @@ namespace tf2_bot_detector
 	}
 }
 
-MH_ENUM_REFLECT_BEGIN(nlohmann::json::value_t)
-	MH_ENUM_REFLECT_VALUE(null)
-	MH_ENUM_REFLECT_VALUE(object)
-	MH_ENUM_REFLECT_VALUE(array)
-	MH_ENUM_REFLECT_VALUE(string)
-	MH_ENUM_REFLECT_VALUE(boolean)
-	MH_ENUM_REFLECT_VALUE(number_integer)
-	MH_ENUM_REFLECT_VALUE(number_unsigned)
-	MH_ENUM_REFLECT_VALUE(number_float)
-	MH_ENUM_REFLECT_VALUE(binary)
-	MH_ENUM_REFLECT_VALUE(discarded)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(nlohmann::json::value_t)
+	TF2PL_ENUM_REFLECT_VALUE(null)
+	TF2PL_ENUM_REFLECT_VALUE(object)
+	TF2PL_ENUM_REFLECT_VALUE(array)
+	TF2PL_ENUM_REFLECT_VALUE(string)
+	TF2PL_ENUM_REFLECT_VALUE(boolean)
+	TF2PL_ENUM_REFLECT_VALUE(number_integer)
+	TF2PL_ENUM_REFLECT_VALUE(number_unsigned)
+	TF2PL_ENUM_REFLECT_VALUE(number_float)
+	TF2PL_ENUM_REFLECT_VALUE(binary)
+	TF2PL_ENUM_REFLECT_VALUE(discarded)
+TF2PL_ENUM_REFLECT_END()

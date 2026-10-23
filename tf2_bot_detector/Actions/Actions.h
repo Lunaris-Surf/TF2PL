@@ -3,7 +3,7 @@
 #include "Clock.h"
 #include "ICommandSource.h"
 
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/reflection/enum.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <cassert>
@@ -125,9 +125,9 @@ namespace tf2_bot_detector
 #endif
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::KickReason)
-	MH_ENUM_REFLECT_VALUE(Cheating)
-	MH_ENUM_REFLECT_VALUE(Idle)
-	MH_ENUM_REFLECT_VALUE(Other)
-	MH_ENUM_REFLECT_VALUE(Scamming)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::KickReason)
+	TF2PL_ENUM_REFLECT_VALUE(Cheating)
+	TF2PL_ENUM_REFLECT_VALUE(Idle)
+	TF2PL_ENUM_REFLECT_VALUE(Other)
+	TF2PL_ENUM_REFLECT_VALUE(Scamming)
+TF2PL_ENUM_REFLECT_END()

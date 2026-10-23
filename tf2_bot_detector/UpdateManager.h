@@ -4,8 +4,8 @@
 #include "ReleaseChannel.h"
 #include "Version.h"
 
-#include <mh/error/status.hpp>
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/error/status.hpp>
+#include <tf2pl/reflection/enum.hpp>
 
 #include <memory>
 
@@ -78,35 +78,35 @@ namespace tf2_bot_detector
 
 		virtual void Update() = 0;
 
-		virtual mh::status_reader<UpdateStatus> GetUpdateStatus() const = 0;
+		virtual tf2pl::status_reader<UpdateStatus> GetUpdateStatus() const = 0;
 		virtual const IAvailableUpdate* GetAvailableUpdate() const = 0;
 	};
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::UpdateStatus)
-	MH_ENUM_REFLECT_VALUE(Unknown)
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::UpdateStatus)
+	TF2PL_ENUM_REFLECT_VALUE(Unknown)
 
-	MH_ENUM_REFLECT_VALUE(StateSwitchFailure)
+	TF2PL_ENUM_REFLECT_VALUE(StateSwitchFailure)
 
-	MH_ENUM_REFLECT_VALUE(UpdateCheckDisabled)
-	MH_ENUM_REFLECT_VALUE(InternetAccessDisabled)
+	TF2PL_ENUM_REFLECT_VALUE(UpdateCheckDisabled)
+	TF2PL_ENUM_REFLECT_VALUE(InternetAccessDisabled)
 
-	MH_ENUM_REFLECT_VALUE(Checking)
+	TF2PL_ENUM_REFLECT_VALUE(Checking)
 
-	MH_ENUM_REFLECT_VALUE(CheckFailed)
-	MH_ENUM_REFLECT_VALUE(UpToDate)
-	MH_ENUM_REFLECT_VALUE(UpdateAvailable)
+	TF2PL_ENUM_REFLECT_VALUE(CheckFailed)
+	TF2PL_ENUM_REFLECT_VALUE(UpToDate)
+	TF2PL_ENUM_REFLECT_VALUE(UpdateAvailable)
 
-	MH_ENUM_REFLECT_VALUE(UpdateToolRequired)
-	MH_ENUM_REFLECT_VALUE(UpdateToolDownloading)
-	MH_ENUM_REFLECT_VALUE(UpdateToolDownloadFailed)
-	MH_ENUM_REFLECT_VALUE(UpdateToolDownloadSuccess)
+	TF2PL_ENUM_REFLECT_VALUE(UpdateToolRequired)
+	TF2PL_ENUM_REFLECT_VALUE(UpdateToolDownloading)
+	TF2PL_ENUM_REFLECT_VALUE(UpdateToolDownloadFailed)
+	TF2PL_ENUM_REFLECT_VALUE(UpdateToolDownloadSuccess)
 
-	MH_ENUM_REFLECT_VALUE(Downloading)
-	MH_ENUM_REFLECT_VALUE(DownloadFailed)
-	MH_ENUM_REFLECT_VALUE(DownloadSuccess)
+	TF2PL_ENUM_REFLECT_VALUE(Downloading)
+	TF2PL_ENUM_REFLECT_VALUE(DownloadFailed)
+	TF2PL_ENUM_REFLECT_VALUE(DownloadSuccess)
 
-	MH_ENUM_REFLECT_VALUE(Updating)
-	MH_ENUM_REFLECT_VALUE(UpdateFailed)
-	MH_ENUM_REFLECT_VALUE(UpdateSuccess)
-MH_ENUM_REFLECT_END()
+	TF2PL_ENUM_REFLECT_VALUE(Updating)
+	TF2PL_ENUM_REFLECT_VALUE(UpdateFailed)
+	TF2PL_ENUM_REFLECT_VALUE(UpdateSuccess)
+TF2PL_ENUM_REFLECT_END()

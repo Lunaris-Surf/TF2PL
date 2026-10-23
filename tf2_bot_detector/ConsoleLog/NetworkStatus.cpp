@@ -111,7 +111,7 @@ std::shared_ptr<IConsoleLine> NetStatusConfigLine::TryParse(const ConsoleLineTry
 			playerMode = PlayerMode::Singleplayer;
 		else
 		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown player mode {}", fmt::streamed(std::quoted(playerModeStr)));
+			LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Unknown player mode {}", fmt::streamed(std::quoted(playerModeStr)));
 			return nullptr;
 		}
 
@@ -123,7 +123,7 @@ std::shared_ptr<IConsoleLine> NetStatusConfigLine::TryParse(const ConsoleLineTry
 			serverMode = ServerMode::Listen;
 		else
 		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown server mode {}", fmt::streamed(std::quoted(serverModeStr)));
+			LogError(TF2PL_SOURCE_LOCATION_CURRENT(), "Unknown server mode {}", fmt::streamed(std::quoted(serverModeStr)));
 			return nullptr;
 		}
 

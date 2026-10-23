@@ -4,28 +4,29 @@
 #pragma warning(pop)
 
 #include "WebUI.h"
+#include "WebUIData.h"
+#include "HostAlias.h"
 #include "Application.h"
+#include "Filesystem.h"
 #include "Log.h"
 #include "ModeratorLogic.h"
-#include "PlayerStatus.h"
+#include "PlayerListExport.h"
+#include "PreviewMode.h"
+#include "StreamerMode.h"
+#include "UpdateManager.h"
 #include "WorldState.h"
 #include "Actions/Actions.h"
 #include "Config/PlayerListJSON.h"
 #include "Config/Settings.h"
-#include "ConsoleLog/IConsoleLine.h"
-#include "ConsoleLog/ConsoleLines/ChatConsoleLine.h"
 #include "GameData/IPlayer.h"
-#include "GameData/TFConstants.h"
-#include "Networking/SteamAPI.h"
 #include "Platform/Platform.h"
-#include "Version.h"
 
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
-#include <array>
-#include <atomic>
+#include <cctype>
+#include <fstream>
 #include <random>
 
 using namespace std::chrono_literals;
@@ -41,6 +42,7 @@ namespace
 	};
 
 	constexpr std::string_view TOKEN_PLACEHOLDER = "__TF2PL_TOKEN__";
+	constexpr size_t MAX_LIVE_CLIENTS = 4;
 
 	std::string LoadIndexTemplate()
 	{
@@ -69,79 +71,6 @@ namespace
 		for (size_t i = 0; i < a.size(); i++)
 			diff |= static_cast<unsigned char>(a[i] ^ b[i]);
 		return diff == 0;
-	}
-
-	const char* TeamName(TFTeam team)
-	{
-		switch (team)
-		{
-		case TFTeam::Red:       return "red";
-		case TFTeam::Blue:      return "blue";
-		case TFTeam::Spectator: return "spectator";
-		default:                return "unknown";
-		}
-	}
-
-	const char* StateName(PlayerStatusState state)
-	{
-		switch (state)
-		{
-		case PlayerStatusState::Challenging: return "challenging";
-		case PlayerStatusState::Connecting:  return "connecting";
-		case PlayerStatusState::Spawning:    return "spawning";
-		case PlayerStatusState::Active:      return "active";
-		default:                             return "invalid";
-		}
-	}
-
-	const char* TeamShareName(TeamShareResult result)
-	{
-		switch (result)
-		{
-		case TeamShareResult::SameTeams:     return "same";
-		case TeamShareResult::OppositeTeams: return "opposite";
-		default:                             return "neither";
-		}
-	}
-
-	std::string ColorHex(const std::array<float, 4>& c)
-	{
-		const auto ch = [](float v) { return int(std::clamp(v, 0.0f, 1.0f) * 255.0f + 0.5f); };
-		return fmt::format("#{:02x}{:02x}{:02x}", ch(c[0]), ch(c[1]), ch(c[2]));
-	}
-
-	const std::array<float, 4>* AttributeColor(const Settings::Theme::Colors& colors, PlayerAttribute attr)
-	{
-		switch (attr)
-		{
-		case PlayerAttribute::Cheater:           return &colors.m_ScoreboardCheaterBG;
-		case PlayerAttribute::Suspicious:        return &colors.m_ScoreboardSuspiciousBG;
-		case PlayerAttribute::Exploiter:         return &colors.m_ScoreboardExploiterBG;
-		case PlayerAttribute::Racist:            return &colors.m_ScoreboardRacistBG;
-		case PlayerAttribute::Hostile:           return &colors.m_ScoreboardHostileBG;
-		case PlayerAttribute::SuspectedCheater:  return &colors.m_ScoreboardSuspectedCheaterBG;
-		case PlayerAttribute::Blacklisted:       return &colors.m_ScoreboardBlacklistedBG;
-		case PlayerAttribute::VACBanned:         return &colors.m_ScoreboardVACBannedBG;
-		case PlayerAttribute::GameBanned:        return &colors.m_ScoreboardGameBannedBG;
-		case PlayerAttribute::SourceBanned:      return &colors.m_ScoreboardSourceBannedBG;
-		case PlayerAttribute::Pedophilia:        return &colors.m_ScoreboardPedophiliaBG;
-		case PlayerAttribute::UntrustedListUser: return &colors.m_ScoreboardUntrustedListUserBG;
-		case PlayerAttribute::Zoophilia:         return &colors.m_ScoreboardZoophiliaBG;
-		default:                                 return nullptr;
-		}
-	}
-
-	nlohmann::json AttributesToJson(const PlayerAttributesList& attrs)
-	{
-		nlohmann::json out = nlohmann::json::array();
-		for (size_t i = 0; i < PlayerAttributesList::size(); i++)
-		{
-			if (attrs.HasAttribute(PlayerAttribute(i)))
-				out.push_back(nlohmann::json(PlayerAttribute(i)));
-		}
-		for (const auto& tag : attrs.GetCustomTags())
-			out.push_back(tag);
-		return out;
 	}
 
 	std::optional<SteamID> SteamIDFromJson(const nlohmann::json& action)
@@ -173,6 +102,39 @@ namespace
 			value.resize(maxLength);
 		return value;
 	}
+
+	bool BoolField(const nlohmann::json& action, const char* name)
+	{
+		auto found = action.find(name);
+		if (found == action.end() || !found->is_boolean())
+			throw std::invalid_argument(fmt::format("missing true/false field \"{}\"", name));
+		return found->get<bool>();
+	}
+
+	const char* ImageContentType(const std::string& path)
+	{
+		std::string ext = std::filesystem::path(std::u8string(path.begin(), path.end())).extension().string();
+		std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+		if (ext == ".png") return "image/png";
+		if (ext == ".jpg" || ext == ".jpeg") return "image/jpeg";
+		if (ext == ".gif") return "image/gif";
+		if (ext == ".bmp") return "image/bmp";
+		return nullptr; // tga etc. can't be shown by browsers
+	}
+}
+
+const char* WebUIController::ChannelName(size_t channel)
+{
+	switch (channel)
+	{
+	case Channel_State:    return "state";
+	case Channel_Chat:     return "chat";
+	case Channel_Log:      return "log";
+	case Channel_Settings: return "settings";
+	case Channel_Dossier:  return "dossier";
+	case Channel_Lists:    return "lists";
+	default:               return "unknown";
+	}
 }
 
 WebUIController::WebUIController(TF2BDApplication& app) :
@@ -192,7 +154,9 @@ bool WebUIController::IsRunning() const
 
 std::string WebUIController::GetURL() const
 {
-	return fmt::format("http://127.0.0.1:{}/", m_Port ? m_Port : m_Application.GetSettings().m_WebUIPort);
+	const auto port = m_Port ? m_Port : m_Application.GetSettings().m_WebUIPort;
+	const char* host = m_HostAliasReady ? WebHostAlias::NAME : "127.0.0.1";
+	return port == 80 ? fmt::format("http://{}/", host) : fmt::format("http://{}:{}/", host, port);
 }
 
 std::string WebUIController::GetError() const
@@ -204,6 +168,19 @@ std::string WebUIController::GetError() const
 void WebUIController::OpenInBrowser() const
 {
 	Platform::Shell::OpenURL(GetURL());
+}
+
+void WebUIController::Publish(Channel channel, std::string data)
+{
+	{
+		std::lock_guard lock(m_Mutex);
+		auto& published = m_Channels[channel];
+		if (published.m_Data == data)
+			return;
+		published.m_Data = std::move(data);
+		published.m_Version++;
+	}
+	m_Changed.notify_all();
 }
 
 bool WebUIController::Start(uint16_t port)
@@ -220,18 +197,17 @@ bool WebUIController::Start(uint16_t port)
 	}();
 
 	auto server = std::make_unique<httplib::Server>();
-	server->set_payload_max_length(16 * 1024);
+	server->set_payload_max_length(64 * 1024);
 	server->set_read_timeout(5, 0);
 	server->set_write_timeout(5, 0);
 
-	const std::string allowedHosts[] = { fmt::format("127.0.0.1:{}", port), fmt::format("localhost:{}", port) };
 	const std::string token = m_Token;
 
-	server->set_pre_routing_handler([allowedHosts](const httplib::Request& req, httplib::Response& res)
+	server->set_pre_routing_handler([port](const httplib::Request& req, httplib::Response& res)
 		{
 			// DNS rebinding: a page on evil.example that resolves to 127.0.0.1 still sends Host: evil.example
 			const auto host = req.get_header_value("Host");
-			if (host != allowedHosts[0] && host != allowedHosts[1])
+			if (!WebHostAlias::IsAllowedHost(host, port))
 			{
 				res.status = 403;
 				res.set_content("Forbidden", "text/plain");
@@ -248,10 +224,14 @@ bool WebUIController::Start(uint16_t port)
 			res.set_header("Referrer-Policy", "no-referrer");
 		});
 
-	const auto Authorized = [token](const httplib::Request& req, httplib::Response& res)
+	// fetch() sends the token as a header; EventSource and <img> can't, so they put it in the query string
+	const auto Authorized = [token](const httplib::Request& req, httplib::Response& res, bool allowQuery = false)
 		{
-			if (ConstantTimeEquals(req.get_header_value("X-TF2PL-Token"), token))
+			if (ConstantTimeEquals(req.get_header_value("X-TF2PL-Token"), token) ||
+				(allowQuery && ConstantTimeEquals(req.get_param_value("token"), token)))
+			{
 				return true;
+			}
 			res.status = 401;
 			res.set_content(R"({"error":"unauthorized"})", "application/json");
 			return false;
@@ -260,17 +240,138 @@ bool WebUIController::Start(uint16_t port)
 	server->Get("/", [index](const httplib::Request&, httplib::Response& res)
 		{
 			res.set_header("Content-Security-Policy",
-				"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
-				"connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+				"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; "
+				"img-src 'self' data: https://steamcdn-a.akamaihd.net https://*.steamstatic.com; "
+				"base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
 			res.set_content(index, "text/html; charset=utf-8");
 		});
 
+	// everything at once (polling fallback, and the first paint)
 	server->Get("/api/state", [this, Authorized](const httplib::Request& req, httplib::Response& res)
 		{
 			if (!Authorized(req, res))
 				return;
-			std::lock_guard lock(m_Mutex);
-			res.set_content(m_Snapshot, "application/json");
+
+			std::string body = "{";
+			{
+				std::lock_guard lock(m_Mutex);
+				for (size_t i = 0; i < Channel_Count; i++)
+				{
+					if (i)
+						body += ',';
+					body += '"';
+					body += ChannelName(i);
+					body += "\":";
+					body += m_Channels[i].m_Data;
+				}
+			}
+			body += '}';
+			res.set_content(body, "application/json");
+		});
+
+	// live updates: one SSE event per channel whenever it changes
+	server->Get("/api/events", [this, Authorized](const httplib::Request& req, httplib::Response& res)
+		{
+			if (!Authorized(req, res, true))
+				return;
+
+			if (m_LiveClients >= MAX_LIVE_CLIENTS)
+			{
+				res.status = 503; // the page falls back to polling
+				return;
+			}
+			m_LiveClients++;
+
+			auto sent = std::make_shared<std::array<uint64_t, Channel_Count>>();
+			sent->fill(0);
+
+			res.set_header("X-Accel-Buffering", "no");
+			res.set_chunked_content_provider("text/event-stream",
+				[this, sent](size_t, httplib::DataSink& sink)
+				{
+					std::string out;
+					{
+						std::unique_lock lock(m_Mutex);
+						const auto HasNews = [&]
+						{
+							if (m_Stopping)
+								return true;
+							for (size_t i = 0; i < Channel_Count; i++)
+							{
+								if (m_Channels[i].m_Version != (*sent)[i])
+									return true;
+							}
+							return false;
+						};
+
+						if (!m_Changed.wait_for(lock, 15s, HasNews))
+						{
+							out = ": keepalive\n\n";
+						}
+						else
+						{
+							if (m_Stopping)
+								return false;
+
+							for (size_t i = 0; i < Channel_Count; i++)
+							{
+								if (m_Channels[i].m_Version == (*sent)[i])
+									continue;
+								(*sent)[i] = m_Channels[i].m_Version;
+								out += "event: ";
+								out += ChannelName(i);
+								out += "\ndata: ";
+								out += m_Channels[i].m_Data; // compact JSON, never contains newlines
+								out += "\n\n";
+							}
+						}
+					}
+
+					return sink.is_writable() && sink.write(out.data(), out.size());
+				},
+				[this](bool)
+				{
+					m_LiveClients--;
+				});
+		});
+
+	// streamer mode's custom avatar (the page never learns the file path)
+	server->Get("/api/avatar", [this, Authorized](const httplib::Request& req, httplib::Response& res)
+		{
+			if (!Authorized(req, res, true))
+				return;
+
+			std::string path;
+			{
+				std::lock_guard lock(m_Mutex);
+				path = m_StreamerAvatarPath;
+			}
+
+			const char* type = path.empty() ? nullptr : ImageContentType(path);
+			if (!type)
+			{
+				res.status = 404;
+				return;
+			}
+
+			std::ifstream file(std::filesystem::path(std::u8string(path.begin(), path.end())), std::ios::binary);
+			if (!file)
+			{
+				res.status = 404;
+				return;
+			}
+
+			std::string data;
+			data.resize(8 * 1024 * 1024 + 1);
+			file.read(data.data(), std::streamsize(data.size()));
+			const auto read = size_t(file.gcount());
+			if (read > 8 * 1024 * 1024)
+			{
+				res.status = 413;
+				return;
+			}
+			data.resize(read);
+			res.set_content(data, type);
 		});
 
 	server->Post("/api/action", [this, Authorized](const httplib::Request& req, httplib::Response& res)
@@ -283,14 +384,16 @@ bool WebUIController::Start(uint16_t port)
 				return;
 			}
 
-			std::lock_guard lock(m_Mutex);
-			if (m_Actions.size() >= 64)
 			{
-				res.status = 429;
-				res.set_content(R"({"error":"too many queued actions"})", "application/json");
-				return;
+				std::lock_guard lock(m_Mutex);
+				if (m_Actions.size() >= 64)
+				{
+					res.status = 429;
+					res.set_content(R"({"error":"too many queued actions"})", "application/json");
+					return;
+				}
+				m_Actions.push_back(req.body);
 			}
-			m_Actions.push_back(req.body);
 			res.status = 202;
 			res.set_content(R"({"queued":true})", "application/json");
 		});
@@ -306,6 +409,7 @@ bool WebUIController::Start(uint16_t port)
 	{
 		std::lock_guard lock(m_Mutex);
 		m_Error.clear();
+		m_Stopping = false;
 	}
 
 	m_Port = port;
@@ -317,12 +421,26 @@ bool WebUIController::Start(uint16_t port)
 			*exited = true;
 		});
 
+	m_ForceRefresh = true;
+	if (!m_HostAliasAttempted)
+	{
+		m_HostAliasAttempted = true;
+		// Authentication and the helper run off the update thread. At most one
+		// prompt per controller lifetime, including server restarts/port changes.
+		m_HostAliasSetup = std::async(std::launch::async, WebHostAlias::EnsureInstalled);
+	}
 	Log("Web UI listening on {}", GetURL());
 	return true;
 }
 
 void WebUIController::Stop()
 {
+	{
+		std::lock_guard lock(m_Mutex);
+		m_Stopping = true; // wakes up and ends the live (SSE) streams
+	}
+	m_Changed.notify_all();
+
 	if (m_Server)
 		m_Server->stop();
 	if (m_Thread.joinable())
@@ -341,138 +459,95 @@ void WebUIController::Update()
 	if (portChanged || (!IsRunning() && now - m_LastStartAttempt > 5s))
 	{
 		m_LastStartAttempt = now;
-		if (Start(settings.m_WebUIPort) && settings.m_WebUIOpenBrowser && !m_BrowserOpened)
-		{
-			OpenInBrowser();
-			m_BrowserOpened = true;
-		}
+		Start(settings.m_WebUIPort);
 	}
 
 	if (!IsRunning())
 		return;
 
-	RunQueuedActions();
-
-	if (now - m_LastSnapshot > 400ms)
+	if (m_HostAliasSetup.valid() && m_HostAliasSetup.wait_for(0s) == std::future_status::ready)
 	{
-		m_LastSnapshot = now;
-		std::string snapshot;
+		m_HostAliasReady = m_HostAliasSetup.get();
+		Log("Web UI available at {}", GetURL());
+	}
+	if (!m_HostAliasSetup.valid() && settings.m_WebUIOpenBrowser && !m_BrowserOpened)
+	{
+		OpenInBrowser();
+		m_BrowserOpened = true;
+	}
+
+	// the page's changes come back in the very next push
+	RunQueuedActions();
+	Refresh(false);
+}
+
+void WebUIController::Refresh(bool force)
+{
+	force = force || m_ForceRefresh;
+	m_ForceRefresh = false;
+
+	const auto now = tfbd_clock_t::now();
+	auto& settings = m_Application.GetSettings();
+
+	{
+		std::lock_guard lock(m_Mutex);
+		m_StreamerAvatarPath = settings.m_StreamerMode.m_Enabled ? settings.m_StreamerMode.m_AvatarPath : std::string{};
+	}
+
+	const auto Dump = [](const nlohmann::json& j)
+	{
+		// invalid UTF-8 in player names must not take the whole snapshot down
+		return j.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
+	};
+
+	const auto Build = [&](Channel channel, const auto& builder)
+	{
 		try
 		{
-			snapshot = BuildSnapshot();
+			Publish(channel, Dump(builder()));
 		}
 		catch (const std::exception& e)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Web UI: failed to build state snapshot");
-			return;
+			LogException(TF2PL_SOURCE_LOCATION_CURRENT(), e, "Web UI: failed to build {}", ChannelName(channel));
 		}
+	};
 
-		std::lock_guard lock(m_Mutex);
-		m_Snapshot = std::move(snapshot);
-	}
-}
-
-std::string WebUIController::BuildSnapshot()
-{
-	auto& settings = m_Application.GetSettings();
-	auto& world = m_Application.GetWorld();
-	auto& modLogic = m_Application.GetModLogic();
-	const SteamID localID = settings.GetLocalSteamID();
-	const auto& colors = settings.m_Theme.m_Colors;
-
-	nlohmann::json j;
-	j["version"] = ++m_SnapshotVersion;
-	j["appVersion"] = fmt::format("{}", VERSION);
-	j["server"] = { { "name", world.GetServerHostName() }, { "map", world.GetMapName() } };
-	j["local"] = std::to_string(localID.GetSteamID64());
-	j["voteInProgress"] = world.IsVoteInProgress();
-
-	auto& attributes = j["attributes"] = nlohmann::json::array();
-	for (int i = 0; i < int(PlayerAttribute::COUNT); i++)
+	if (force || now - m_LastFastRefresh >= 100ms)
 	{
-		const auto attr = PlayerAttribute(i);
-		const auto* color = AttributeColor(colors, attr);
-		attributes.push_back({
-			{ "id", nlohmann::json(attr) },
-			{ "name", to_string(attr) },
-			{ "color", color ? ColorHex(*color) : "#cccccc" },
-		});
-	}
+		m_LastFastRefresh = now;
 
-	auto& customTags = j["customTags"] = nlohmann::json::array();
-	if (auto* playerList = modLogic.GetPlayerList())
-	{
-		for (const auto& tag : playerList->GetCustomTags())
-			customTags.push_back(tag);
-	}
+		Build(Channel_State, [&] { return WebUIData::BuildState(m_Application, m_Exporter.get()); });
+		Build(Channel_Chat, [&] { return WebUIData::BuildChat(m_Application); });
+		Build(Channel_Log, [&] { return WebUIData::BuildLog(); });
 
-	auto& players = j["players"] = nlohmann::json::array();
-	for (IPlayer& player : world.GetPlayers())
-	{
-		const SteamID id = player.GetSteamID();
-		const auto marks = modLogic.GetPlayerAttributes(id);
-
-		nlohmann::json p;
-		p["steamid"] = std::to_string(id.GetSteamID64());
-		p["steamid3"] = id.str();
-		p["name"] = player.GetNameSafe();
-		p["team"] = TeamName(player.GetTeam());
-		p["state"] = StateName(player.GetConnectionState());
-		p["ping"] = player.GetPing();
-		p["kills"] = player.GetScores().m_Kills;
-		p["deaths"] = player.GetScores().m_Deaths;
-		p["connected"] = std::chrono::duration_cast<std::chrono::seconds>(player.GetConnectedTime()).count();
-		p["friend"] = player.IsFriend();
-		p["isLocal"] = (id == localID);
-		if (auto userID = player.GetUserID())
-			p["userid"] = *userID;
-
-		auto& markList = p["marks"] = nlohmann::json::array();
-		for (const auto& mark : marks)
-			markList.push_back({ { "list", mark.m_FileName }, { "attrs", AttributesToJson(mark.m_Attributes) } });
-
-		if (auto* playerList = modLogic.GetPlayerList())
-			p["editable"] = AttributesToJson(playerList->GetEditablePlayerAttributes(id));
-
-		p["canVotekick"] = id != localID && world.FindUserID(id).has_value() &&
-			world.GetTeamShareResult(id, localID) == TeamShareResult::SameTeams;
-
-		if (player.GetFriendsInfo().has_value())
-		{
-			const auto marked = modLogic.GetMarkedFriendsCount(player);
-			p["markedFriends"] = { { "marked", marked.m_MarkedFriendsCountTotal }, { "total", marked.m_FriendsCountTotal } };
-		}
-
-		players.push_back(std::move(p));
-	}
-
-	auto& chat = j["chat"] = nlohmann::json::array();
-	if (auto& mainState = m_Application.GetMainState())
-	{
-		size_t count = 0;
-		for (const auto& line : mainState->m_PrintingLines) // newest first
-		{
-			if (!line || line->GetType() != ConsoleLineType::Chat)
-				continue;
-
-			const auto& chatLine = static_cast<const ChatConsoleLine&>(*line);
-			chat.push_back({
-				{ "name", chatLine.GetPlayerName() },
-				{ "message", chatLine.GetMessage() },
-				{ "steamid", std::to_string(chatLine.getSteamID().GetSteamID64()) },
-				{ "team", chatLine.IsTeam() },
-				{ "dead", chatLine.IsDead() },
-				{ "self", chatLine.IsSelf() },
-				{ "teamShare", TeamShareName(chatLine.GetTeamShareResult()) },
+		Build(Channel_Dossier, [&]() -> nlohmann::json
+			{
+				if (m_FocusedSelf)
+				{
+					const SteamID self = settings.GetLocalSteamID();
+					return self.IsValid() ? WebUIData::BuildDossier(m_Application, self) : nlohmann::json();
+				}
+				return m_FocusedPlayer ? WebUIData::BuildDossier(m_Application, *m_FocusedPlayer) : nlohmann::json();
 			});
 
-			if (++count >= 150)
-				break;
+		if (m_ListQuery)
+		{
+			const auto* playerList = m_Application.GetModLogic().GetPlayerList();
+			const size_t count = playerList ? playerList->GetPlayerCount() : 0;
+			if (m_ListsDirty || count != m_ListQueryPlayerCount)
+			{
+				m_ListsDirty = false;
+				m_ListQueryPlayerCount = count;
+				Build(Channel_Lists, [&] { return WebUIData::BuildLists(m_Application, WebUIData::ParseListQuery(*m_ListQuery)); });
+			}
 		}
 	}
 
-	// invalid UTF-8 in player names must not take the whole snapshot down
-	return j.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
+	if (force || now - m_LastSlowRefresh >= 1s)
+	{
+		m_LastSlowRefresh = now;
+		Build(Channel_Settings, [&] { return WebUIData::BuildSettings(m_Application); });
+	}
 }
 
 void WebUIController::RunQueuedActions()
@@ -499,16 +574,15 @@ void WebUIController::RunQueuedActions()
 	}
 
 	if (!actions.empty())
-		m_LastSnapshot = {}; // send the result back on the next update
+		m_ForceRefresh = true; // send the results right away
 }
 
 void WebUIController::RunAction(const nlohmann::json& action)
 {
 	auto& settings = m_Application.GetSettings();
-	auto& world = m_Application.GetWorld();
-	auto& modLogic = m_Application.GetModLogic();
 	const std::string type = StringField(action, "type", 32);
 
+	// --- app-wide -----------------------------------------------------------------------------------------------
 	if (type == "ui_mode")
 	{
 		if (StringField(action, "mode", 16) == "native")
@@ -519,6 +593,150 @@ void WebUIController::RunAction(const nlohmann::json& action)
 		}
 		return;
 	}
+	if (type == "setting")
+	{
+		const auto found = action.find("value");
+		if (found == action.end())
+			throw std::invalid_argument("missing value");
+		WebUIData::ApplySetting(m_Application, StringField(action, "id", 128), *found);
+		return;
+	}
+	if (type == "toggle")
+	{
+		const std::string name = StringField(action, "name", 32);
+		const bool value = BoolField(action, "value");
+		if (name == "pause")
+			m_Application.SetPaused(value);
+		else if (name == "show_commands")
+			settings.m_Unsaved.m_DebugShowCommands = value;
+		else if (name == "preview")
+			m_Application.SetPreviewMode(value);
+		else
+		{
+			// the rest are saved settings
+			static const std::pair<const char*, const char*> SAVED[] =
+			{
+				{ "chat_warnings", "auto_chat_warnings" }, { "party_warnings", "party_warnings" },
+				{ "auto_votekick", "auto_votekick" }, { "auto_mark", "auto_mark" }, { "auto_mark_bans", "auto_mark_bans" },
+				{ "streamer", "streamer.enabled" }, { "kill_logs", "kill_logs" },
+				{ "view.chat", "view.chat" }, { "view.scoreboard", "view.scoreboard" },
+				{ "view.team_stats", "view.team_stats" }, { "view.app_log", "view.app_log" },
+			};
+			const auto found = std::find_if(std::begin(SAVED), std::end(SAVED), [&](const auto& p) { return name == p.first; });
+			if (found == std::end(SAVED))
+				throw std::invalid_argument("unknown toggle");
+			WebUIData::ApplySetting(m_Application, found->second, value);
+		}
+		return;
+	}
+	if (type == "reload_lists")
+	{
+		m_Application.GetModLogic().ReloadConfigFiles();
+		m_ListsDirty = true;
+		return;
+	}
+	if (type == "reload_settings")
+	{
+		settings.LoadFile();
+		return;
+	}
+	if (type == "open_folder")
+	{
+		const std::string which = StringField(action, "which", 16);
+		if (which == "config")
+			Platform::Shell::ExploreTo(IFilesystem::Get().GetConfigDir());
+		else if (which == "logs")
+			Platform::Shell::ExploreTo(IFilesystem::Get().GetLogsDir());
+		else
+			throw std::invalid_argument("unknown folder");
+		return;
+	}
+	if (type == "debug_report")
+	{
+		GenerateDebugReport();
+		return;
+	}
+	if (type == "update_check")
+	{
+		if (auto* updates = m_Application.GetUpdateManager())
+			updates->QueueUpdateCheck();
+		return;
+	}
+	if (type == "browse_avatar")
+	{
+		// opens the file picker on this PC (the page is on the same machine)
+		if (auto path = Platform::Shell::BrowseForImageDialog(); !path.empty())
+		{
+			const auto u8 = path.u8string();
+			WebUIData::ApplySetting(m_Application, "streamer.avatar", std::string(u8.begin(), u8.end()));
+		}
+		return;
+	}
+	if (type == "untrusted_dismiss")
+	{
+		m_Application.DismissUntrustedListReport(action.value("acknowledge", false));
+		return;
+	}
+	if (type == "export")
+	{
+		const std::string op = StringField(action, "op", 16);
+		if (op == "start")
+		{
+			if (m_Exporter && m_Exporter->IsRunning())
+				return;
+			auto* playerList = m_Application.GetModLogic().GetPlayerList();
+			if (!playerList)
+				throw std::invalid_argument("player lists aren't loaded");
+			m_Exporter = std::make_unique<PlayerListExporter>(settings, *playerList);
+			m_Exporter->Start();
+		}
+		else if (op == "cancel")
+		{
+			if (m_Exporter)
+				m_Exporter->Cancel();
+		}
+		else if (op == "close")
+		{
+			if (m_Exporter && !m_Exporter->IsRunning())
+				m_Exporter.reset();
+		}
+		else
+		{
+			throw std::invalid_argument("unknown export op");
+		}
+		return;
+	}
+
+	// --- player lists browser -------------------------------------------------------------------------------------
+	if (type == "lists_query")
+	{
+		m_ListQuery = action;
+		m_ListsDirty = true;
+		return;
+	}
+	if (type == "lists_close")
+	{
+		m_ListQuery.reset();
+		Publish(Channel_Lists, "null");
+		return;
+	}
+
+	// --- one player -----------------------------------------------------------------------------------------------
+	if (type == "focus")
+	{
+		m_FocusedSelf = StringField(action, "steamid", 32) == "self";
+		m_FocusedPlayer = m_FocusedSelf ? std::nullopt : SteamIDFromJson(action);
+		return;
+	}
+	if (type == "lookup")
+	{
+		const auto id = WebUIData::ParseSteamID(StringField(action, "text", 256));
+		if (!id)
+			throw std::invalid_argument("not a valid SteamID");
+		m_FocusedSelf = false;
+		m_FocusedPlayer = id;
+		return;
+	}
 
 	const auto id = SteamIDFromJson(action);
 	if (!id)
@@ -526,8 +744,27 @@ void WebUIController::RunAction(const nlohmann::json& action)
 	if (*id == settings.GetLocalSteamID())
 		throw std::invalid_argument("can't act on the local player");
 
+	auto& world = m_Application.GetWorld();
+	auto& modLogic = m_Application.GetModLogic();
 	const IPlayer* player = world.FindPlayer(*id);
-	const std::string name = player ? player->GetNameUnsafe() : std::string{};
+	std::string name = player ? player->GetNameUnsafe() : std::string{};
+	if (name.empty())
+	{
+		if (auto* playerList = modLogic.GetPlayerList())
+		{
+			for (const auto& [fileName, data] : playerList->FindPlayerData(*id))
+			{
+				if (data.m_LastSeen && !data.m_LastSeen->m_PlayerName.empty())
+				{
+					name = data.m_LastSeen->m_PlayerName;
+					break;
+				}
+			}
+		}
+	}
+	if (name.empty())
+		name = StringField(action, "name", 128); // "Add player" in Player Lists can supply one
+
 	const std::string reason = StringField(action, "reason");
 	const bool set = action.value("set", true);
 
@@ -535,7 +772,8 @@ void WebUIController::RunAction(const nlohmann::json& action)
 	{
 		const auto attr = action.at("attr").get<PlayerAttribute>(); // throws on unknown ids
 		if (modLogic.SetPlayerAttribute(*id, name, attr, AttributePersistence::Saved, set, reason))
-			Log("Web UI: {} {} {:v} | {}", name.empty() ? id->str() : name, set ? "marked" : "unmarked", mh::enum_fmt(attr), reason);
+			Log("Web UI: {} {} {:v} | {}", name.empty() ? id->str() : name, set ? "marked" : "unmarked", tf2pl::enum_fmt(attr), reason);
+		m_ListsDirty = true;
 	}
 	else if (type == "tag")
 	{
@@ -543,6 +781,19 @@ void WebUIController::RunAction(const nlohmann::json& action)
 		if (!PlayerAttributesList::IsValidCustomTag(tag))
 			throw std::invalid_argument("invalid custom tag");
 		modLogic.SetPlayerCustomTag(*id, name, tag, AttributePersistence::Saved, set, reason);
+		m_ListsDirty = true;
+	}
+	else if (type == "remove_from_list")
+	{
+		auto* preview = m_Application.GetPreview();
+		if (preview && preview->OwnsPlayer(*id))
+			throw std::invalid_argument("sample players aren't in your list");
+		if (auto* playerList = modLogic.GetPlayerList(); playerList &&
+			playerList->RemoveFromWritableList(*id) == ModifyPlayerResult::FileSaved)
+		{
+			Log("Web UI: removed {} from {}", name.empty() ? id->str() : name, playerList->GetWritableListName());
+		}
+		m_ListsDirty = true;
 	}
 	else if (type == "votekick")
 	{

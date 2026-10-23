@@ -20,16 +20,16 @@
 #include "ConsoleLog/ConsoleLines/ConnectingLine.h"
 #include "ConsoleLog/ConsoleLines/ServerStatusMapLine.h"
 
-#include <mh/concurrency/thread_sentinel.hpp>
-#include <mh/text/charconv_helper.hpp>
-#include <mh/text/fmtstr.hpp>
+#include <tf2pl/concurrency/thread_sentinel.hpp>
+#include <tf2pl/text/charconv_helper.hpp>
+#include <tf2pl/text/fmtstr.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
 #include <fmt/chrono.h>
 #include <fmt/xchar.h>
-#include <mh/text/indenting_ostream.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/text/indenting_ostream.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <discord-game-sdk/core.h>
 #include <cryptopp/sha.h>
 
@@ -46,7 +46,7 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
-namespace mh
+namespace tf2pl
 {
 	template<typename T>
 	class property
@@ -143,65 +143,65 @@ namespace
 	};
 }
 
-MH_ENUM_REFLECT_BEGIN(discord::Result)
-	MH_ENUM_REFLECT_VALUE(Ok)
-	MH_ENUM_REFLECT_VALUE(ServiceUnavailable)
-	MH_ENUM_REFLECT_VALUE(InvalidVersion)
-	MH_ENUM_REFLECT_VALUE(LockFailed)
-	MH_ENUM_REFLECT_VALUE(InternalError)
-	MH_ENUM_REFLECT_VALUE(InvalidPayload)
-	MH_ENUM_REFLECT_VALUE(InvalidCommand)
-	MH_ENUM_REFLECT_VALUE(InvalidPermissions)
-	MH_ENUM_REFLECT_VALUE(NotFetched)
-	MH_ENUM_REFLECT_VALUE(NotFound)
-	MH_ENUM_REFLECT_VALUE(Conflict)
-	MH_ENUM_REFLECT_VALUE(InvalidSecret)
-	MH_ENUM_REFLECT_VALUE(InvalidJoinSecret)
-	MH_ENUM_REFLECT_VALUE(NoEligibleActivity)
-	MH_ENUM_REFLECT_VALUE(InvalidInvite)
-	MH_ENUM_REFLECT_VALUE(NotAuthenticated)
-	MH_ENUM_REFLECT_VALUE(InvalidAccessToken)
-	MH_ENUM_REFLECT_VALUE(ApplicationMismatch)
-	MH_ENUM_REFLECT_VALUE(InvalidDataUrl)
-	MH_ENUM_REFLECT_VALUE(InvalidBase64)
-	MH_ENUM_REFLECT_VALUE(NotFiltered)
-	MH_ENUM_REFLECT_VALUE(LobbyFull)
-	MH_ENUM_REFLECT_VALUE(InvalidLobbySecret)
-	MH_ENUM_REFLECT_VALUE(InvalidFilename)
-	MH_ENUM_REFLECT_VALUE(InvalidFileSize)
-	MH_ENUM_REFLECT_VALUE(InvalidEntitlement)
-	MH_ENUM_REFLECT_VALUE(NotInstalled)
-	MH_ENUM_REFLECT_VALUE(NotRunning)
-	MH_ENUM_REFLECT_VALUE(InsufficientBuffer)
-	MH_ENUM_REFLECT_VALUE(PurchaseCanceled)
-	MH_ENUM_REFLECT_VALUE(InvalidGuild)
-	MH_ENUM_REFLECT_VALUE(InvalidEvent)
-	MH_ENUM_REFLECT_VALUE(InvalidChannel)
-	MH_ENUM_REFLECT_VALUE(InvalidOrigin)
-	MH_ENUM_REFLECT_VALUE(RateLimited)
-	MH_ENUM_REFLECT_VALUE(OAuth2Error)
-	MH_ENUM_REFLECT_VALUE(SelectChannelTimeout)
-	MH_ENUM_REFLECT_VALUE(GetGuildTimeout)
-	MH_ENUM_REFLECT_VALUE(SelectVoiceForceRequired)
-	MH_ENUM_REFLECT_VALUE(CaptureShortcutAlreadyListening)
-	MH_ENUM_REFLECT_VALUE(UnauthorizedForAchievement)
-	MH_ENUM_REFLECT_VALUE(InvalidGiftCode)
-	MH_ENUM_REFLECT_VALUE(PurchaseError)
-	MH_ENUM_REFLECT_VALUE(TransactionAborted)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(discord::Result)
+	TF2PL_ENUM_REFLECT_VALUE(Ok)
+	TF2PL_ENUM_REFLECT_VALUE(ServiceUnavailable)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidVersion)
+	TF2PL_ENUM_REFLECT_VALUE(LockFailed)
+	TF2PL_ENUM_REFLECT_VALUE(InternalError)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidPayload)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidCommand)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidPermissions)
+	TF2PL_ENUM_REFLECT_VALUE(NotFetched)
+	TF2PL_ENUM_REFLECT_VALUE(NotFound)
+	TF2PL_ENUM_REFLECT_VALUE(Conflict)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidSecret)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidJoinSecret)
+	TF2PL_ENUM_REFLECT_VALUE(NoEligibleActivity)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidInvite)
+	TF2PL_ENUM_REFLECT_VALUE(NotAuthenticated)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidAccessToken)
+	TF2PL_ENUM_REFLECT_VALUE(ApplicationMismatch)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidDataUrl)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidBase64)
+	TF2PL_ENUM_REFLECT_VALUE(NotFiltered)
+	TF2PL_ENUM_REFLECT_VALUE(LobbyFull)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidLobbySecret)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidFilename)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidFileSize)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidEntitlement)
+	TF2PL_ENUM_REFLECT_VALUE(NotInstalled)
+	TF2PL_ENUM_REFLECT_VALUE(NotRunning)
+	TF2PL_ENUM_REFLECT_VALUE(InsufficientBuffer)
+	TF2PL_ENUM_REFLECT_VALUE(PurchaseCanceled)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidGuild)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidEvent)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidChannel)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidOrigin)
+	TF2PL_ENUM_REFLECT_VALUE(RateLimited)
+	TF2PL_ENUM_REFLECT_VALUE(OAuth2Error)
+	TF2PL_ENUM_REFLECT_VALUE(SelectChannelTimeout)
+	TF2PL_ENUM_REFLECT_VALUE(GetGuildTimeout)
+	TF2PL_ENUM_REFLECT_VALUE(SelectVoiceForceRequired)
+	TF2PL_ENUM_REFLECT_VALUE(CaptureShortcutAlreadyListening)
+	TF2PL_ENUM_REFLECT_VALUE(UnauthorizedForAchievement)
+	TF2PL_ENUM_REFLECT_VALUE(InvalidGiftCode)
+	TF2PL_ENUM_REFLECT_VALUE(PurchaseError)
+	TF2PL_ENUM_REFLECT_VALUE(TransactionAborted)
+TF2PL_ENUM_REFLECT_END()
 
-MH_ENUM_REFLECT_BEGIN(discord::ActivityType)
-	MH_ENUM_REFLECT_VALUE(Playing)
-	MH_ENUM_REFLECT_VALUE(Streaming)
-	MH_ENUM_REFLECT_VALUE(Listening)
-	MH_ENUM_REFLECT_VALUE(Watching)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(discord::ActivityType)
+	TF2PL_ENUM_REFLECT_VALUE(Playing)
+	TF2PL_ENUM_REFLECT_VALUE(Streaming)
+	TF2PL_ENUM_REFLECT_VALUE(Listening)
+	TF2PL_ENUM_REFLECT_VALUE(Watching)
+TF2PL_ENUM_REFLECT_END()
 
-MH_ENUM_REFLECT_BEGIN(ConnectionState)
-	MH_ENUM_REFLECT_VALUE(Disconnected)
-	MH_ENUM_REFLECT_VALUE(Local)
-	MH_ENUM_REFLECT_VALUE(Nonlocal)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(ConnectionState)
+	TF2PL_ENUM_REFLECT_VALUE(Disconnected)
+	TF2PL_ENUM_REFLECT_VALUE(Local)
+	TF2PL_ENUM_REFLECT_VALUE(Nonlocal)
+TF2PL_ENUM_REFLECT_END()
 
 static std::strong_ordering strcmp3(const char* lhs, const char* rhs)
 {
@@ -302,7 +302,7 @@ namespace discord
 	static std::basic_ostream<CharT, Traits>& operator<<(
 		std::basic_ostream<CharT, Traits>& os, const discord::ActivityTimestamps& ts)
 	{
-		mh::indenting_ostream(os)
+		tf2pl::indenting_ostream(os)
 			<< "\nStart: " << ts.GetStart()
 			<< "\nEnd:   " << ts.GetEnd()
 			;
@@ -314,7 +314,7 @@ namespace discord
 	static std::basic_ostream<CharT, Traits>& operator<<(
 		std::basic_ostream<CharT, Traits>& os, const discord::ActivityAssets& a)
 	{
-		mh::indenting_ostream(os)
+		tf2pl::indenting_ostream(os)
 			<< "\nLargeImage: " << std::quoted(a.GetLargeImage())
 			<< "\nLargeText:  " << std::quoted(a.GetLargeText())
 			<< "\nSmallImage: " << std::quoted(a.GetSmallImage())
@@ -328,7 +328,7 @@ namespace discord
 	static std::basic_ostream<CharT, Traits>& operator<<(
 		std::basic_ostream<CharT, Traits>& os, const discord::PartySize& ps)
 	{
-		mh::indenting_ostream(os)
+		tf2pl::indenting_ostream(os)
 			<< "\nCurrent: " << ps.GetCurrentSize()
 			<< "\nMax:     " << ps.GetMaxSize()
 			;
@@ -340,7 +340,7 @@ namespace discord
 	static std::basic_ostream<CharT, Traits>& operator<<(
 		std::basic_ostream<CharT, Traits>& os, const discord::ActivityParty& p)
 	{
-		mh::indenting_ostream(os)
+		tf2pl::indenting_ostream(os)
 			<< "\nID:   " << std::quoted(p.GetId())
 			<< "\nSize: " << p.GetSize()
 			;
@@ -352,7 +352,7 @@ namespace discord
 	static std::basic_ostream<CharT, Traits>& operator<<(
 		std::basic_ostream<CharT, Traits>& os, const discord::ActivitySecrets& s)
 	{
-		mh::indenting_ostream(os)
+		tf2pl::indenting_ostream(os)
 			<< "\nMatch:    " << std::quoted(s.GetMatch())
 			<< "\nJoin:     " << std::quoted(s.GetJoin())
 			<< "\nSpectate: " << std::quoted(s.GetSpectate())
@@ -364,8 +364,8 @@ namespace discord
 	template<typename CharT, typename Traits>
 	static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const discord::Activity& a)
 	{
-		mh::indenting_ostream(os) << std::boolalpha
-			<< "\nType:          " << mh::enum_fmt(a.GetType())
+		tf2pl::indenting_ostream(os) << std::boolalpha
+			<< "\nType:          " << tf2pl::enum_fmt(a.GetType())
 			<< "\nApplicationID: " << a.GetApplicationId()
 			<< "\nName:          " << std::quoted(a.GetName())
 			<< "\nState:         " << std::quoted(a.GetState())
@@ -435,14 +435,14 @@ namespace
 
 		PartyInfo m_PartyInfo;
 
-		struct : public mh::property<ConnectionState>
+		struct : public tf2pl::property<ConnectionState>
 		{
-			using BaseClass = mh::property<ConnectionState>;
+			using BaseClass = tf2pl::property<ConnectionState>;
 			using BaseClass::operator=;
 
 			bool OnChange(const ConnectionState& newValue) const override
 			{
-				DiscordDebugLog(fmt::format("ConnectionState {} -> {}", mh::enum_fmt(get()), mh::enum_fmt(newValue)));
+				DiscordDebugLog(fmt::format("ConnectionState {} -> {}", tf2pl::enum_fmt(get()), tf2pl::enum_fmt(newValue)));
 				return true;
 			}
 
@@ -514,7 +514,7 @@ static void SetHashedPartyId(discord::ActivityParty& discordParty, const Discord
 	constexpr char HASH_PREFIX[] = "tf2bd-discord-partyhash:";
 
 	constexpr size_t STR_HASH_LENGTH = (sizeof(HASH_PREFIX) - 1) + sizeof(digestBufRaw) * 2 + 1;
-	mh::pfstr<STR_HASH_LENGTH> digestStr;  // enough room for hex + null terminator + tf2bd
+	tf2pl::pfstr<STR_HASH_LENGTH> digestStr;  // enough room for hex + null terminator + tf2bd
 
 	digestStr.puts(HASH_PREFIX);
 	for (CryptoPP::byte byte : digestBufRaw)
@@ -672,7 +672,7 @@ discord::Activity DiscordGameState::ConstructActivity() const
 
 void DiscordGameState::OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state)
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 	auto& queue = m_QueueStates.at(size_t(queueType));
 
 	if (state == TFQueueStateChange::Entered)
@@ -688,7 +688,7 @@ void DiscordGameState::OnQueueStateChange(TFMatchGroup queueType, TFQueueStateCh
 
 void DiscordGameState::OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t queueStartTime)
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 	auto& queue = m_QueueStates.at(size_t(queueType));
 	queue.m_Active = true;
 	queue.m_StartTime = queueStartTime;
@@ -696,7 +696,7 @@ void DiscordGameState::OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t 
 
 void DiscordGameState::OnServerIPUpdate(const std::string_view& localIP)
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 	if (localIP.starts_with("0.0.0.0:"))
 	{
 		SetInLocalServer(true);
@@ -710,7 +710,7 @@ void DiscordGameState::OnServerIPUpdate(const std::string_view& localIP)
 
 void DiscordGameState::SetInLobby(bool inLobby)
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 	if (inLobby)
 		m_ConnectionState = ConnectionState::Nonlocal;
 
@@ -719,7 +719,7 @@ void DiscordGameState::SetInLobby(bool inLobby)
 
 void DiscordGameState::SetInLocalServer(bool inLocalServer)
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 	if (inLocalServer)
 	{
 		m_ConnectionState = ConnectionState::Local;
@@ -729,7 +729,7 @@ void DiscordGameState::SetInLocalServer(bool inLocalServer)
 
 void DiscordGameState::SetInParty(bool inParty)
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 	if (inParty)
 	{
 		if (m_PartyInfo.m_TFParty.m_MemberCount < 1)
@@ -746,7 +746,7 @@ void DiscordGameState::SetInParty(bool inParty)
 
 void DiscordGameState::SetMapName(std::string mapName)
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 	m_MapName = std::move(mapName);
 	if (m_MapName.empty())
 		m_LastSpawnedClass = TFClassType::Undefined;
@@ -754,7 +754,7 @@ void DiscordGameState::SetMapName(std::string mapName)
 
 void DiscordGameState::UpdateParty(const TFParty& party)
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 	if (party.m_MemberCount > 0)
 	{
 		SetInParty(true);
@@ -764,13 +764,13 @@ void DiscordGameState::UpdateParty(const TFParty& party)
 
 void DiscordGameState::OnLocalPlayerSpawned(TFClassType classType)
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 	m_LastSpawnedClass = classType;
 }
 
 void DiscordGameState::OnConnectionCountUpdate(unsigned connectionCount)
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 	if (connectionCount < 1)
 		m_ConnectionState = ConnectionState::Disconnected;
 }
@@ -793,7 +793,7 @@ namespace
 		void OnLocalPlayerSpawned(IWorldState& world, TFClassType classType) override;
 
 	private:
-		mh::thread_sentinel m_Sentinel;
+		tf2pl::thread_sentinel m_Sentinel;
 
 		std::unique_ptr<discord::Core> m_Core;
 		time_point_t m_LastDiscordInitializeTime{};
@@ -824,7 +824,7 @@ DiscordState::DiscordState(const Settings& settings, IWorldState& world) :
 
 DiscordState::~DiscordState()
 {
-	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
+	DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT());
 }
 
 void DiscordState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& line)
@@ -978,7 +978,7 @@ void DiscordState::Update()
 		if (auto result = discord::Core::Create(LUNARISV_DISCORD_APP_ID, DiscordCreateFlags_NoRequireDiscord, &core);
 			result != discord::Result::Ok)
 		{
-			DebugLogWarning("Failed to initialize Discord Game SDK: {}", mh::enum_fmt(result));
+			DebugLogWarning("Failed to initialize Discord Game SDK: {}", tf2pl::enum_fmt(result));
 		}
 		else
 		{
@@ -987,7 +987,7 @@ void DiscordState::Update()
 			core->SetLogHook(discord::LogLevel::Debug, &DiscordLogHookFunc);
 
 			if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
-				DebugLogWarning("Failed to register discord integration as steam appid 440: {}", mh::enum_fmt(result));
+				DebugLogWarning("Failed to register discord integration as steam appid 440: {}", tf2pl::enum_fmt(result));
 		}
 	}
 
@@ -1013,8 +1013,8 @@ void DiscordState::Update()
 							}
 							else
 							{
-								LogWarning(MH_SOURCE_LOCATION_CURRENT(),
-									"Failed to update discord activity state: {}", mh::enum_fmt(result));
+								LogWarning(TF2PL_SOURCE_LOCATION_CURRENT(),
+									"Failed to update discord activity state: {}", tf2pl::enum_fmt(result));
 							}
 						});
 
@@ -1023,7 +1023,7 @@ void DiscordState::Update()
 				}
 				else
 				{
-					DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT(), "Discord activity state unchanged");
+					DiscordDebugLog(TF2PL_SOURCE_LOCATION_CURRENT(), "Discord activity state unchanged");
 				}
 
 				// Update successful
@@ -1033,7 +1033,7 @@ void DiscordState::Update()
 		// Run discord callbacks
 		if (auto result = m_Core->RunCallbacks(); result != discord::Result::Ok)
 		{
-			auto errMsg = fmt::format("Failed to run discord callbacks: {}", mh::enum_fmt(result));
+			auto errMsg = fmt::format("Failed to run discord callbacks: {}", tf2pl::enum_fmt(result));
 			switch (result)
 			{
 			case discord::Result::NotRunning:

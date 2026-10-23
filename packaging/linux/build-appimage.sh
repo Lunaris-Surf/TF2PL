@@ -36,6 +36,8 @@ APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/con
 export APPIMAGE_EXTRACT_AND_RUN=1   # FUSE-less environments (CI, sandboxes)
 
 [ -f "$BIN" ]  || { echo "binary not found: $BIN (build the project first)"; exit 1; }
+HOST_SETUP="$(dirname "$BIN")/TF2PLHostSetup"
+[ -f "$HOST_SETUP" ] || { echo "hosts setup helper not found: $HOST_SETUP (rebuild the project)"; exit 1; }
 [ -f "$ICON" ] || { echo "icon not found: $ICON"; exit 1; }
 
 echo ">> fetching appimagetool (if missing)"
@@ -47,6 +49,10 @@ chmod +x "$APPIMAGETOOL"
 echo ">> assembling AppDir"
 rm -rf "$APPDIR"; mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/lib" "$OUTDIR"
 cp "$BIN" "$APPDIR/usr/bin/TF2PL"
+# The elevated helper must be outside the user's FUSE AppImage mount so pkexec
+# can execute it. GetCurrentExeDir() resolves to the AppImage's parent folder.
+cp "$HOST_SETUP" "$OUTDIR/TF2PLHostSetup"
+chmod +x "$OUTDIR/TF2PLHostSetup"
 cp "$ICON" "$APPDIR/TF2PL.png"
 cp "$ICON" "$APPDIR/.DirIcon"
 

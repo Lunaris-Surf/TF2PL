@@ -4,9 +4,9 @@
 #include "Log.h"
 #include "Platform/Platform.h"
 
-#include <mh/future.hpp>
-#include <mh/concurrency/async.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <tf2pl/future.hpp>
+#include <tf2pl/concurrency/async.hpp>
+#include <tf2pl/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
 #include <atomic>
@@ -58,7 +58,7 @@ auto ChatWrappersGeneratorPage::OnDraw(const DrawState& ds) -> OnDrawResult
 
 		ImGui::ProgressBar(progressFloat);
 
-		if (mh::is_future_ready(m_ChatWrappersGenerated))
+		if (tf2pl::is_future_ready(m_ChatWrappersGenerated))
 			return OnDrawResult::EndDrawing;
 	}
 
@@ -117,7 +117,7 @@ void ChatWrappersGeneratorPage::Init(const InitState& is)
 		}
 
 		DebugLog("Regenerating chat wrappers...");
-		m_ChatWrappersGenerated = mh::async([this, tfDir] { return RandomizeChatWrappers(tfDir, &m_Progress); });
+		m_ChatWrappersGenerated = tf2pl::async([this, tfDir] { return RandomizeChatWrappers(tfDir, &m_Progress); });
 	}
 }
 
@@ -132,7 +132,7 @@ void ChatWrappersGeneratorPage::Commit(const CommitState& cs)
 
 	if (m_ChatWrappersGenerated.valid())
 	{
-		assert(mh::is_future_ready(m_ChatWrappersGenerated));
+		assert(tf2pl::is_future_ready(m_ChatWrappersGenerated));
 		cs.m_Settings.m_Unsaved.m_ChatMsgWrappers = m_ChatWrappersGenerated.get();
 		// Write chat wrappers
 		{

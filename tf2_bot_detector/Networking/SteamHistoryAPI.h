@@ -3,8 +3,8 @@
 #include "SteamID.h"
 #include "HTTPClient.h"
 
-#include <mh/coroutine/task.hpp>
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/coroutine/task.hpp>
+#include <tf2pl/reflection/enum.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <memory>
@@ -61,13 +61,13 @@ namespace tf2_bot_detector::SteamHistoryAPI
 	void from_json(const nlohmann::json& j, PlayerSourceBan& d);
 	void from_json(const nlohmann::json& j, PlayerSourceBansResponse& d);
 
-	mh::task<PlayerSourceBansResponse> GetPlayerSourceBansAsync(const std::string& apiKey, const std::vector<SteamID>& steamIDs, const HTTPClient& client);
+	tf2pl::task<PlayerSourceBansResponse> GetPlayerSourceBansAsync(const std::string& apiKey, const std::vector<SteamID>& steamIDs, const HTTPClient& client);
 }
 
 // for our logging functions.
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::SteamHistoryAPI::BanState)
-	MH_ENUM_REFLECT_VALUE(Expired)
-	MH_ENUM_REFLECT_VALUE(Unbanned)
-	MH_ENUM_REFLECT_VALUE(Current)
-	MH_ENUM_REFLECT_VALUE(Permanent)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::SteamHistoryAPI::BanState)
+	TF2PL_ENUM_REFLECT_VALUE(Expired)
+	TF2PL_ENUM_REFLECT_VALUE(Unbanned)
+	TF2PL_ENUM_REFLECT_VALUE(Current)
+	TF2PL_ENUM_REFLECT_VALUE(Permanent)
+TF2PL_ENUM_REFLECT_END()

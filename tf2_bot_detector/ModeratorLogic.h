@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mh/reflection/enum.hpp>
+#include <tf2pl/reflection/enum.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -77,8 +77,8 @@ namespace tf2_bot_detector
 	};
 }
 
-MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::AttributePersistence)
-	MH_ENUM_REFLECT_VALUE(Saved)
-	MH_ENUM_REFLECT_VALUE(Transient)
-	MH_ENUM_REFLECT_VALUE(Any)
-MH_ENUM_REFLECT_END()
+TF2PL_ENUM_REFLECT_BEGIN(tf2_bot_detector::AttributePersistence)
+	TF2PL_ENUM_REFLECT_VALUE(Saved)
+	TF2PL_ENUM_REFLECT_VALUE(Transient)
+	TF2PL_ENUM_REFLECT_VALUE(Any)
+TF2PL_ENUM_REFLECT_END()

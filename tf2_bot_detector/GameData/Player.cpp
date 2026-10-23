@@ -79,7 +79,7 @@ duration_t Player::GetConnectedTime() const
 	return result;
 }
 
-const mh::expected<SteamAPI::PlayerSummary>& Player::GetPlayerSummary() const
+const tf2pl::expected<SteamAPI::PlayerSummary>& Player::GetPlayerSummary() const
 {
 	if (!m_PlayerSummary && m_PlayerSummary.error() == ErrorCode::LazyValueUninitialized)
 	{
@@ -90,7 +90,7 @@ const mh::expected<SteamAPI::PlayerSummary>& Player::GetPlayerSummary() const
 	return m_PlayerSummary;
 }
 
-const mh::expected<SteamAPI::PlayerBans>& Player::GetPlayerBans() const
+const tf2pl::expected<SteamAPI::PlayerBans>& Player::GetPlayerBans() const
 {
 	if (!m_PlayerSteamBans && (m_PlayerSteamBans.error() == ErrorCode::LazyValueUninitialized ||
 		(m_PlayerSteamBans.error() == SteamAPI::ErrorCode::SteamAPIDisabled && m_World->GetSettings().IsSteamAPIAvailable())))
@@ -102,7 +102,7 @@ const mh::expected<SteamAPI::PlayerBans>& Player::GetPlayerBans() const
 	return m_PlayerSteamBans;
 }
 
-const mh::expected<SteamHistoryAPI::PlayerSourceBanState>& Player::GetPlayerSourceBanState() const
+const tf2pl::expected<SteamHistoryAPI::PlayerSourceBanState>& Player::GetPlayerSourceBanState() const
 {
 	if (!m_PlayerSourceBanState && (m_PlayerSourceBanState.error() == ErrorCode::LazyValueUninitialized ||
 		(m_PlayerSourceBanState.error() == ErrorCode::InternetConnectivityDisabled &&
@@ -117,15 +117,15 @@ const mh::expected<SteamHistoryAPI::PlayerSourceBanState>& Player::GetPlayerSour
 	return m_PlayerSourceBanState;
 }
 
-const mh::expected<SteamHistoryAPI::PlayerSourceBans>& Player::GetPlayerSourceBans() const
+const tf2pl::expected<SteamHistoryAPI::PlayerSourceBans>& Player::GetPlayerSourceBans() const
 {
 	GetPlayerSourceBanState();
 	return m_PlayerSourceBans;
 }
 
 template<typename T, typename TFunc>
-const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&& updateFunc,
-	std::initializer_list<std::error_condition> silentErrors, const mh::source_location& location) const
+const tf2pl::expected<T>& Player::GetOrFetchDataAsync(tf2pl::expected<T>& var, TFunc&& updateFunc,
+	std::initializer_list<std::error_condition> silentErrors, const tf2pl::source_location& location) const
 {
 	m_Sentinel.check(location);
 
@@ -145,12 +145,12 @@ const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&&
 			auto sharedThis = shared_from_this();
 
 			[](std::shared_ptr<const Player> sharedThis, std::shared_ptr<const IHTTPClient> client,
-				mh::expected<T>& var, std::vector<std::error_condition> silentErrors, TFunc updateFunc,
-				mh::source_location location) -> mh::task<>
+				tf2pl::expected<T>& var, std::vector<std::error_condition> silentErrors, TFunc updateFunc,
+				tf2pl::source_location location) -> tf2pl::task<>
 			{
 				try
 				{
-					mh::expected<T> result;
+					tf2pl::expected<T> result;
 					try
 					{
 						result = co_await updateFunc(sharedThis, client);
@@ -159,7 +159,7 @@ const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&&
 					{
 						result = e.code().default_error_condition();
 
-						if (!mh::contains(silentErrors, result.error()))
+						if (!tf2pl::contains(silentErrors, result.error()))
 							DebugLogException(location, e);
 					}
 					catch (...)
@@ -184,17 +184,17 @@ const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&&
 	return var;
 }
 
-const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
+const tf2pl::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 {
 	return GetOrFetchDataAsync(m_LogsInfo,
-		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<LogsTFAPI::PlayerLogsInfo>
+		[&](std::shared_ptr<const Player> pThis, auto client) -> tf2pl::task<LogsTFAPI::PlayerLogsInfo>
 		{
 			DB::ITempDB& cacheDB = TF2BDApplication::GetApplication().GetTempDB();
 
 			DB::LogsTFCacheInfo cacheInfo{};
 			cacheInfo.m_ID = pThis->GetSteamID();
 
-			co_await cacheDB.GetOrUpdateAsync(cacheInfo, [&client](DB::LogsTFCacheInfo& info) -> mh::task<>
+			co_await cacheDB.GetOrUpdateAsync(cacheInfo, [&client](DB::LogsTFCacheInfo& info) -> tf2pl::task<>
 				{
 					info = co_await LogsTFAPI::GetPlayerLogsInfoAsync(client, info.m_ID);
 				});
@@ -203,11 +203,11 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 		});
 }
 
-const mh::expected<SteamAPI::PlayerFriends>& Player::GetFriendsInfo() const
+const tf2pl::expected<SteamAPI::PlayerFriends>& Player::GetFriendsInfo() const
 {
 	// TODO: use tempdb?
 	return GetOrFetchDataAsync(m_FriendsInfo,
-		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task< mh::expected<SteamAPI::PlayerFriends>>
+		[&](std::shared_ptr<const Player> pThis, auto client) -> tf2pl::task< tf2pl::expected<SteamAPI::PlayerFriends>>
 		{
 			const auto& settings = pThis->GetWorld().GetSettings();
 			if (!settings.IsSteamAPIAvailable())
@@ -221,10 +221,10 @@ const mh::expected<SteamAPI::PlayerFriends>& Player::GetFriendsInfo() const
 		});
 }
 
-const mh::expected<SteamAPI::PlayerInventoryInfo>& Player::GetInventoryInfo() const
+const tf2pl::expected<SteamAPI::PlayerInventoryInfo>& Player::GetInventoryInfo() const
 {
 	return GetOrFetchDataAsync(m_InventoryInfo,
-		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<mh::expected<SteamAPI::PlayerInventoryInfo>>
+		[&](std::shared_ptr<const Player> pThis, auto client) -> tf2pl::task<tf2pl::expected<SteamAPI::PlayerInventoryInfo>>
 		{
 			DB::ITempDB& cacheDB = TF2BDApplication::GetApplication().GetTempDB();
 
@@ -236,7 +236,7 @@ const mh::expected<SteamAPI::PlayerInventoryInfo>& Player::GetInventoryInfo() co
 			if (!settings.IsSteamAPIAvailable())
 				co_return SteamAPI::ErrorCode::SteamAPIDisabled;
 
-			co_await cacheDB.GetOrUpdateAsync(cacheInfo, [&settings, &client](DB::AccountInventorySizeInfo& info) -> mh::task<>
+			co_await cacheDB.GetOrUpdateAsync(cacheInfo, [&settings, &client](DB::AccountInventorySizeInfo& info) -> tf2pl::task<>
 				{
 					info = co_await SteamAPI::GetTF2InventoryInfoAsync(settings, info.GetSteamID(), *client);
 				});
@@ -245,12 +245,12 @@ const mh::expected<SteamAPI::PlayerInventoryInfo>& Player::GetInventoryInfo() co
 		});
 }
 
-mh::expected<duration_t> Player::GetTF2Playtime() const
+tf2pl::expected<duration_t> Player::GetTF2Playtime() const
 {
 	using ErrorCode = SteamAPI::ErrorCode;
 
 	return GetOrFetchDataAsync(m_TF2Playtime,
-		[&](std::shared_ptr<const Player> pThis, std::shared_ptr<const IHTTPClient> client) -> mh::task<mh::expected<duration_t>>
+		[&](std::shared_ptr<const Player> pThis, std::shared_ptr<const IHTTPClient> client) -> tf2pl::task<tf2pl::expected<duration_t>>
 		{
 			const auto& settings = pThis->GetWorld().GetSettings();
 			if (!settings.IsSteamAPIAvailable())
