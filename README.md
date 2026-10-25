@@ -1,4 +1,11 @@
+<details>
+<summary><b>⚠️ Removed from GameBanana ⚠️</b></summary>
+GameBanana has outright disrespected me, and has either banned or deleted my account to stop me from arguing against them  
 
+Last I checked I've been designing websites since 2017, and I've been writing software since 2020  
+
+No further software I develop will ever be released on their service, Not after the disrespectful response they gave  
+</details>
 <p align="center">
   <img src="docs/images/tf2pl-masthead.png" alt="TF2PL — Team Fortress 2 PlayerList" width="100%">
 </p>
